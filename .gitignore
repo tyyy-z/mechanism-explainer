@@ -1,0 +1,10 @@
+# local working notes / tooling (not part of the site)
+STATUS.md
+.taste-skill-sheet.txt
+tmp/
+__pycache__/
+*.pyc
+.i18ncheck*
+*-results.json
+node_modules/
+.DS_Store

@@ -1,0 +1,1636 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How a Turbofan Works · CFM56-7B-class interactive cutaway</title>
+<meta name="description" content="Interactive 3D cutaway of a two-spool high-bypass turbofan with a live Brayton-cycle model. English / 中文.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<style>
+/* ===== Data-terminal instrument theme (tasteskill app sheet: data-terminal, dark) ===== */
+:root{
+  --ground:#171719;--surface:#131217;--raised:#212023;--hover:#1c1b1f;--border:#222224;--rule:#1b1a1f;--control:#3a3a3e;--control2:#4c4c50;
+  --tx:#ffffff;--tx2:#bdbdc0;--mu:#8a8c92;--ac:#4a8ad6;--ok:#44a282;--bad:#e5566f;--warn:#d9a441;
+  --pos-bg:#1b2828;--pos-ink:#5fc39c;--neg-bg:#2c1a20;--neg-ink:#e5566f;--warn-bg:#2a2416;--warn-ink:#d9a441;--neu-bg:#212023;--neu-ink:#bdbdc0;
+  --callout:rgba(19,18,23,.9);--callout-bd:#2e2d32;
+  --shadow:0 12px 28px rgba(0,0,0,.28);
+  --r-card:6px;--r-ctl:999px;--r-chip:4px;--ctl-h:34px;
+  --mono:"JetBrains Mono",ui-monospace,monospace;--sans:"Inter","Noto Sans SC",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* legacy aliases used by inline content */
+  --bg:var(--ground);--panel:var(--surface);--panel2:var(--raised);--bd:var(--border);
+}
+body.light{
+  --ground:#f2f2f3;--surface:#fbfbfb;--raised:#ececee;--hover:#f4f4f5;--border:#e1e1e4;--rule:#ebebed;--control:#c8c8cd;--control2:#a9a9b0;
+  --tx:#111113;--tx2:#3e3f44;--mu:#66686e;--ac:#2f6fbd;--ok:#2e8467;--bad:#c8364f;--warn:#9a6a10;
+  --pos-bg:#e3f2ec;--pos-ink:#22704f;--neg-bg:#f8e4e8;--neg-ink:#b02a43;--warn-bg:#f6eedc;--warn-ink:#80570c;--neu-bg:#ececee;--neu-ink:#3e3f44;
+  --callout:rgba(251,251,251,.94);--callout-bd:#d9d9dd;--shadow:0 10px 24px rgba(17,17,19,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ground);color:var(--tx);font-family:var(--sans);font-size:13px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:0}
+#stage{position:fixed;left:0;top:0;width:1440px;height:810px;transform-origin:0 0;z-index:1;pointer-events:none}
+#stage>*{pointer-events:auto}
+#labels,#stageui{pointer-events:none!important}
+button{font-family:var(--sans);cursor:pointer;color:inherit}
+svg.i{width:14px;height:14px;flex:0 0 auto;display:block}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+#hdr{position:absolute;left:16px;top:10px;width:1408px;height:46px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:32px;height:32px;border-radius:var(--r-card);border:1px solid var(--control);display:grid;place-items:center;color:var(--tx)}
+.logo svg{width:18px;height:18px}
+.brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:0;line-height:20px}
+.brand h1 .op{color:var(--mu);font-weight:400}
+.brand p{margin:2px 0 0;font-size:12px;line-height:16px;color:var(--mu)}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.badge{font:500 12px/24px var(--sans);height:24px;padding:0 10px;border-radius:var(--r-ctl);background:var(--neu-bg);color:var(--neu-ink)}
+.badge.ghost{background:transparent;color:var(--mu);box-shadow:inset 0 0 0 1px var(--border)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.hbtn,.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 12px var(--sans);height:30px;padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s var(--ease),border-color .15s var(--ease),color .15s,transform .08s}
+.hbtn:hover,.sbtn:hover{background:var(--raised);border-color:var(--control2)}
+.hbtn:active,.sbtn:active,.run:active{transform:translateY(.5px) scale(.985)}
+.hbtn.on{border-color:var(--control2);background:var(--raised)}
+.hbtn.on .live{width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 1.6s var(--ease) infinite}
+@keyframes pulse{50%{opacity:.35}}
+.hbtn.icon,.sbtn.icon{width:30px;padding:0}
+
+/* ---------- trail ---------- */
+#trail{position:absolute;left:16px;top:66px;width:250px;height:730px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 10px;overflow:hidden}
+#trail h3{margin:0 8px 12px;font:600 16px/20px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:baseline}
+#trail h3 span{font:400 12px var(--sans);color:var(--mu)}
+.st{position:relative;display:flex;gap:12px;padding:7px 8px;border-radius:var(--r-card);cursor:pointer;margin-bottom:2px;transition:background .15s var(--ease)}
+.st:hover{background:var(--hover)}
+.st .nd{flex:0 0 24px;height:24px;border-radius:50%;border:1px solid var(--control);display:grid;place-items:center;font:500 11px var(--mono);color:var(--mu);background:var(--surface);z-index:1;transition:border-color .25s,color .25s,background .25s}
+.st .nd svg{width:12px;height:12px}
+.st .tt{display:inline-block;position:relative;font:500 14px/20px var(--sans);color:var(--tx2);transition:color .2s}
+.st .tt::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:var(--ac);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
+.st .sb{font:400 12px/16px var(--sans);color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+#steps{max-height:556px;overflow-y:auto;overflow-x:hidden}
+.st>div:last-child{min-width:0}
+.st.cur{background:var(--raised)}
+.st.cur .tt{color:var(--tx);font-weight:600}
+.st.cur .tt::after{transform:scaleX(1)}
+.st.cur .nd{border-color:var(--tx);color:var(--tx)}
+.st.done .nd{border-color:var(--control);color:var(--tx2)}
+.st.done .tt{color:var(--tx2)}
+.st:not(:last-child)::after{content:"";position:absolute;left:19.5px;top:33px;bottom:-7px;width:1px;background:var(--border)}
+.st.done::after{background:var(--control)!important}
+#trailfoot{position:absolute;left:18px;right:18px;bottom:14px;font:400 12px/18px var(--sans);color:var(--mu);border-top:1px solid var(--border);padding-top:10px}
+#trailfoot b{color:var(--tx2);font-weight:500}
+kbd{font:500 11px var(--mono);border:1px solid var(--control);border-radius:var(--r-chip);padding:0 4px;color:var(--tx2)}
+
+/* ---------- 3D stage overlay ---------- */
+#stageui{position:absolute;left:278px;top:66px;width:758px;height:536px;border:1px solid var(--border);border-radius:var(--r-card)}
+#stageui::before{content:"";position:absolute;left:0;right:0;top:0;height:104px;border-radius:var(--r-card) var(--r-card) 0 0;background:linear-gradient(180deg,var(--ground) 0,var(--ground) 40%,transparent)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#steptitle{position:absolute;left:16px;top:10px;max-width:440px;font:600 21px/28px var(--sans);letter-spacing:-.2px;color:var(--tx);white-space:nowrap}
+#steptitle .ix{display:block;font:500 11px/16px var(--mono);letter-spacing:.2px;color:var(--mu);margin:0 0 1px}
+#steptitle small{display:block;font:400 13px/18px var(--sans);color:var(--tx2);margin-top:4px;max-width:430px;white-space:normal}
+#ticker{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.tk{font:400 12px/18px var(--mono);padding:5px 10px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx2);max-width:600px;text-align:right}
+#tkphase{position:absolute;left:12px;bottom:12px;max-width:400px;text-align:left;white-space:normal}
+#tkphase:empty{display:none}
+#ticker{max-width:290px}
+body.capture *{transition:none!important;animation:none!important}
+.tk b{color:var(--tx);font-weight:600}
+.cmdseq{display:flex;gap:0;height:26px;align-items:stretch;border:1px solid var(--callout-bd);border-radius:var(--r-chip);background:var(--callout);overflow:hidden}
+.cmdseq:empty{display:none}
+.cmdseq span{position:relative;font:500 12px/24px var(--mono);padding:0 9px;color:var(--mu);border-left:1px solid var(--callout-bd);transition:color .2s}
+.cmdseq span:first-child{border-left:0}
+.cmdseq span::after{content:"";position:absolute;left:9px;right:9px;bottom:3px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.cmdseq span.on{color:var(--tx)}
+.cmdseq span.on::after{transform:scaleX(1)}
+.cmdseq span.done{color:var(--tx2)}
+#legend{position:absolute;right:12px;bottom:12px;max-width:320px;display:flex;align-items:center;gap:8px;font:400 11px var(--mono);color:var(--mu);background:var(--callout);border:1px solid var(--callout-bd);border-radius:var(--r-chip);padding:5px 10px;height:26px}
+#legend .bar{width:120px;height:4px;border-radius:1px}
+#legend .q{display:flex;align-items:center;gap:5px;font-family:var(--sans);margin-left:6px}
+#legend .q i{width:6px;height:6px;border-radius:50%;display:inline-block}
+#viewbtns{position:absolute;left:836px;top:610px;width:200px;height:41px;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-right:10px;z-index:2}
+#viewbtns .hbtn{height:28px;padding:0 10px;border-color:transparent;color:var(--tx2)}
+#viewbtns .hbtn:hover{border-color:var(--control);color:var(--tx)}
+#viewbtns .hbtn.on{color:var(--tx);border-color:var(--control)}
+#toast{position:absolute;left:50%;bottom:68px;transform:translate(-50%,4px);font:500 13px/18px var(--sans);padding:9px 14px;border-radius:var(--r-card);background:var(--raised);color:var(--tx);box-shadow:var(--shadow);opacity:0;transition:opacity .25s var(--ease),transform .35s var(--ease);max-width:560px;text-align:center}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#toast[style*="opacity: 1"]{transform:translate(-50%,0)}
+
+/* ---------- 3D callouts ---------- */
+#labels{position:absolute;inset:0}
+.lb{position:absolute;transform:translate(-50%,-50%);font:500 12px/16px var(--sans);white-space:nowrap;padding:2px 7px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx);opacity:0;transition:opacity .25s var(--ease)}
+.lb.l{transform:translate(-100%,-50%)}
+.lb.r{transform:translate(0,-50%)}
+.lb.big{font:500 12px/16px var(--mono);padding:4px 9px}
+.lb .v{font:500 12px var(--mono);color:var(--tx2);margin-left:2px}
+.lb .s{color:var(--mu);font-weight:400}
+.lb b{font-weight:600}
+.lb sub{font-size:9px;line-height:0}
+.lb.dot{padding-left:6px}
+.lb.dot::before{content:"";display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c,#8a8c92);margin-right:6px;vertical-align:-1px}
+.lb.sel{border-color:var(--ac);box-shadow:inset 0 -1px 0 var(--ac)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.lb.sel .v{color:var(--tx)}
+
+/* ---------- lesson box ---------- */
+#why{position:absolute;left:278px;top:610px;width:758px;height:186px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);display:flex;flex-direction:column;overflow:hidden}
+#whytabs{display:flex;gap:20px;padding:0 16px;border-bottom:1px solid var(--border);height:41px;align-items:stretch;padding-right:210px}
+.tabs button,#whytabs button{position:relative;font:500 13px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.tabs button:hover,#whytabs button:hover{color:var(--tx2)}
+.tabs button::after,#whytabs button::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.tabs button.on,#whytabs button.on{color:var(--tx)}
+.tabs button.on::after,#whytabs button.on::after{transform:scaleX(1)}
+#whybody{padding:12px 16px;flex:1;overflow:auto;font-size:13px;line-height:22px;color:var(--tx2)}
+#whybody p{margin:0 0 6px}
+#whybody b{color:var(--tx);font-weight:600}
+#whybody .ce{color:var(--warn)}
+#whybody::-webkit-scrollbar,#readouts::-webkit-scrollbar{width:8px}
+#whybody::-webkit-scrollbar-thumb{background:var(--control);border-radius:4px;border:2px solid var(--surface)}
+.katex{font-size:1.04em!important;color:var(--tx)}
+.mrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:2px 0 6px}
+.mrow .k{padding:4px 10px;background:var(--raised);border-radius:var(--r-chip)}
+.note{font-size:12px;color:var(--mu)}
+.quiz .q{font-weight:600;color:var(--tx);margin-bottom:8px}
+.quiz .opts{display:flex;flex-wrap:wrap;gap:6px}
+.quiz button{font:400 13px var(--sans);min-height:32px;padding:6px 12px;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx2);text-align:left;transition:background .15s,border-color .15s}
+.quiz button:hover{background:var(--raised);border-color:var(--control2);color:var(--tx)}
+.quiz button.right{border-color:var(--pos-ink);background:var(--pos-bg);color:var(--pos-ink)}
+.quiz button.wrong{border-color:var(--neg-ink);background:var(--neg-bg);color:var(--neg-ink)}
+.quiz .fb{margin-top:8px;font-size:13px}
+.quiz .fb .ok{color:var(--pos-ink);font-weight:600}.quiz .fb .no{color:var(--neg-ink);font-weight:600}
+
+/* ---------- right panel ---------- */
+#panel{position:absolute;left:1048px;top:66px;width:376px;height:730px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 16px}
+.card h4{margin:0 0 8px;font:600 16px/30px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:center}
+.card h4 .sub{font:400 12px var(--sans);color:var(--mu);margin-left:8px}
+#ctl{flex:0 1 auto;min-height:0;overflow-y:auto}
+#speedw{display:flex;gap:6px;align-items:center}
+#speed{appearance:none;-webkit-appearance:none;height:30px;padding:0 26px 0 12px;font:500 12px var(--mono);background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8c92' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--tx);border:1px solid var(--control);border-radius:var(--r-ctl)}
+#speed option{background:var(--surface);color:var(--tx)}
+.row{display:flex;align-items:center;gap:10px;min-height:32px;margin:0}
+.row+.row{border-top:1px solid var(--rule)}
+.row>label{flex:0 0 96px;font:400 12px var(--sans);color:var(--mu)}
+.row>label sub{font-size:11px}
+.seg{display:flex;flex:1;gap:16px;height:32px;align-items:stretch}
+.seg button{position:relative;font:500 12px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.seg button:hover{color:var(--tx2)}
+.seg.sm{gap:10px}
+.seg button.dis{opacity:.35;pointer-events:none}
+.seg button::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.seg button.on{color:var(--tx)}
+.seg button.on::after{transform:scaleX(1)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:22px;background:transparent;margin:0;cursor:pointer;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:1px;background:linear-gradient(90deg,var(--tx2) var(--p),var(--control) var(--p))}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;border-radius:50%;background:var(--tx);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--control2);transition:transform .12s var(--ease)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.3)}
+input[type=range]::-moz-range-track{height:2px;background:var(--control)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--tx2)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--tx);border:2px solid var(--surface)}
+.rv{flex:0 0 62px;text-align:right;font:500 12px var(--mono);color:var(--tx)}
+.bls{display:flex;gap:6px;flex:1;padding:6px 0}
+.bls button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:0;font:500 12px/16px var(--mono);padding:3px 7px;white-space:nowrap;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s,border-color .15s}
+.bls button:hover{background:var(--raised);border-color:var(--control2)}
+.bls button .sw{display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c);margin-right:5px;vertical-align:-1px}
+.bls button small{display:block;font:400 11px var(--mono);color:var(--mu)}
+.runrow{display:flex;gap:8px;margin-top:10px}
+.run{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 13px var(--sans);height:var(--ctl-h);border-radius:var(--r-ctl);border:none;background:var(--tx);color:var(--ground);transition:opacity .15s,transform .08s,background .15s}
+.run:hover{background:var(--tx2)}
+.run:disabled{opacity:.5;cursor:default}
+.run:disabled:hover{background:var(--tx)}
+.runrow .sbtn{height:var(--ctl-h);width:var(--ctl-h);padding:0}
+#readouts{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:10px;border-top:1px solid var(--border)}
+#readouts div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--rule);min-width:0}
+#readouts span{font:400 12px/16px var(--sans);color:var(--mu);white-space:normal;min-width:3em;flex:0 1 auto}
+#readouts b{font:500 12px/16px var(--mono);color:var(--tx);text-align:right;flex:0 0 auto;white-space:nowrap}
+#readouts div.w{grid-column:1/-1;order:-1}
+#readouts b span{min-width:0;font:inherit}
+#readouts b .pos{color:var(--pos-ink)}#readouts b .neg{color:var(--neg-ink)}
+#scopecard{flex:1 0 286px;display:flex;flex-direction:column;min-height:0;padding-bottom:12px}
+#scopecard h4{margin-bottom:0}
+#scopetabs{display:flex;gap:14px;height:34px;align-items:stretch;border-bottom:1px solid var(--border);margin:0 -16px 10px;padding:0 16px}
+#scopetabs button{font-size:12px;white-space:nowrap}
+#scope{flex:1;width:100%;min-height:0;display:block}
+#scopecap{font:400 12px/17px var(--sans);color:var(--mu);margin-top:8px}
+#tip{position:absolute;max-width:300px;padding:10px 12px;border-radius:var(--r-card);background:var(--raised);box-shadow:var(--shadow);font-size:12px;line-height:18px;color:var(--tx2);opacity:0;transform:translateY(3px);pointer-events:none;transition:opacity .15s var(--ease),transform .2s var(--ease);z-index:5}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#tip[style*="opacity: 1"]{transform:none}
+#tip h5{margin:0 0 4px;font:600 13px/18px var(--sans);color:var(--tx)}
+#tip .tv{display:flex;justify-content:space-between;gap:12px;font:500 12px var(--mono);color:var(--tx);margin-top:8px;padding-top:6px;border-top:1px solid var(--control)}
+#tip .tv span{font-family:var(--sans);font-weight:400;color:var(--mu)}
+#tip .tf{color:var(--tx2)}
+body.capture #trailfoot{display:none}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.seg button:focus-visible,#whytabs button:focus-visible,#scopetabs button:focus-visible{outline-offset:-2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+#rothint{position:fixed;left:16px;right:16px;display:none;font:400 13px/20px var(--sans);color:var(--mu);text-align:center;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-card);background:var(--surface)}
+#rothint b{color:var(--tx);font-weight:600}
+#rothint span{display:block;font-size:12px}
+.spin{width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+*{font-variant-numeric:tabular-nums}
+/* ---------- engine additions ---------- */
+#viewbtns{left:560px;width:476px}
+.seg.lang{flex:0 0 auto;gap:0;height:30px;border:1px solid var(--control);border-radius:var(--r-ctl);padding:2px;align-items:stretch}
+.seg.lang button{padding:0 10px;border-radius:var(--r-ctl);font:500 12px var(--sans);color:var(--mu)}
+.seg.lang button::after{display:none}
+.seg.lang button.on{background:var(--raised);color:var(--tx)}
+html[lang="zh-CN"] .st .sb{max-width:180px}
+.lab .v{font-family:var(--mono)}
+
+body.fid #steptitle,body.fid #ticker,body.fid #legend,body.fid #toast,body.fid #tip,body.fid #tkphase{visibility:hidden!important}
+
+</style></head><body>
+<canvas id="gl" data-i18n-title="a_gl"></canvas>
+<div id="stage">
+  <header id="hdr">
+    <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.2"><circle cx="9" cy="9" r="7.2" stroke="currentColor" stroke-opacity=".6"/><circle cx="9" cy="9" r="1.6" stroke="#4a8ad6" stroke-width="1.4"/><path d="M9 7.4C8 4.6 9.6 2.6 11.4 2.4M10.6 9.6c2.8-.4 4.6 1.4 4.6 3.2M7.6 10c-1.4 2.6-3.8 2.8-5.2 1.8" stroke="#4a8ad6" stroke-width="1.3"/></svg></div><div><h1><span data-i18n="h1"></span> <span class="op">CFM56-7B / LEAP-CLASS · BRAYTON CYCLE</span></h1><p data-i18n="h1sub"></p></div></div>
+    <div class="hdr-r"><span class="badge" data-i18n="badge1"></span><span class="badge ghost" data-i18n="badge2"></span><div class="seg lang" id="lang" role="group" aria-label="Language"><button data-v="en">EN</button><button data-v="zh">中文</button></div><button class="hbtn" id="btnAuto"></button><button class="hbtn icon" id="btnTheme" data-i18n-title="a_theme"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"/></svg></button></div>
+  </header>
+  <nav id="trail" data-i18n-title="a_trail"><h3><span data-i18n="trail"></span> <span data-i18n="trailn"></span></h3><div id="steps"></div>
+    <div id="trailfoot" data-i18n="trailfoot"></div></nav>
+  <div id="stageui">
+    <div id="steptitle"></div>
+    <div id="ticker"><div class="cmdseq" id="cmdseq"></div></div><div class="tk" id="tkphase"></div>
+    <div id="legend"><!-- taste-skill-ignore: swatch colours must match the 3D flow colours --><span class="q"><i style="background:#8fc4ff"></i><span data-i18n="lg_cold"></span></span><span class="q"><i style="background:#ffd37a"></i><span data-i18n="lg_warm"></span></span><span class="q"><i style="background:#ff8a3d"></i><span data-i18n="lg_hot"></span></span><span class="q"><i style="background:#c8372d"></i><span data-i18n="lg_cut"></span></span></div>
+    <div id="toast"></div>
+  </div>
+  <div id="labels"></div>
+  <div id="viewbtns"><button class="hbtn" id="btnCut"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 8V2.5A5.5 5.5 0 0 1 13.5 8z" fill="currentColor" stroke="none"/></svg><span data-i18n="b_cut"></span></button><button class="hbtn" id="btnNac"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 5.5h9.5l2.5 2.5-2.5 2.5H2z"/></svg><span data-i18n="b_nac"></span></button><button class="hbtn" id="btnExplode"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 8h3M11.5 8h3M6 4v8M10 4v8"/></svg><span data-i18n="b_exp"></span></button><button class="hbtn" id="btnReset"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8a5 5 0 1 0 1.5-3.6"/><path d="M3 2.5V5h2.5"/></svg><span data-i18n="b_reset"></span></button></div>
+  <section id="why"><div id="whytabs"><button data-t="why" data-i18n="w_why"></button><button data-t="math" data-i18n="w_math"></button><button data-t="ex" data-i18n="w_try"></button><button data-t="quiz" data-i18n="w_quiz"></button><button data-t="src" data-i18n="w_src"></button></div><div id="whybody"></div></section>
+  <aside id="panel">
+    <div class="card" id="ctl"><h4><span><span data-i18n="ctl"></span><span class="sub" data-i18n="ctl2"></span></span><span id="speedw"><button class="sbtn icon" id="btnPause" data-i18n-title="a_pause"></button><select id="speed" data-i18n-title="a_speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></span></h4>
+      <div class="row" id="r-thr"><label data-i18n="r_thr"></label><input type="range" id="thr" min="0" max="1" step="0.01" value="1" aria-label="throttle"><span class="rv" id="thrv"></span></div>
+      <div class="row" id="r-flight"><label data-i18n="r_flight"></label><div class="seg sm" id="flight"><button data-v="sls" data-i18n="f_sls"></button><button data-v="climb" data-i18n="f_climb"></button><button data-v="cruise" data-i18n="f_cruise"></button></div></div>
+      <div class="row" id="r-bpr"><label data-i18n="r_bpr"></label><input type="range" id="bpr" min="0.5" max="12" step="0.1" value="5.3" aria-label="bypass ratio"><span class="rv" id="bprv"></span></div>
+      <div class="row" id="r-opr"><label data-i18n="r_opr"></label><input type="range" id="opr" min="8" max="50" step="0.5" value="32" aria-label="overall pressure ratio"><span class="rv" id="oprv"></span></div>
+      <div class="row" id="r-t4"><label data-i18n="r_t4"></label><input type="range" id="t4" min="1200" max="2000" step="10" value="1600" aria-label="turbine inlet temperature"><span class="rv" id="t4v"></span></div>
+      <div class="row" id="r-eff"><label data-i18n="r_eff"></label><div class="seg" id="eff"><button data-v="real" data-i18n="e_real"></button><button data-v="ideal" data-i18n="e_ideal"></button></div></div>
+      <div class="runrow"><button class="run" id="btnRun"></button><button class="sbtn icon" id="btnStepOp" data-i18n-title="a_next"><svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 3v10l7-5z"/><rect x="11.5" y="3" width="1.4" height="10"/></svg></button></div>
+      <div id="readouts"></div>
+    </div>
+    <div class="card" id="scopecard"><h4><span><span data-i18n="scope"></span><span class="sub" data-i18n="scope2"></span></span></h4><div id="scopetabs" class="tabs"><button data-s="thrust" data-i18n="s_thrust"></button><button data-s="st" data-i18n="s_st"></button><button data-s="ts" data-i18n="s_ts"></button><button data-s="pw" data-i18n="s_pw"></button><button data-s="eta" data-i18n="s_eta"></button><button data-s="map" data-i18n="s_map"></button></div>
+      <canvas id="scope"></canvas><div id="scopecap"></div></div>
+  </aside>
+  <div id="tip"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ---------- deterministic helpers ----------
+let _seed = 1234567;
+const rnd = () => { _seed = (_seed * 1664525 + 1013904223) >>> 0; return _seed / 4294967296; };
+const rr = (a, b) => a + (b - a) * rnd();
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const spring = t => { t = clamp(t); return 1 - Math.exp(-6 * t) * Math.cos(9 * t) * (1 - t) - (t >= 1 ? 0 : 0) ; };
+const damp = (cur, target, lambda, dt) => lerp(cur, target, 1 - Math.exp(-lambda * dt));
+const fract = x => x - Math.floor(x);
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 1) => (v >= 0 ? '' : '−') + Math.abs(v).toFixed(d);
+
+const SIM = { t: 0, dt: 1 / 60, speed: 1, paused: false };
+const QS = location.search;
+const CAPTURE = /capture/.test(QS);
+const INTERACTIVE_START = /interactive|[?&]step=/.test(QS);
+if (CAPTURE) document.body.classList.add('capture');
+const QUALITY = { hi: !/quality=low/.test(QS) };
+
+// ---------- i18n (skill §11) ----------
+let LANG = (() => { const m = QS.match(/[?&]lang=(en|zh)/); if (m) return m[1]; try { const s = localStorage.getItem('lang'); if (s === 'en' || s === 'zh') return s; } catch (e) { } return 'en'; })();
+document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+const I18N = { en: {}, zh: {} };
+function t(k) { const v = I18N[LANG][k]; return v == null ? (I18N.en[k] == null ? k : I18N.en[k]) : v; }
+const tr = o => (o && typeof o === 'object' && ('en' in o || 'zh' in o)) ? (o[LANG] != null ? o[LANG] : o.en) : o;
+const B = (en, zh) => ({ en, zh });
+const LANGHOOKS = [];
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(e => { e.innerHTML = t(e.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = t(e.dataset.i18nTitle); e.setAttribute('aria-label', t(e.dataset.i18nTitle)); });
+  for (const f of LANGHOOKS) f();
+}
+function setLang(l) {
+  LANG = l; try { localStorage.setItem('lang', l); } catch (e) { }
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  const u = new URL(location.href); u.searchParams.set('lang', l); try { history.replaceState(null, '', u); } catch (e) { }
+  applyLang();
+}
+
+// ---------- renderer ----------
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setPixelRatio(Math.min(QUALITY.hi ? 2 : 1, window.devicePixelRatio || 1));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.setClearColor(0x000000, 0);
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+
+// ---------- lights ----------
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), .04).texture;
+const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x1a2233, .7); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.castShadow = true; key.shadow.mapSize.set(QUALITY.hi ? 2048 : 1024, QUALITY.hi ? 2048 : 1024);
+Object.assign(key.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 120 });
+key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+scene.add(key); scene.add(key.target);
+const rim = new THREE.DirectionalLight(0x88ccff, .55); scene.add(rim);
+
+// ---------- camera rig (spherical, tweened shots) ----------
+const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 500);
+const STAGE = { x: 278, y: 66, w: 758, h: 536 };      // design px region of the 3D stage
+const rig = { tx: 10, ty: 0, tz: 0, az: -0.9, el: 0.25, size: 26 };
+const rigFrom = { ...rig }, rigTo = { ...rig }; let rigT0 = -1, rigDur = 1;
+const user = { daz: 0, del: 0, zoom: 1 };
+function shot(s, dur = 1.6) {
+  Object.assign(rigFrom, rig); Object.assign(rigTo, rig, s);
+  // shortest azimuth
+  rigT0 = SIM.t; rigDur = dur;
+  if (dur <= 0) { Object.assign(rig, rigTo); rigT0 = -1; }
+}
+function updateRig() {
+  if (rigT0 >= 0) {
+    const k = ease((SIM.t - rigT0) / rigDur);
+    for (const p in rigTo) rig[p] = lerp(rigFrom[p], rigTo[p], k);
+    if (k >= 1) rigT0 = -1;
+  }
+}
+let stageScale = 1, stageOX = 0, stageOY = 0, VW = 1, VH = 1;
+function placeCamera() {
+  const t = SIM.t;
+  const az = rig.az + user.daz + 0.012 * Math.sin(t * .31) , el = clamp(rig.el + user.del + 0.008 * Math.sin(t * .23 + 1), -0.2, 1.45);
+  const sh = STAGE.h * stageScale; // stage px height on window
+  const d = rig.size * user.zoom * VH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * sh);
+  const tgt = new THREE.Vector3(rig.tx, rig.ty, rig.tz);
+  camera.position.set(tgt.x + d * Math.cos(el) * Math.sin(az), tgt.y + d * Math.sin(el), tgt.z + d * Math.cos(el) * Math.cos(az));
+  camera.up.set(0, 1, 0); camera.lookAt(tgt);
+  camera.near = Math.max(0.1, d * 0.05); camera.far = d * 6;
+  const px = stageOX + (STAGE.x + STAGE.w / 2) * stageScale, py = stageOY + (STAGE.y + STAGE.h / 2) * stageScale;
+  camera.aspect = VW / VH;
+  camera.setViewOffset(VW, VH, VW / 2 - px, VH / 2 - py, VW, VH);
+  camera.updateProjectionMatrix();
+  // light follows the view
+  const kd = new THREE.Vector3(-0.45, 1, 0.55).normalize();
+  key.position.copy(tgt).addScaledVector(kd, 40); key.target.position.copy(tgt);
+  const sc = rig.size * 0.9; Object.assign(key.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc }); key.shadow.camera.updateProjectionMatrix();
+  rim.position.copy(tgt).add(new THREE.Vector3(10, 4, -12));
+}
+function layout() {
+  VW = window.innerWidth; VH = window.innerHeight;
+  stageScale = Math.min(VW / 1440, VH / 810);
+  stageOX = (VW - 1440 * stageScale) / 2; stageOY = Math.max(0, (VH - 810 * stageScale) / 2);
+  $('stage').style.transform = `translate(${stageOX}px,${stageOY}px) scale(${stageScale})`;
+  renderer.setSize(VW, VH, false);
+  let h = document.getElementById('rothint'); if (!h) { h = document.createElement('div'); h.id = 'rothint'; document.body.appendChild(h); }
+  h.innerHTML = t('rothint');
+  h.style.display = VH - 810 * stageScale > 120 ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
+}
+
+// ---------- palette (data-terminal UI; physical PBR colours for hardware) ----------
+const COL = { cold: '#8fc4ff', bypass: '#a9d8ff', warm: '#ffd37a', hot: '#ff8a3d', flame: '#ff5a1f', fuel: '#ffe9a8', ac: '#4a8ad6', ok: '#44a282', bad: '#e5566f', warn: '#d9a441', cut: '#c8372d' };
+// ---------- material helpers ----------
+function M(color, o = {}) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .55, metalness: 0.05, envMapIntensity: .7 }, o)); }
+const EDGE = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: .28 });
+function mesh(geo, mat, { x = 0, y = 0, z = 0, parent, shadow = true, edge = true } = {}) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
+  m.castShadow = shadow; m.receiveShadow = true;
+  if (edge) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), EDGE); e.raycast = () => { }; m.add(e); }
+  if (parent) parent.add(m);
+  return m;
+}
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const rbox = (w, h, d, r = .04) => new RoundedBoxGeometry(w, h, d, 2, r);
+// box defined by ranges
+function boxR(x0, x1, y0, y1, z0, z1, mat, parent, o = {}) {
+  return mesh(box(x1 - x0, y1 - y0, z1 - z0), mat, Object.assign({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: (z0 + z1) / 2, parent }, o));
+}
+function tube(points, r, mat, parent, seg = 24) {
+  const c = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.0001);
+  const m = new THREE.Mesh(new THREE.TubeGeometry(c, seg, r, 6, false), mat); m.castShadow = true;
+  if (parent) parent.add(m); return m;
+}
+// polyline tube with sharp corners (manhattan routing)
+function wire(points, r, mat, parent) {
+  const g = new THREE.Group();
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = new THREE.Vector3(...points[i]), b = new THREE.Vector3(...points[i + 1]);
+    const L = a.distanceTo(b); if (L < 1e-4) continue;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L + r * 1.6, 6), mat);
+    m.position.copy(a).add(b).multiplyScalar(.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    m.castShadow = true; g.add(m);
+  }
+  if (parent) parent.add(g); return g;
+}
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+// text plate lying on a top face
+function topText(text, w, d, { color = '#e6edf7', bg = null, size = 64, sub = '' } = {}) {
+  const tex = canvasTex(512, Math.round(512 * d / w), (g, W, H) => {
+    if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+    g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${size}px Inter, "Noto Sans SC", sans-serif`; g.fillText(text, W / 2, H / 2 - (sub ? size * .35 : 0));
+    if (sub) { g.globalAlpha = .75; g.font = `500 ${size * .55}px "JetBrains Mono", monospace`; g.fillText(sub, W / 2, H / 2 + size * .55); }
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2; m.raycast = () => { }; return m;
+}
+
+// ---------- pick registry & labels ----------
+const PICK = []; // {obj, info:{name, fn, v: () => string}}
+function pickable(obj, info) { obj.userData.info = info; PICK.push(obj); return obj; }
+const LABELS = [];
+const labelsEl = $('labels');
+function label(html0, pos, { cls = '', group = null, side = '', pri = 0 } = {}) {
+  const src0 = html0; const html = typeof html0 === 'function' ? html0() : tr(html0);
+  const el = document.createElement('div'); el.className = 'lb ' + cls + ' ' + side; el.innerHTML = html; labelsEl.appendChild(el);
+  const L = { el, pos: typeof pos === 'function' ? pos : () => pos, show: 0, op: 0, group, pri, html, set(h) { if (h !== this.html) { this.html = h; el.innerHTML = h; this.w = 0; this.h = 0; } }, w: 0, h: 0, side };
+  L.src = src0; LABELS.push(L); return L;
+}
+function relabel() { for (const L of LABELS) if (L.src != null) L.set(typeof L.src === 'function' ? L.src() : tr(L.src)); }
+LANGHOOKS.push(relabel);
+const _lv = new THREE.Vector3();
+// stage zones where 3D labels may never appear (design px, relative to STAGE): title band, bottom band, toast slot
+const NOLAB = { top: 104, bottom: 64 };
+let TOASTRECT = null; // set by toast(): {x0,y0,x1,y1} in design px
+function updateLabels() {
+  const placed = [];
+  const cand = [];
+  for (const L of LABELS) {
+    const vis = L.show && (!L.group || visibleUp(L.group));
+    if (!vis) { if (L.op) { L.el.style.opacity = 0; L.op = 0; } L.el.style.visibility = 'hidden'; continue; }
+    cand.push(L);
+  }
+  cand.sort((a, b) => (b.pri || 0) - (a.pri || 0));
+  for (const L of cand) {
+    _lv.copy(L.pos()); _lv.project(camera);
+    const wx = (_lv.x * .5 + .5) * VW, wy = (-_lv.y * .5 + .5) * VH;
+    const x = (wx - stageOX) / stageScale, y = (wy - stageOY) / stageScale;
+    const w = L.w || (L.w = L.el.offsetWidth || 80), h = L.h || (L.h = L.el.offsetHeight || 20);
+    const xl = L.side === 'l' ? x - w : L.side === 'r' ? x : x - w / 2, xr = xl + w, yt = y - h / 2, yb = y + h / 2;
+    let inside = _lv.z < 1 && xl > STAGE.x + 4 && xr < STAGE.x + STAGE.w - 4 && yt > STAGE.y + NOLAB.top && yb < STAGE.y + STAGE.h - NOLAB.bottom;
+    const R = { x0: xl - 3, y0: yt - 2, x1: xr + 3, y1: yb + 2 };
+    if (inside && TOASTRECT && !(R.x1 < TOASTRECT.x0 || R.x0 > TOASTRECT.x1 || R.y1 < TOASTRECT.y0 || R.y0 > TOASTRECT.y1)) inside = false;
+    if (inside) for (const P of placed) if (!(R.x1 < P.x0 || R.x0 > P.x1 || R.y1 < P.y0 || R.y0 > P.y1)) { inside = false; break; }
+    if (inside) placed.push(R);
+    const o = inside ? (typeof L.show === 'number' ? L.show : 1) : 0;
+    L.el.style.left = x.toFixed(1) + 'px'; L.el.style.top = y.toFixed(1) + 'px';
+    L.el.style.visibility = o > 0 ? 'visible' : 'hidden';
+    if (o !== L.op) { L.el.style.opacity = o; L.op = o; }
+  }
+}
+function visibleUp(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+
+// ---------- generic particle stream (instanced) ----------
+const PART = { N: QUALITY.hi ? 1400 : 700 };
+PART.mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ toneMapped: false }), PART.N);
+PART.mesh.frustumCulled = false; PART.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(PART.mesh);
+const _pm = new THREE.Object3D(), _pc = new THREE.Color(), _pv = new THREE.Vector3();
+for (let i = 0; i < PART.N; i++) PART.mesh.setColorAt(i, _pc.set('#fff'));
+// streams: [{curve: THREE.Curve (world), n, period, col, size, rate(0..1)}]
+function updateParticles(streams, t) {
+  let i = 0;
+  for (const s of streams) {
+    if (!s || !s.curve) continue; if (!s.colf) _pc.set(s.col); const n = Math.round(s.n * clamp(s.rate == null ? 1 : s.rate));
+    for (let j = 0; j < n && i < PART.N; j++, i++) {
+      const h = fract(Math.sin((j + 1) * 12.9898 + (s.seed || 0) * 78.233) * 43758.5453);
+      const u = fract(t / s.period + j / Math.max(1, s.n) + h * .21);
+      s.curve.getPointAt(u, _pv); if (s.jit) { _pv.x += (fract(h * 91.7) - .5) * s.jit; _pv.z += (fract(h * 53.3) - .5) * s.jit; }
+      if (s.colf) s.colf(u, _pc); if (s.rev) { }
+      _pm.position.copy(_pv); const fade = Math.min(1, u * 8, (1 - u) * 8); _pm.scale.setScalar((s.size || .05) * fade); _pm.updateMatrix();
+      PART.mesh.setMatrixAt(i, _pm.matrix); PART.mesh.setColorAt(i, _pc);
+    }
+  }
+  for (; i < PART.N; i++) { _pm.position.set(0, -99, 0); _pm.scale.setScalar(0); _pm.updateMatrix(); PART.mesh.setMatrixAt(i, _pm.matrix); }
+  PART.mesh.instanceMatrix.needsUpdate = true; PART.mesh.instanceColor.needsUpdate = true;
+}
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+function path(pts) { const c = new THREE.CurvePath(); for (let i = 0; i < pts.length - 1; i++) c.add(new THREE.LineCurve3(V3(...pts[i]), V3(...pts[i + 1]))); return c; }
+
+// ---------- explode registry ----------
+const EXP = []; // {obj, p0, r0, dir, tilt, delay, ch}
+const EXV = { eng: 0 }; const EXT = { eng: 0 };
+function explodable(obj, ch, dir, tilt = [0, 0, 0], delay = rnd()) {
+  EXP.push({ obj, ch, p0: obj.position.clone(), r0: obj.rotation.clone(), dir: new THREE.Vector3(...dir), tilt: new THREE.Vector3(...tilt), delay }); return obj;
+}
+const springBack = t => { t = clamp(t); return 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2); };
+function updateExplode(dt) {
+  for (const e of EXP) { e.obj.position.copy(e.p0); e.obj.rotation.copy(e.r0); }
+  for (const e of EXP) {
+    const ex = EXV[e.ch]; if (!ex) continue; const k = clamp(ex * 1.45 - e.delay * .45);
+    const s = springBack(k);
+    e.obj.position.addScaledVector(e.dir, s);
+    e.obj.rotation.x += e.tilt.x * s; e.obj.rotation.y += e.tilt.y * s; e.obj.rotation.z += e.tilt.z * s;
+  }
+}
+// explode channel tweens driven by lesson time
+const EXA = {}; // ch -> {from,to,t0,dur}
+function setExplode(ch, to, dur = 1.8) { EXA[ch] = { from: EXV[ch], to, t0: SIM.t, dur }; EXT[ch] = to; }
+function tickExplode() { for (const ch in EXA) { const a = EXA[ch]; const k = clamp((SIM.t - a.t0) / a.dur); EXV[ch] = lerp(a.from, a.to, k); if (k >= 1) delete EXA[ch]; } }
+
+// opacity tween for material sets
+const FADES = [];
+function fadeable(mat) { mat.transparent = true; mat.userData.base = mat.opacity; return mat; }
+
+// ===================== e_sim: two-spool separate-flow turbofan cycle (Brayton) =====================
+// Textbook 1-D cycle (Mattingly "Elements of Propulsion" ch.7 style, with component efficiencies).
+// Calibrated to public CFM56-7B numbers: ~340 kg/s, BPR 5.3, OPR ~32, ~118 kN SLS take-off, TSFC ~10.5 g/(kN·s).
+// Operating schedule (idle→take-off) is illustrative, not the FADEC schedule.
+const GAS = { cpc: 1004.5, gc: 1.4, cph: 1156, gh: 1.33, R: 287.05, LHV: 43.1e6 };
+const FLIGHT = {
+  sls: { M: 0, h: 0 }, climb: { M: 0.5, h: 3000 }, cruise: { M: 0.78, h: 10668 }
+};
+function isa(h) { const T = h < 11000 ? 288.15 - 0.0065 * h : 216.65; const P = h < 11000 ? 101325 * Math.pow(T / 288.15, 5.2559) : 22632 * Math.exp(-(h - 11000) / 6341.6); return { T, P }; }
+const PRM = { thr: 1, flight: 'sls', bpr: 5.3, opr: 32, t4: 1600, eff: 'real', bleed: 0 };
+const N100 = { n1: 5175, n2: 14460 };
+const fprFor = bpr => Math.min(3.4, 1 + 4.7 / (bpr + 0.9));
+function nozzle(Pt, Tt, P0, g, cp) {
+  // convergent nozzle; returns exit velocity, pressure thrust per unit mass flow, choked flag
+  const crit = Math.pow((g + 1) / 2, g / (g - 1)); const R = GAS.R;
+  const pr = Math.max(1.0001, Pt / P0);
+  if (pr >= crit) { const Te = Tt * 2 / (g + 1), Pe = Pt / crit, V = Math.sqrt(g * R * Te), rho = Pe / (R * Te); return { V, Fp: (Pe - P0) / (rho * V), choked: true, M: 1, Pe, Te }; }
+  const Te = Tt / Math.pow(pr, (g - 1) / g); const V = Math.sqrt(Math.max(0, 2 * cp * (Tt - Te))); return { V, Fp: 0, choked: false, M: V / Math.sqrt(g * R * Te), Pe: P0, Te };
+}
+function cycle(p = PRM, over = {}) {
+  p = Object.assign({}, p, over);
+  const { cpc, gc, cph, gh, LHV } = GAS; const ideal = p.eff === 'ideal';
+  const E = ideal ? { d: 1, f: 1, c: 1, b: 1, pb: 1, t: 1, m: 1, n: 1 } : { d: .995, f: .905, c: .875, b: .998, pb: .955, t: .915, m: .995, n: .985 };
+  const fl = FLIGHT[p.flight] || FLIGHT.sls; const A = isa(fl.h);
+  const T0 = A.T, P0 = A.P, a0 = Math.sqrt(gc * GAS.R * T0), V0 = fl.M * a0;
+  const x = clamp(p.thr, 0, 1.05);
+  // spool schedule (illustrative operating line)
+  const n1 = 0.21 + 0.79 * Math.pow(x, 0.75), n2 = 0.60 + 0.40 * Math.pow(x, 0.55);
+  const fprD = fprFor(p.bpr), lpD = 2.6, hpD = Math.max(1.5, p.opr / lpD);
+  const pif = 1 + (fprD - 1) * n1 * n1, pil = 1 + (lpD - 1) * Math.pow(n1, 1.6), pih = 1 + (hpD - 1) * Math.pow((n2 - 0.42) / 0.58, 2.1) * (1 + 0.06 * (p.surgeKick || 0));
+  const Tt4 = 950 + (p.t4 - 950) * Math.pow(x, 1.15);
+  const Tt0 = T0 * (1 + (gc - 1) / 2 * fl.M * fl.M), Pt0 = P0 * Math.pow(Tt0 / T0, gc / (gc - 1));
+  const tauC = (pi, eta) => 1 + (Math.pow(pi, (gc - 1) / gc) - 1) / eta;
+  const Tt2 = Tt0, Pt2 = Pt0 * E.d;
+  const Tt13 = Tt2 * tauC(pif, E.f), Pt13 = Pt2 * pif;
+  const Tt25 = Tt2 * tauC(pil, E.f), Pt25 = Pt2 * pil;   // fan root + 3-stage booster on core stream
+  const Tt3 = Tt25 * tauC(pih, E.c), Pt3 = Pt25 * pih;
+  const Pt4 = Pt3 * E.pb;
+  const f = Math.max(0.004, (cph * Tt4 - cpc * Tt3) / (E.b * LHV - cph * Tt4));
+  const bl = p.bleed || 0;  // customer bleed fraction of core flow
+  const alpha = p.bpr;
+  // HP spool work balance: HPT drives HPC
+  const wHPC = cpc * (Tt3 - Tt25);
+  const Tt45 = Tt4 - wHPC / (E.m * (1 + f - bl) * cph);
+  const eT = (tin, tout) => Math.pow(1 - (1 - tout / tin) / E.t, gh / (gh - 1));
+  const Pt45 = Pt4 * eT(Tt4, Tt45);
+  // LP spool: LPT drives fan (bypass) + fan root/booster (core)
+  const wLP = cpc * (alpha * (Tt13 - Tt2) + (Tt25 - Tt2));
+  const Tt5 = Tt45 - wLP / (E.m * (1 + f - bl) * cph);
+  const Pt5 = Pt45 * eT(Tt45, Math.max(Tt5, 1));
+  const nc = nozzle(Pt5 * E.n, Tt5, P0, gh, cph), nb = nozzle(Pt13 * E.n, Tt13, P0, gc, cpc);
+  // mass flow
+  const thetaR = Tt0 / 288.15, deltaR = Pt0 / 101325;
+  const mcoreD = 340 / (1 + 5.3);
+  const mc = mcoreD * Math.pow(n1, 1.25) * deltaR / Math.sqrt(thetaR) * (1 + 0.012 * (p.opr - 32)), mb = mc * alpha, m0 = mc + mb;
+  const mf = f * mc;
+  const Fc = mc * ((1 + f - bl) * nc.V - V0 + (1 + f) * nc.Fp), Fb = mb * (nb.V - V0 + nb.Fp);
+  const F = Math.max(0, Fc + Fb);
+  const tsfc = F > 1 ? mf / (F / 1000) * 1000 : 0; // g/(kN s)
+  const Vec = (1 + f - bl) * nc.V + (1 + f) * nc.Fp, Veb = nb.V + nb.Fp;  // effective jet velocities (momentum + pressure thrust)
+  const KE = 0.5 * (mc * (Vec * Vec / (1 + f) - V0 * V0) + mb * (Veb * Veb - V0 * V0));
+  const etaTh = clamp(KE / (mf * LHV), 0, 1), etaP = V0 > 1 ? clamp(F * V0 / KE, 0, 1) : 0;
+  // T-s (entropy relative to ambient)
+  const sC = (T, P) => cpc * Math.log(T / T0) - GAS.R * Math.log(P / P0), sH = (T, P) => cph * Math.log(T / T0) - GAS.R * Math.log(P / P0);
+  const ST = [
+    { k: '0', T: T0, P: P0, s: 0 }, { k: '2', T: Tt2, P: Pt2, s: sC(Tt2, Pt2) }, { k: '13', T: Tt13, P: Pt13, s: sC(Tt13, Pt13) },
+    { k: '25', T: Tt25, P: Pt25, s: sC(Tt25, Pt25) }, { k: '3', T: Tt3, P: Pt3, s: sC(Tt3, Pt3) }, { k: '4', T: Tt4, P: Pt4, s: sH(Tt4, Pt4) },
+    { k: '45', T: Tt45, P: Pt45, s: sH(Tt45, Pt45) }, { k: '5', T: Tt5, P: Pt5, s: sH(Tt5, Pt5) }, { k: '9', T: nc.Te, P: nc.Pe, s: sH(nc.Te, nc.Pe) }];
+  // HPC map position: corrected flow fraction vs pressure ratio, simple surge line
+  const wc = n2 * n2 * 0.98 + 0.02; const surgePR = 1 + (hpD - 1) * 1.22 * Math.pow(wc, 1.9);
+  const sm = (surgePR - pih) / pih * 100;
+  return {
+    x, n1, n2, N1: n1 * N100.n1, N2: n2 * N100.n2, pif, pil, pih, opr: Pt3 / Pt2, Tt4, f, mf, mc, mb, m0, alpha, V0, V9: nc.V, V19: nb.V, c9: nc.choked, c19: nb.choked,
+    F, Fc, Fb, tsfc, etaTh, etaP, etaO: etaTh * etaP, egt: Tt45 - 273.15, t5: Tt5, T0, P0, ST,
+    PW: { hpt: mc * (1 + f) * cph * (Tt4 - Tt45) / 1e6, lpt: mc * (1 + f) * cph * (Tt45 - Tt5) / 1e6, fan: mb * cpc * (Tt13 - Tt2) / 1e6, hpc: mc * wHPC / 1e6 },
+    map: { wc, pr: pih, surgePR, sm, hpD }, tip: { fan: n1 * N100.n1 * 2 * Math.PI / 60 * 0.775 }
+  };
+}
+// live engine state (spools lag the throttle like a real engine; acceleration limited)
+const ENG = { thr: 0.45, n1: 0.6, n2: 0.85, lit: 1, fuel: 1, surge: 0, surgeKick: 0, R: null };
+function engineStep(dt) {
+  const tgt = cycle(PRM, { thr: ENG.thr, surgeKick: ENG.surgeKick });
+  const tau1 = 2.2, tau2 = 1.4;
+  if (ENG.lit && ENG.fuel) { ENG.n1 = damp(ENG.n1, tgt.n1, 1 / tau1, dt); ENG.n2 = damp(ENG.n2, tgt.n2, 1 / tau2, dt); }
+  else { ENG.n1 = damp(ENG.n1, ENG.motor1 || 0, 0.35, dt); ENG.n2 = damp(ENG.n2, ENG.motor2 || 0, 0.6, dt); }
+  // thermodynamic state follows spool speed (inverse schedule)
+  const xe = Math.pow(clamp((ENG.n1 - 0.21) / 0.79, 0, 1.05), 1 / 0.75);
+  ENG.R = (ENG.lit && ENG.fuel) ? cycle(PRM, { thr: xe, surgeKick: ENG.surgeKick }) : coldState();
+  return ENG.R;
+}
+function coldState() {
+  const R = cycle(PRM, { thr: 0 }); const k = clamp(ENG.n2 / 0.6);
+  return Object.assign({}, R, { n1: ENG.n1, n2: ENG.n2, N1: ENG.n1 * N100.n1, N2: ENG.n2 * N100.n2, F: R.F * k * k * 0.05, mf: 0, tsfc: 0, Tt4: R.T0 + 20 * k, egt: R.T0 - 273.15 + 15 * k, etaTh: 0, etaP: 0, m0: R.m0 * k, mc: R.mc * k, mb: R.mb * k, f: 0 });
+}
+
+// ===================== b_engine: CFM56-7B-class two-spool turbofan, real geometry =====================
+// 1 unit = 10 cm. Axis = +X (intake at -X). Fan blade LE hub at x = 0. Dimensions per refs/REFS.md.
+const TAU = Math.PI * 2, DEG = Math.PI / 180;
+const SEG = QUALITY.hi ? 120 : 72;
+const ENGINE = new THREE.Group(); scene.add(ENGINE);
+const MOD = { fan: new THREE.Group(), core: new THREE.Group(), lpt: new THREE.Group(), nac: new THREE.Group() };
+for (const k in MOD) { MOD[k].name = k; ENGINE.add(MOD[k]); }
+const SPOOL = { lp: [], hp: [], a1: 0, a2: 0 };
+function spoolGroup(kind, parent) { const g = new THREE.Group(); parent.add(g); SPOOL[kind].push(g); return g; }
+
+// ---------- cutaway (quarter section, animatable) ----------
+const CUT = { th: 0, planes: [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0), new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)], caps: [] };
+function setCut(th) {
+  CUT.th = th; CUT.planes[1].normal.set(0, -Math.sin(th), Math.cos(th));
+  for (const c of CUT.caps) { c.g1.rotation.x = th; c.g0.visible = c.g1.visible = th > 0.02; }
+}
+// ---------- materials (PBR; per-section clones so a section can be highlighted) ----------
+const MAT = {}; const SECM = {};
+function PM(color, o = {}) { const m = new THREE.MeshPhysicalMaterial(Object.assign({ color, roughness: .45, metalness: .8, envMapIntensity: 1.0, side: THREE.DoubleSide }, o)); return m; }
+function cutM(m) { m.clippingPlanes = CUT.planes; m.clipIntersection = true; return m; }
+function texNoise(w, h, f) { return canvasTex(w, h, f); }
+// brushed-metal roughness map + cooling-hole map (procedural, tiny)
+const TX = {};
+TX.brush = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#808080'; g.fillRect(0, 0, W, H); for (let i = 0; i < 1400; i++) { const v = 100 + rr(0, 80) | 0; g.strokeStyle = `rgb(${v},${v},${v})`; g.globalAlpha = .35; const y = rr(0, H); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rr(-2, 2)); g.stroke(); } });
+TX.brush.wrapS = TX.brush.wrapT = THREE.RepeatWrapping; TX.brush.colorSpace = THREE.NoColorSpace;
+TX.holes = canvasTex(512, 128, (g, W, H) => { g.fillStyle = '#c8c8c8'; g.fillRect(0, 0, W, H); g.fillStyle = '#2a2a2a'; for (let row = 0; row < 6; row++) for (let i = 0; i < 64; i++) { g.beginPath(); g.arc((i + (row % 2) * .5) * W / 64, 10 + row * 21, 2.2, 0, TAU); g.fill(); } g.fillStyle = '#9a9a9a'; for (let k = 0; k < 3; k++) g.fillRect(0, 36 + k * 42, W, 3); });
+TX.holes.wrapS = TX.holes.wrapT = THREE.RepeatWrapping;
+TX.braid = canvasTex(64, 64, (g, W, H) => { g.fillStyle = '#9da2a8'; g.fillRect(0, 0, W, H); g.strokeStyle = '#5f646b'; g.lineWidth = 2; for (let i = -8; i < 16; i++) { g.beginPath(); g.moveTo(i * 8, 0); g.lineTo(i * 8 + 64, 64); g.stroke(); g.beginPath(); g.moveTo(i * 8 + 64, 0); g.lineTo(i * 8, 64); g.stroke(); } });
+TX.braid.wrapS = TX.braid.wrapT = THREE.RepeatWrapping; TX.braid.repeat.set(40, 1);
+TX.spin = canvasTex(512, 256, (g, W, H) => { g.fillStyle = '#1f2125'; g.fillRect(0, 0, W, H); g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, W, H * .05); g.beginPath(); g.moveTo(0, H * .05); g.bezierCurveTo(W * .12, H * .35, W * .22, H * .7, W * .26, H); g.lineTo(W * .29, H); g.bezierCurveTo(W * .25, H * .7, W * .15, H * .35, W * .035, H * .05); g.fill(); });
+TX.paint = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#7a7a7a'; g.fillRect(0, 0, W, H); for (let i = 0; i < 3000; i++) { const v = 110 + rr(0, 40) | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(rr(0, W), rr(0, H), 2, 2); } });
+TX.paint.wrapS = TX.paint.wrapT = THREE.RepeatWrapping; TX.paint.colorSpace = THREE.NoColorSpace;
+TX.paint.repeat.set(8, 2);
+const BASE = {
+  ti: () => PM('#b9bdc3', { roughness: .28, metalness: .9, roughnessMap: TX.brush }),
+  fanblade: () => PM('#c9ccd1', { roughness: .22, metalness: .92, roughnessMap: TX.brush, clearcoat: .3, clearcoatRoughness: .3 }),
+  steel: () => PM('#8b8f96', { roughness: .4, metalness: .85, roughnessMap: TX.brush }),
+  ni: () => PM('#8e877d', { roughness: .5, metalness: .8 }),
+  hpt: () => PM('#b49b6e', { roughness: .38, metalness: .85, emissive: '#000000' }),
+  lpt: () => PM('#9b8f7e', { roughness: .45, metalness: .82, emissive: '#000000' }),
+  liner: () => PM('#a8957a', { roughness: .55, metalness: .7, map: TX.holes, bumpMap: TX.holes, bumpScale: .6 }),
+  corecase: () => PM('#55534f', { roughness: .62, metalness: .55, roughnessMap: TX.paint }),
+  hotcase: () => PM('#6b625a', { roughness: .58, metalness: .6, roughnessMap: TX.paint }),
+  fancase: () => PM('#5d6232', { roughness: .66, metalness: .1, roughnessMap: TX.paint, clearcoat: .15 }),
+  flange: () => PM('#a7abb1', { roughness: .32, metalness: .9 }),
+  spinner: () => PM('#ffffff', { map: TX.spin, roughness: .28, metalness: .35, clearcoat: .6, clearcoatRoughness: .2 }),
+  pipe: () => PM('#c1c5cb', { roughness: .25, metalness: .95 }),
+  hose: () => PM('#a1a6ad', { roughness: .55, metalness: .6, map: TX.braid }),
+  cast: () => PM('#8d968c', { roughness: .66, metalness: .3, roughnessMap: TX.paint }),
+  eec: () => PM('#6f747a', { roughness: .5, metalness: .55 }),
+  plug: () => PM('#7a746d', { roughness: .85, metalness: .35, roughnessMap: TX.paint }),
+  shaft: () => PM('#9aa0a7', { roughness: .3, metalness: .9 }),
+  nacelle: () => PM('#eef1f4', { roughness: .32, metalness: 0, clearcoat: .8, clearcoatRoughness: .15 }),
+  lip: () => PM('#cfd3d8', { roughness: .18, metalness: 1 }),
+  liner2: () => PM('#3a3d42', { roughness: .8, metalness: .1 }),
+  stripe: () => PM('#1d3f8a', { roughness: .35, metalness: 0, clearcoat: .7 }),
+  stripe2: () => PM('#f2c230', { roughness: .35, metalness: 0, clearcoat: .7 }),
+};
+function sm(sec, key, cut = true) {
+  const k = sec + ':' + key + (cut ? ':c' : '');
+  if (!MAT[k]) { const m = BASE[key](); if (cut) cutM(m); MAT[k] = m; (SECM[sec] = SECM[sec] || []).push(m); m.userData.sec = sec; m.userData.e0 = m.emissive.clone(); }
+  return MAT[k];
+}
+TX.hatch = canvasTex(64, 64, (g, W, H) => { g.fillStyle = '#c98378'; g.fillRect(0, 0, W, H); g.strokeStyle = '#b0574c'; g.lineWidth = 6; for (let i = -1; i < 3; i++) { g.beginPath(); g.moveTo(i * 32 - 4, H + 4); g.lineTo(i * 32 + W + 4, -4); g.stroke(); } });
+TX.hatch.wrapS = TX.hatch.wrapT = THREE.RepeatWrapping; TX.hatch.repeat.set(2.2, 2.2);
+const CAPMAT = new THREE.MeshStandardMaterial({ color: '#ffffff', map: TX.hatch, roughness: .6, metalness: .05, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+// ---------- geometry helpers ----------
+function latheGeo(prof, seg = SEG, phi0 = 0, phiL = TAU) {
+  const pts = prof.map(([x, r]) => new THREE.Vector2(Math.max(0.0001, r), x));
+  const g = new THREE.LatheGeometry(pts, seg, phi0, phiL); g.rotateZ(-Math.PI / 2); return g;
+}
+const closeP = p => p.concat([p[0]]);
+// solid of revolution from closed (x,r) profile; optional section cap on the cut planes
+function solid(prof, mat, parent, { cap = true, seg = SEG, info = null, mod = 'core', shadow = true } = {}) {
+  const m = new THREE.Mesh(latheGeo(closeP(prof), seg), mat); m.castShadow = shadow; m.receiveShadow = true; parent.add(m);
+  if (cap && mat.clippingPlanes) addCap(prof, mod);
+  if (info) pickable(m, info);
+  return m;
+}
+const CAPG = {};
+function addCap(prof, mod) {
+  let c = CAPG[mod]; if (!c) { c = CAPG[mod] = { g0: new THREE.Group(), g1: new THREE.Group(), geos: [] }; MOD[mod].add(c.g0, c.g1); CUT.caps.push(c); c.g0.visible = c.g1.visible = false; }
+  const sh = new THREE.Shape(prof.map(([x, r]) => new THREE.Vector2(x, r))); c.geos.push(new THREE.ShapeGeometry(sh));
+}
+function finalizeCaps() { for (const k in CAPG) { const c = CAPG[k]; const g = mergeGeometries(c.geos); c.g0.add(new THREE.Mesh(g, CAPMAT)); c.g1.add(new THREE.Mesh(g, CAPMAT)); } }
+// closed profile from an inner polyline and wall thickness (offset outward in r)
+const wall = (line, t) => line.concat(line.slice().reverse().map(([x, r]) => [x, r + t]));
+const ringP = (x0, x1, r0, r1, ch = 0.03) => [[x0, r0 + ch], [x0 + ch, r0], [x1 - ch, r0], [x1, r0 + ch], [x1, r1 - ch], [x1 - ch, r1], [x0 + ch, r1], [x0, r1 - ch]];
+// "can": chamfered cylinder of revolution along local axis (for accessories) — not a raw primitive
+function canGeo(len, r, ch = .06, nose = 0) { const p = [[0, 0.001], [0, r - ch], [ch, r], [len - ch - nose, r], [len - nose, r - ch], [len, (r - ch) * .55], [len, 0.001]]; return latheGeo(p, 40); }
+// placement on the engine: azimuth psi measured from +Y toward +Z
+const polar = (x, r, psi) => new THREE.Vector3(x, r * Math.cos(psi), r * Math.sin(psi));
+// ---------- airfoil loft (twisted, cambered, swept) ----------
+function bladeGeo({ r0, r1, xc0, xc1, c0, c1, b0, b1, th0 = .09, th1 = .035, cam0 = .07, cam1 = .025, sweep = 0, ns = 6, np = 9, bend = 0 }) {
+  const per = 2 * np, pos = [], idx = [];
+  for (let i = 0; i <= ns; i++) {
+    const s = i / ns, r = lerp(r0, r1, s), c = lerp(c0, c1, s), b = lerp(b0, b1, Math.pow(s, .85)), th = lerp(th0, th1, s), cam = lerp(cam0, cam1, s);
+    const xc = lerp(xc0, xc1, s) + sweep * s * s;
+    for (let k = 0; k < per; k++) {
+      const up = k < np, kk = up ? k : per - 1 - k, u = .5 * (1 - Math.cos(Math.PI * kk / (np - 1)));
+      const yt = 5 * th * (0.2969 * Math.sqrt(u) - 0.126 * u - 0.3516 * u * u + 0.2843 * u ** 3 - 0.1036 * u ** 4);
+      const yc = cam * 4 * u * (1 - u);
+      const a = (u - .5) * c, n = (yc + (up ? yt : -yt)) * c;
+      const ax = xc + a * Math.cos(b) - n * Math.sin(b), tg = a * Math.sin(b) + n * Math.cos(b) + bend * s * s;
+      const ang = tg / r; pos.push(ax, r * Math.cos(ang), r * Math.sin(ang));
+    }
+  }
+  for (let i = 0; i < ns; i++) for (let k = 0; k < per; k++) {
+    const a = i * per + k, b2 = i * per + (k + 1) % per, c2 = (i + 1) * per + (k + 1) % per, d = (i + 1) * per + k; idx.push(a, b2, c2, a, c2, d);
+  }
+  // tip cap
+  const ci = pos.length / 3, last = ns * per; let cx = 0, cy = 0, cz = 0; for (let k = 0; k < per; k++) { cx += pos[(last + k) * 3]; cy += pos[(last + k) * 3 + 1]; cz += pos[(last + k) * 3 + 2]; }
+  pos.push(cx / per, cy / per, cz / per); for (let k = 0; k < per; k++) idx.push(last + k, last + (k + 1) % per, ci);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+function rowGeo(geo, n, phase = 0) { const arr = []; for (let i = 0; i < n; i++) arr.push(geo.clone().rotateX(phase + TAU * i / n)); return arr; }
+function rowMesh(geos, mat, parent, info) { const m = new THREE.Mesh(mergeGeometries(geos), mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); if (info) pickable(m, info); return m; }
+function tubeGeo(pts, r, seg = 48, rs = 8) { const c = new THREE.CatmullRomCurve3(pts.map(p => p.isVector3 ? p : new THREE.Vector3(...p)), false, 'catmullrom', .3); return new THREE.TubeGeometry(c, seg, r, rs, false); }
+function torusAt(x, R, r, mat, parent, seg = SEG) { const m = new THREE.Mesh(new THREE.TorusGeometry(R, r, 8, seg), mat); m.rotation.y = Math.PI / 2; m.position.x = x; m.castShadow = true; parent.add(m); return m; }
+// bolts: instanced hex heads per module
+const BOLTS = { fan: [], core: [], lpt: [] };
+function boltRing(mod, x, r, n, face = 1, s = .07) { for (let i = 0; i < n; i++) BOLTS[mod].push({ x, r, psi: TAU * i / n + .5 / n, face, s }); }
+function finalizeBolts() {
+  const g = new THREE.CylinderGeometry(1, 1, 1, 6); g.rotateZ(Math.PI / 2);
+  for (const mod in BOLTS) {
+    const L = BOLTS[mod]; if (!L.length) continue; const im = new THREE.InstancedMesh(g, sm('bolt', 'flange'), L.length); const o = new THREE.Object3D();
+    L.forEach((b, i) => { o.position.copy(polar(b.x + b.face * b.s * .35, b.r, b.psi)); o.rotation.set(b.psi, 0, 0); o.scale.set(b.s * .7, b.s, b.s); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+    im.castShadow = true; MOD[mod].add(im);
+  }
+}
+const I = (en, zh, fen, fzh, v) => ({ name: B(en, zh), fn: B(fen, fzh), v });
+// ---------- part buckets (one merged mesh per part => low draw calls) ----------
+const PARTS = {}; // id -> {mod, spool, mat, geos:[], caps:bool, info, mesh}
+function part(id, mod, spool, mat, info) { PARTS[id] = { id, mod, spool, mat, geos: [], info, mesh: null }; return PARTS[id]; }
+function P(id) { return PARTS[id]; }
+function addG(id, geo) { PARTS[id].geos.push(geo); return geo; }
+function addSolid(id, prof, { cap = true, seg = SEG } = {}) { const p = PARTS[id]; addG(id, latheGeo(closeP(prof), seg)); if (cap && p.mat.clippingPlanes) addCap(prof, p.mod); }
+function addPlaced(id, geo, pos, rot = [0, 0, 0], scl = [1, 1, 1]) { const o = new THREE.Object3D(); o.position.copy(pos); o.rotation.set(...rot); o.scale.set(...scl); o.updateMatrix(); geo.applyMatrix4(o.matrix); return addG(id, geo); }
+const SPG = {};
+function spoolParent(mod, spool) { if (!spool) return MOD[mod]; const k = mod + spool; return SPG[k] || (SPG[k] = spoolGroup(spool, MOD[mod])); }
+function finalizeParts() {
+  for (const id in PARTS) {
+    const p = PARTS[id]; if (!p.geos.length) continue;
+    const geos = p.geos.map(g => { const n = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(a)) n.deleteAttribute(a); if (!n.attributes.uv) n.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n.attributes.position.count * 2), 2)); if (!n.attributes.normal) n.computeVertexNormals(); return n; });
+    const m = new THREE.Mesh(mergeGeometries(geos), p.mat); m.castShadow = true; m.receiveShadow = true; m.name = id;
+    spoolParent(p.mod, p.spool).add(m); p.mesh = m; if (p.info) pickable(m, p.info); m.userData.part = id;
+  }
+}
+// ---------- flow path (core annulus) ----------
+function tab(T, x) { if (x <= T[0][0]) return T[0][1]; for (let i = 0; i < T.length - 1; i++) if (x <= T[i + 1][0]) { const k = (x - T[i][0]) / (T[i + 1][0] - T[i][0]); return lerp(T[i][1], T[i + 1][1], smooth(k)); } return T[T.length - 1][1]; }
+const HUB = [[2.3, 2.6], [3, 2.66], [5.2, 2.78], [5.9, 2.55], [6.5, 2.12], [7.0, 1.98], [12.3, 2.08], [12.8, 2.0], [14.5, 2.3], [15.5, 2.3], [16.0, 2.36], [20.0, 2.66], [21.0, 2.62]];
+const TIP = [[2.3, 3.95], [3, 3.86], [5.2, 3.56], [5.9, 3.4], [6.5, 3.08], [7.0, 2.96], [12.3, 2.36], [12.8, 2.95], [14.5, 2.88], [15.5, 2.92], [16.0, 3.22], [20.0, 4.0], [21.0, 4.02]];
+const hubR = x => tab(HUB, x), tipR = x => tab(TIP, x);
+const lineF = (f, x0, x1, n = 16, dr = 0) => Array.from({ length: n + 1 }, (_, i) => { const x = lerp(x0, x1, i / n); return [x, f(x) + dr]; });
+
+const INFO = {
+  spinner: I('Spinner', '整流锥', 'Smooths air into the fan hub; the painted spiral lets ground crew see rotation.', '把空气平顺地引入风扇根部；涂装的白色螺旋让地勤一眼看出是否在转。', () => `N1 ${fmt(ENG.R ? ENG.R.N1 : 0, 0)} rpm`),
+  fan: I('Fan · 24 wide-chord Ti blades', '风扇 · 24 片宽弦钛合金叶片', 'Ø155 cm. Moves ~85 % of the air around the core; makes ~75 % of take-off thrust.', '直径 155 cm。把约 85% 的空气从核心机外侧推过去，起飞推力约 75% 来自它。', () => `${t('tipspeed')} ${fmt(ENG.R ? ENG.R.tip.fan : 0, 0)} m/s`),
+  fancase: I('Fan case', '风扇机匣', 'Containment ring: must hold a released blade. Ribs stiffen it; inner rub strip keeps tip gap small.', '包容环：必须兜住断裂飞出的叶片。外侧加强筋提高刚度，内侧可磨涂层让叶尖间隙尽量小。', () => 'Ø ~170 cm'),
+  ogv: I('Outlet guide vanes', '出口导流叶片 (OGV)', 'Remove the swirl the fan adds, turning it into straight, thrust-producing flow.', '把风扇加给气流的旋转"掰直"，变成产生推力的轴向气流。', () => `FPR ${fmt(ENG.R ? ENG.R.pif : 1, 2)}`),
+  struts: I('Fan frame struts', '风扇框架支板', 'Carry the fan and front bearing loads out to the case and the forward engine mount.', '把风扇和前轴承的载荷传到机匣，再传给前安装节。', () => ''),
+  booster: I('Booster (LPC) · 3 stages', '增压级 (低压压气机) · 3 级', 'On the LP shaft with the fan; pre-compresses the core air before the HPC.', '和风扇同在低压轴上，先把进入核心的空气压一道再交给高压压气机。', () => `π ${fmt(ENG.R ? ENG.R.pil : 1, 2)}`),
+  hpc: I('High-pressure compressor · 9 stages', '高压压气机 · 9 级', 'Each stage adds ~25–30 % pressure; blades shrink as the air gets denser.', '每一级把压力提高约 25–30%；越往后空气越密，叶片越短小。', () => `OPR ${fmt(ENG.R ? ENG.R.opr : 1, 1)} · T3 ${fmt(ENG.R ? ENG.R.ST[4].T - 273.15 : 0, 0)} °C`),
+  vsv: I('Variable stator vanes', '可调静子叶片 (VSV)', 'Front HPC vanes twist via levers and a unison ring to keep the blades from stalling at low speed.', '高压压气机前几级静子通过摇臂和联动环一起转动，低转速时防止叶片失速。', () => ''),
+  comb: I('Annular combustor', '环形燃烧室', 'One ring-shaped liner; 20 swirl nozzles spray fuel. Gas reaches ~1,600 K, hotter than the metal can melt.', '单个环形火焰筒，20 个旋流喷嘴喷油。燃气约 1600 K，比金属熔点还高。', () => `T4 ${fmt(ENG.R ? ENG.R.Tt4 : 0, 0)} K · ${fmt(ENG.R ? ENG.R.mf : 0, 2)} kg/s`),
+  fuel: I('Fuel manifold & nozzles', '燃油总管和喷嘴', 'Ring manifold feeds 20 nozzles through pigtail tubes.', '环形总管通过"猪尾"小管给 20 个喷嘴供油。', () => `${fmt(ENG.R ? ENG.R.mf * 3600 : 0, 0)} kg/h`),
+  hpt: I('HP turbine · 1 stage', '高压涡轮 · 1 级', 'Single-crystal, air-cooled blades. One stage drives all 9 HPC stages (~25 MW).', '单晶、内部气冷叶片。仅 1 级就带动整个 9 级高压压气机 (约 25 MW)。', () => `N2 ${fmt(ENG.R ? ENG.R.N2 : 0, 0)} rpm · ${fmt(ENG.R ? ENG.R.PW.hpt : 0, 1)} MW`),
+  lpt: I('LP turbine · 4 stages', '低压涡轮 · 4 级', 'Drives the fan and booster through the inner LP shaft.', '通过内侧低压轴带动风扇和增压级。', () => `EGT ${fmt(ENG.R ? ENG.R.egt : 0, 0)} °C · ${fmt(ENG.R ? ENG.R.PW.lpt : 0, 1)} MW`),
+  acc: I('Active clearance control tubes', '主动间隙控制管', 'Blow fan air onto the turbine case so it shrinks and keeps blade-tip gaps tight in cruise.', '把风扇冷气吹到涡轮机匣上让它收缩，巡航时保持叶尖间隙很小。', () => ''),
+  trf: I('Turbine rear frame', '涡轮后框架', 'Holds the rear bearing and the aft engine mount lugs.', '支撑后轴承，顶部是后安装节吊耳。', () => ''),
+  nozzle: I('Core nozzle & plug', '核心喷管和中心锥', 'Hot jet exits here; the plug (plasma-sprayed coating) shapes the exit.', '热燃气从这里喷出；中心锥 (等离子喷涂层) 决定出口形状。', () => `V9 ${fmt(ENG.R ? ENG.R.V9 : 0, 0)} m/s`),
+  shaft: I('Concentric LP / HP shafts', '同心的低压 / 高压轴', 'Inner LP shaft: fan+booster ↔ LPT. Outer HP spool: HPC ↔ HPT. They spin at different speeds.', '内轴：风扇+增压级 ↔ 低压涡轮；外层高压转子：高压压气机 ↔ 高压涡轮。两者转速不同。', () => `N1 ${fmt(ENG.R ? ENG.R.n1 * 100 : 0, 0)} % · N2 ${fmt(ENG.R ? ENG.R.n2 * 100 : 0, 0)} %`),
+  agb: I('Accessory gearbox', '附件齿轮箱', 'Driven off the HP spool by a radial shaft; turns fuel & oil pumps, generator, hydraulic pump, starter.', '由高压转子经径向轴驱动；带动燃油/滑油泵、发电机、液压泵，起动机也装在这里。', () => ''),
+  eec: I('FADEC / EEC', '全权限数字电子控制 (FADEC/EEC)', 'Dual-channel computer that meters fuel and schedules the variable vanes.', '双通道计算机，负责计量燃油、调度可调叶片。', () => ''),
+  plumb: I('Core plumbing', '核心机外部管路', 'Bleed-air ducts, fuel and oil lines, sensor harnesses.', '引气管、燃油和滑油管、传感器线束。', () => ''),
+  nacelle: I('Nacelle (737-style)', '短舱 (737 式)', 'Inlet, fan cowl and thrust-reverser sleeve; flattened bottom gives ground clearance under a 737 wing.', '进气道、风扇罩和反推套筒；底部压扁是为了在 737 机翼下留出离地间隙。', () => ''),
+};
+// ===================== build =====================
+function buildEngine() {
+  // ---- FAN MODULE ----
+  part('spinner', 'fan', 'lp', sm('fan', 'spinner'), INFO.spinner);
+  { const p = []; for (let i = 0; i <= 18; i++) { const s = i / 18; p.push([-2.6 + 2.9 * s, 2.18 * Math.pow(s, .82) * (1 - .06 * s * (1 - s))]); } p.push([0.3, 2.18], [0.3, 0.001]); addG('spinner', latheGeo(p, SEG)); }
+  part('fanhub', 'fan', 'lp', sm('fan', 'ti'), INFO.fan);
+  addSolid('fanhub', [[0.3, 2.05], [0.3, 2.26], [1.0, 2.31], [2.1, 2.42], [2.35, 2.55], [2.35, 1.2], [1.6, 1.0], [1.0, 1.0], [0.9, 2.05]]);
+  part('fan', 'fan', 'lp', sm('fan', 'fanblade'), INFO.fan);
+  { const g = bladeGeo({ r0: 2.28, r1: 7.72, xc0: .72, xc1: 1.05, c0: 1.55, c1: 2.25, b0: 24 * DEG, b1: 61 * DEG, th0: .1, th1: .028, cam0: .09, cam1: .03, sweep: -.15, ns: QUALITY.hi ? 12 : 7, np: QUALITY.hi ? 11 : 8, bend: .35 }); for (const r of rowGeo(g, 24)) addG('fan', r); }
+  // fan case: inner flow wall + outer skin + stiffening ribs, abradable rub strip, acoustic liner
+  part('fancase', 'fan', null, sm('fan', 'fancase'), INFO.fancase);
+  addSolid('fancase', [[-1.4, 7.98], [-0.4, 7.86], [2.7, 7.84], [3.6, 7.8], [5.4, 7.66], [6.6, 7.6], [6.6, 7.95], [5.6, 8.05], [3.5, 8.22], [1.8, 8.3], [-0.2, 8.3], [-1.4, 8.28]]);
+  part('fanliner', 'fan', null, sm('fan', 'liner2'), INFO.fancase);
+  addSolid('fanliner', [[-1.38, 7.975], [-0.42, 7.855], [-0.42, 7.84], [-1.38, 7.96]], { cap: false });
+  addSolid('fanliner', [[2.75, 7.835], [3.55, 7.80], [3.55, 7.79], [2.75, 7.825]], { cap: false });
+  part('fanrub', 'fan', null, sm('fan', 'steel'), INFO.fancase);
+  addSolid('fanrub', [[-.4, 7.852], [2.7, 7.832], [2.7, 7.82], [-.4, 7.84]], { cap: false });
+  part('fanflange', 'fan', null, sm('fan', 'flange'), INFO.fancase);
+  for (const [x0, x1, ro] of [[-1.45, -1.25, 8.62], [0.55, 0.72, 8.48], [1.25, 1.42, 8.5], [1.95, 2.12, 8.48], [3.3, 3.45, 8.4], [6.45, 6.65, 8.32]]) addSolid('fanflange', ringP(x0, x1, 8.2, ro));
+  boltRing('fan', -1.35, 8.48, 72, -1); boltRing('fan', 6.55, 8.18, 60, 1);
+  // OGVs + splitter + fan frame
+  part('ogv', 'fan', null, sm('fan', 'ti'), INFO.ogv);
+  { const g = bladeGeo({ r0: 4.28, r1: 7.76, xc0: 4.25, xc1: 4.45, c0: .95, c1: 1.1, b0: -28 * DEG, b1: -14 * DEG, th0: .07, th1: .05, cam0: -.08, cam1: -.05, ns: 5, np: 7 }); for (const r of rowGeo(g, QUALITY.hi ? 64 : 44)) addG('ogv', r); }
+  part('splitter', 'fan', null, sm('fan', 'ti'), INFO.booster);
+  addSolid('splitter', [[2.3, 4.0], [2.38, 3.94], [2.55, 3.92], [3.2, 3.86], [5.2, 3.6], [5.9, 3.45], [6.5, 3.16], [7.0, 3.04], [7.0, 4.55], [6.3, 4.62], [5.0, 4.4], [3.6, 4.26], [2.6, 4.1], [2.4, 4.06]]);
+  part('struts', 'fan', null, sm('fan', 'cast'), INFO.struts);
+  { const g = bladeGeo({ r0: 4.5, r1: 7.62, xc0: 5.85, xc1: 5.95, c0: 1.15, c1: 1.05, b0: 0, b1: 0, th0: .16, th1: .13, cam0: 0, cam1: 0, ns: 3, np: 8 }); for (const r of rowGeo(g, 12, TAU / 24)) addG('struts', r); }
+  // booster: 3 rotor rows on LP drum + IGV + 3 stator rows
+  part('boostR', 'fan', 'lp', sm('lpc', 'ti'), INFO.booster); part('boostS', 'fan', null, sm('lpc', 'steel'), INFO.booster); part('boostD', 'fan', 'lp', sm('lpc', 'ti'), INFO.booster);
+  const BR = [[2.95, 46], [3.85, 50], [4.75, 54]], BS = [[2.55, 40], [3.4, 56], [4.3, 60], [5.2, 64]];
+  for (const [x, n] of BR) { const g = bladeGeo({ r0: hubR(x) - .02, r1: tipR(x) - .03, xc0: x, xc1: x + .04, c0: .5, c1: .55, b0: 32 * DEG, b1: 52 * DEG, th0: .08, th1: .04, ns: 4, np: 7 }); for (const r of rowGeo(g, n)) addG('boostR', r); }
+  for (const [x, n] of BS) { const g = bladeGeo({ r0: hubR(x) + .02, r1: tipR(x) + .02, xc0: x, xc1: x, c0: .42, c1: .44, b0: -22 * DEG, b1: -26 * DEG, th0: .07, th1: .05, cam0: -.06, cam1: -.05, ns: 3, np: 7 }); for (const r of rowGeo(g, n)) addG('boostS', r); }
+  addSolid('boostD', wall(lineF(hubR, 2.35, 5.45, 10, -.14), .14).map(([x, r]) => [x, r]));
+  for (const [x] of BR) addSolid('boostD', [[x - .12, 1.25], [x + .12, 1.25], [x + .06, hubR(x) - .14], [x - .06, hubR(x) - .14]]);
+  // fan frame hub / transition cone to HPC case (static)
+  part('framehub', 'fan', null, sm('fan', 'cast'), INFO.struts);
+  addSolid('framehub', [[5.9, 4.55], [7.0, 4.55], [7.7, 3.7], [7.7, 3.45], [7.0, 3.3], [6.5, 3.28], [5.9, 3.55]]);
+  // radial drive shaft housing (through bottom strut) to the gearbox
+  const PSI_AGB = 150 * DEG, PSI_EEC = 104 * DEG;
+  part('agb', 'fan', null, sm('acc', 'cast'), INFO.agb); part('acc', 'fan', null, sm('acc', 'steel'), INFO.agb);
+  addG('agb', tubeGeo([polar(6.0, 4.6, PSI_AGB), polar(6.0, 6.5, PSI_AGB), polar(5.6, 8.4, PSI_AGB)], .2, 12, 10));
+  { // gearbox housing: curved casting following the fan case (sector of revolution, bevelled)
+    const pr = [[3.0, 8.42], [6.3, 8.42], [6.5, 8.6], [6.5, 9.05], [6.2, 9.32], [3.4, 9.32], [3.0, 9.0]];
+    addG('agb', latheGeo(closeP(pr), 28, PSI_AGB - 90 * DEG - 20 * DEG, 40 * DEG));
+    // accessory pads: starter, IDG, fuel pump/HMU, oil pump, hydraulic pump
+    const pads = [[-1, 162, .55, 1.5, 'starter'], [1, 160, .72, 1.7, 'IDG'], [-1, 140, .38, 1.1, 'hmu'], [1, 141, .33, 1.0, 'oil'], [-1, 151, .3, .9, 'hyd'], [1, 152, .26, .8, 'pmp']];
+    for (const [dir, deg, r, len] of pads) { const g = canGeo(len, r, .07, .12); if (dir < 0) g.rotateY(Math.PI); addPlaced('acc', g, polar(dir < 0 ? 3.0 : 6.5, 9.0 + r * .35, deg * DEG)); }
+    // ribs on the housing
+    for (let k = 0; k < 5; k++) addG('agb', latheGeo(closeP(ringP(3.4 + k * .65, 3.5 + k * .65, 9.3, 9.42)), 20, PSI_AGB - 110 * DEG, 40 * DEG));
+  }
+  { // EEC box on fan case with connectors + cooling fins
+    part('eec', 'fan', null, sm('acc', 'eec'), INFO.eec);
+    const c = polar(2.6, 8.82, PSI_EEC); const g = new RoundedBoxGeometry(2.4, .7, 1.6, 3, .1); addPlaced('eec', g, c, [PSI_EEC, 0, 0]);
+    for (let k = 0; k < 7; k++) addPlaced('eec', new RoundedBoxGeometry(.06, .18, 1.4, 1, .02), polar(1.65 + k * .32, 9.22, PSI_EEC), [PSI_EEC, 0, 0]);
+    for (let k = 0; k < 4; k++) { const g2 = canGeo(.35, .12, .03); addPlaced('acc', g2, polar(3.8, 8.75 + (k - 1.5) * .0, PSI_EEC + (k - 1.5) * 2.2 * DEG)); }
+  }
+  // fan-case harnesses (to EEC) and an oil tank lump
+  part('fanpipe', 'fan', null, sm('acc', 'hose'), INFO.plumb);
+  for (let k = 0; k < 4; k++) addG('fanpipe', tubeGeo([polar(3.9, 8.8, PSI_EEC + (k - 1.5) * 2.2 * DEG), polar(4.6, 8.6, PSI_EEC + 10 * DEG + k * 4 * DEG), polar(5.4, 8.45, PSI_AGB - 18 * DEG + k * 2 * DEG), polar(6.0, 8.6, PSI_AGB - 8 * DEG)], .055, 32, 6));
+  addPlaced('acc', canGeo(1.6, .5, .12, .2), polar(3.6, 8.8, 128 * DEG));
+  for (let k = 0; k < 7; k++) { // fan-case harness bundles and tubes running round the case (illustrative routing)
+    const x = .6 + k * .62, rr = 8.62 + (k % 2) * .06, a0 = (20 + k * 9) * DEG, a1 = (150 + k * 6) * DEG, pts = [];
+    for (let j = 0; j <= 10; j++) pts.push(polar(x + .15 * Math.sin(j * 1.3 + k), rr, a0 + (a1 - a0) * j / 10));
+    addG('fanpipe', tubeGeo(pts, k % 3 ? .045 : .075, 80, 6));
+    for (let j = 1; j < 10; j += 2) addPlaced('acc', canGeo(.1, .1, .02), pts[j], [0, 0, 0]);
+  }
+
+  // ---- CORE MODULE (HP spool + combustor) ----
+  part('hpcR', 'core', 'hp', sm('hpc', 'ti'), INFO.hpc); part('hpcS', 'core', null, sm('hpc', 'steel'), INFO.hpc); part('hpcD', 'core', 'hp', sm('hpc', 'ti'), INFO.hpc);
+  const NHPC = QUALITY.hi ? [38, 42, 46, 50, 54, 58, 62, 66, 70] : [26, 28, 30, 32, 34, 36, 38, 40, 42];
+  const HPCX = []; for (let i = 0; i < 9; i++) HPCX.push(7.25 + i * 0.57);
+  part('hpcIGV', 'core', null, sm('hpc', 'steel'), INFO.vsv);
+  { const x = 6.95; const g = bladeGeo({ r0: hubR(x) + .02, r1: tipR(x) + .02, xc0: x, xc1: x, c0: .3, c1: .3, b0: -8 * DEG, b1: -10 * DEG, th0: .08, th1: .06, cam0: 0, cam1: 0, ns: 2, np: 6 }); for (const r of rowGeo(g, 56)) addG('hpcIGV', r); }
+  HPCX.forEach((x, i) => {
+    const c = lerp(.32, .2, i / 8);
+    const g = bladeGeo({ r0: hubR(x) - .02, r1: tipR(x) - .02, xc0: x, xc1: x + .02, c0: c, c1: c * 1.05, b0: 34 * DEG, b1: 55 * DEG, th0: .08, th1: .04, ns: 3, np: 6 });
+    for (const r of rowGeo(g, NHPC[i], i * .1)) addG('hpcR', r);
+    const xs = x + .29; const g2 = bladeGeo({ r0: hubR(xs) + .02, r1: tipR(xs) + .02, xc0: xs, xc1: xs, c0: c * .85, c1: c * .85, b0: -24 * DEG, b1: -28 * DEG, th0: .07, th1: .05, cam0: -.06, cam1: -.05, ns: 2, np: 6 });
+    for (const r of rowGeo(g2, NHPC[i] + 8)) addG('hpcS', r);
+    addSolid('hpcD', [[x - .1, 1.15], [x + .1, 1.15], [x + .05, hubR(x) - .16], [x - .05, hubR(x) - .16]]);
+  });
+  addSolid('hpcD', wall(lineF(hubR, 6.9, 12.5, 12, -.16), .16));
+  // HP spool cone to HPT disk
+  addSolid('hpcD', [[12.5, 1.92], [12.5, 2.06], [14.9, 1.55], [15.0, 1.4], [14.9, 1.3], [12.6, 1.8]]);
+  // HPC case with stage flanges + VSV unison rings & levers
+  part('hpcCase', 'core', null, sm('hpc', 'corecase'), INFO.hpc);
+  addSolid('hpcCase', wall(lineF(tipR, 6.9, 12.4, 12, .0), .32));
+  part('coreFl', 'core', null, sm('hpc', 'flange'), INFO.hpc);
+  for (const x of [7.7, 9.6, 12.2]) { addSolid('coreFl', ringP(x - .07, x + .07, tipR(x) + .28, tipR(x) + .55)); boltRing('core', x + .07, tipR(x) + .45, 48, 1, .05); }
+  part('vsv', 'core', null, sm('hpc', 'steel'), INFO.vsv);
+  for (let k = 0; k < 4; k++) {
+    const x = 6.95 + k * .57 + (k ? .29 : 0), R = tipR(x) + .62; addG('vsv', (() => { const g = new THREE.TorusGeometry(R, .05, 6, SEG); g.rotateY(Math.PI / 2); g.translate(x + .12, 0, 0); return g; })());
+    const n = 36; for (let i = 0; i < n; i++) { const psi = TAU * i / n; addPlaced('vsv', new RoundedBoxGeometry(.05, .32, .09, 1, .02), polar(x + .06, tipR(x) + .45, psi), [psi, 0, 0]); }
+  }
+  { // VSV actuator (hydraulic) + bellcrank rod
+    const psi = 132 * DEG; addPlaced('vsv', canGeo(2.1, .17, .05, .1), polar(7.0, 3.95, psi)); addG('vsv', tubeGeo([polar(9.1, 3.95, psi), polar(9.0, 3.7, psi + .06), polar(7.3, 3.62, psi + .12)], .045, 16, 6));
+  }
+  // combustor: outer/inner liners with cooling holes, dome, 20 swirlers; outer & inner pressure cases
+  part('liner', 'core', null, sm('comb', 'liner'), INFO.comb);
+  addSolid('liner', wall([[12.95, 2.9], [13.6, 2.96], [14.3, 2.92], [14.6, 2.87]], .05));
+  addSolid('liner', wall([[12.95, 1.98], [13.6, 2.0], [14.3, 2.18], [14.6, 2.3]], -.05).map(([x, r]) => [x, r]));
+  part('dome', 'core', null, sm('comb', 'ni'), INFO.comb);
+  addSolid('dome', [[12.78, 2.0], [12.95, 1.93], [12.95, 2.0], [12.86, 2.47], [12.95, 2.95], [12.95, 3.0], [12.78, 2.93], [12.7, 2.47]]);
+  { const g = canGeo(.28, .17, .04, .05); g.rotateY(Math.PI); const sw = []; for (let i = 0; i < 20; i++) { const gg = g.clone(); gg.translate(12.98, 0, 0); const o = polar(0, 2.47, TAU * i / 20); gg.translate(0, o.y, o.z); sw.push(gg); } sw.forEach(gg => addG('dome', gg)); }
+  part('combCase', 'core', null, sm('comb', 'hotcase'), INFO.comb);
+  addSolid('combCase', [[12.2, 2.75], [12.4, 3.3], [14.9, 3.3], [15.0, 3.05], [15.0, 3.4], [14.8, 3.58], [12.5, 3.58], [12.2, 3.05]]);
+  addSolid('combCase', [[12.5, 1.9], [12.7, 1.7], [14.6, 1.95], [14.6, 2.05], [12.7, 1.8]]);
+  boltRing('core', 14.95, 3.48, 56, 1, .05);
+  part('fuel', 'core', null, sm('comb', 'pipe'), INFO.fuel);
+  addG('fuel', (() => { const g = new THREE.TorusGeometry(3.95, .07, 8, SEG); g.rotateY(Math.PI / 2); g.translate(12.75, 0, 0); return g; })());
+  for (let i = 0; i < 20; i++) {
+    const psi = TAU * i / 20 + .02; const n = canGeo(.32, .13, .03); n.rotateZ(-Math.PI / 2); // nozzle body radial
+    addPlaced('fuel', n, polar(13.05, 3.55, psi), [psi, 0, 0]);
+    addG('fuel', tubeGeo([polar(12.75, 3.95, psi - .05), polar(12.85, 3.98, psi), polar(13.05, 3.9, psi + .01)], .025, 10, 5));
+  }
+  // HP turbine: NGV ring + cooled blades + disk
+  part('hptN', 'core', null, sm('hpt', 'ni'), INFO.hpt); part('hptR', 'core', 'hp', sm('hpt', 'hpt'), INFO.hpt); part('hptD', 'core', 'hp', sm('hpt', 'ni'), INFO.hpt);
+  { const g = bladeGeo({ r0: 2.28, r1: 2.9, xc0: 14.78, xc1: 14.78, c0: .42, c1: .42, b0: -50 * DEG, b1: -52 * DEG, th0: .18, th1: .16, cam0: -.14, cam1: -.12, ns: 2, np: 8 }); for (const r of rowGeo(g, 42)) addG('hptN', r); }
+  { const g = bladeGeo({ r0: 2.32, r1: 2.88, xc0: 15.22, xc1: 15.24, c0: .34, c1: .32, b0: 45 * DEG, b1: 55 * DEG, th0: .2, th1: .14, cam0: .16, cam1: .12, ns: 3, np: 8 }); for (const r of rowGeo(g, QUALITY.hi ? 80 : 56)) addG('hptR', r); }
+  addSolid('hptD', [[15.0, 0.85], [15.42, 0.85], [15.38, 1.4], [15.42, 2.32], [15.0, 2.32], [15.06, 1.4]]);
+  addSolid('hptN', [[14.6, 2.86], [15.5, 2.9], [15.5, 3.04], [14.6, 3.0]]); addSolid('hptN', [[14.6, 2.18], [14.98, 2.26], [14.98, 2.3], [14.6, 2.3]]);
+  part('hptCase', 'core', null, sm('hpt', 'hotcase'), INFO.hpt);
+  addSolid('hptCase', [[15.0, 3.05], [15.95, 3.25], [15.95, 3.48], [15.0, 3.4]]);
+  // core plumbing: bleed ducts, fuel/oil lines, harness (clipped by the cutaway too)
+  part('pipes', 'core', null, sm('pipe', 'pipe'), INFO.plumb); part('hose', 'core', null, sm('pipe', 'hose'), INFO.plumb);
+  addG('pipes', tubeGeo([polar(9.9, 3.25, 112 * DEG), polar(10.3, 3.9, 118 * DEG), polar(11.6, 4.1, 132 * DEG), polar(13.6, 4.15, 150 * DEG), polar(15.4, 4.2, 168 * DEG), polar(16.2, 4.15, 182 * DEG)], .26, 64, 14));
+  addG('pipes', tubeGeo([polar(11.0, 3.0, 250 * DEG), polar(11.4, 3.85, 245 * DEG), polar(13.0, 4.25, 230 * DEG), polar(15.5, 4.3, 214 * DEG), polar(16.4, 4.2, 200 * DEG)], .22, 64, 14));
+  for (let k = 0; k < 9; k++) {
+    const a = (100 + k * 23) * DEG, rr0 = 3.45 + (k % 3) * .14;
+    addG(k % 2 ? 'hose' : 'pipes', tubeGeo([polar(7.6, 3.6 + (k % 2) * .1, a), polar(9.5, rr0 + .05, a + .05), polar(11.8, rr0 - .1, a + .02), polar(13.4, 3.85 + (k % 3) * .07, a - .04), polar(14.6, 3.82, a)], k % 2 ? .07 : .05, 48, 6));
+  }
+  for (let k = 0; k < 16; k++) { // secondary tubes: fuel, oil, sense lines and harness runs (illustrative routing)
+    const a = (40 + k * 19.5) * DEG, r0 = 3.35 + (k % 4) * .1, w = k % 3 === 0 ? .09 : .045;
+    addG(k % 3 === 1 ? 'hose' : 'pipes', tubeGeo([polar(6.9, 3.95, a - .06), polar(8.2, r0 + .25, a), polar(10.2, r0 + .05, a + .07 * Math.sin(k)), polar(12.2, r0 + .2, a - .05), polar(14.2, 3.72 + (k % 2) * .1, a + .03)], w, 48, 6));
+    for (const x of [8.6, 11.2]) addPlaced('pipes', canGeo(.12, w + .04, .02), polar(x, r0 + .14, a), [0, 0, 0]);
+  }
+  for (const a of [70, 205, 290]) addG('pipes', tubeGeo([polar(8.3, 3.2, a * DEG), polar(8.4, 4.4, (a + 4) * DEG), polar(8.0, 5.6, (a + 8) * DEG), polar(7.2, 6.4, (a + 10) * DEG)], .2, 32, 12)); // bleed ducts to fan frame
+  for (const x of [9.5, 11.8]) addG('pipes', (() => { const g = new THREE.TorusGeometry(tipR(x) + .7, .035, 5, SEG); g.rotateY(Math.PI / 2); g.translate(x, 0, 0); return g; })());
+
+  // ---- LPT MODULE ----
+  part('lptN', 'lpt', null, sm('lpt', 'ni'), INFO.lpt); part('lptR', 'lpt', 'lp', sm('lpt', 'lpt'), INFO.lpt); part('lptD', 'lpt', 'lp', sm('lpt', 'ni'), INFO.lpt);
+  const LPTX = [16.25, 17.2, 18.15, 19.1], NLR = QUALITY.hi ? [110, 116, 122, 126] : [72, 76, 80, 84];
+  LPTX.forEach((x, i) => {
+    const gN = bladeGeo({ r0: hubR(x) + .02, r1: tipR(x) + .02, xc0: x, xc1: x, c0: .42, c1: .46, b0: -40 * DEG, b1: -44 * DEG, th0: .14, th1: .1, cam0: -.12, cam1: -.1, ns: 3, np: 7 });
+    for (const r of rowGeo(gN, 60 + i * 6)) addG('lptN', r);
+    const xr = x + .5; const gR = bladeGeo({ r0: hubR(xr) - .01, r1: tipR(xr) - .03, xc0: xr, xc1: xr + .03, c0: .4, c1: .4, b0: 40 * DEG, b1: 52 * DEG, th0: .12, th1: .07, cam0: .12, cam1: .08, ns: 4, np: 7 });
+    for (const r of rowGeo(gR, NLR[i])) addG('lptR', r);
+    // tip shroud band (LPT blades are tip-shrouded)
+    addSolid('lptR', ringP(xr - .2, xr + .2, tipR(xr) - .05, tipR(xr) + .02, .01), { cap: true });
+    addSolid('lptD', [[xr - .16, .75], [xr + .16, .75], [xr + .07, hubR(xr) - .12], [xr - .07, hubR(xr) - .12]]);
+  });
+  addSolid('lptD', wall(lineF(hubR, 15.9, 20.0, 10, -.14), .14));
+  part('lptCase', 'lpt', null, sm('lpt', 'hotcase'), INFO.lpt);
+  addSolid('lptCase', wall(lineF(tipR, 15.95, 20.2, 10, .05), .18));
+  part('lptFl', 'lpt', null, sm('lpt', 'flange'), INFO.lpt);
+  for (const x of [16.0, 20.15]) { addSolid('lptFl', ringP(x - .07, x + .07, tipR(x) + .18, tipR(x) + .5)); boltRing('lpt', x + (x < 17 ? -.07 : .07), tipR(x) + .38, 60, x < 17 ? -1 : 1, .05); }
+  // active clearance control: rings of tubes around the LPT case + feed manifolds
+  part('accT', 'lpt', null, sm('acc2', 'steel'), INFO.acc);
+  for (let k = 0; k < 11; k++) { const x = 16.35 + k * .36; const R = tipR(x) + .38; addG('accT', (() => { const g = new THREE.TorusGeometry(R, .085, 8, SEG); g.rotateY(Math.PI / 2); g.translate(x, 0, 0); return g; })()); }
+  for (const a of [118, 242]) addG('accT', tubeGeo([polar(16.2, tipR(16.2) + .62, a * DEG), polar(18, tipR(18) + .7, a * DEG), polar(20, tipR(20) + .66, a * DEG)], .14, 24, 10));
+  for (const a of [118, 242]) addG('accT', tubeGeo([polar(16.2, tipR(16.2) + .62, a * DEG), polar(15.2, 4.3, (a + 20) * DEG), polar(12.5, 4.6, (a + 30) * DEG), polar(9.5, 4.2, (a + 32) * DEG), polar(8.2, 4.4, (a + 30) * DEG)], .16, 48, 10));
+  // HPT shroud ACC ring
+  for (const x of [15.25, 15.6]) addG('accT', (() => { const g = new THREE.TorusGeometry(3.55, .09, 8, SEG); g.rotateY(Math.PI / 2); g.translate(x, 0, 0); return g; })());
+  // turbine rear frame: struts, hub, outer ring, aft mount lugs
+  part('trf', 'lpt', null, sm('trf', 'ni'), INFO.trf);
+  { const g = bladeGeo({ r0: 2.55, r1: 4.08, xc0: 20.62, xc1: 20.62, c0: .85, c1: .8, b0: -6 * DEG, b1: -6 * DEG, th0: .14, th1: .12, cam0: 0, cam1: 0, ns: 2, np: 7 }); for (const r of rowGeo(g, 16, TAU / 32)) addG('trf', r); }
+  addSolid('trf', [[20.15, 4.02], [21.2, 4.06], [21.2, 4.38], [20.15, 4.36]]); addSolid('trf', [[20.1, 2.45], [21.2, 2.5], [21.2, 2.62], [20.1, 2.6]]);
+  for (const dz of [-.55, .55]) addPlaced('trf', new RoundedBoxGeometry(.7, .9, .22, 2, .06), new THREE.Vector3(20.7, 4.75, dz));
+  part('nozzle', 'lpt', null, sm('noz', 'plug'), INFO.nozzle); part('plug', 'lpt', null, sm('noz', 'plug'), INFO.nozzle);
+  addSolid('nozzle', [[21.2, 4.02], [22.6, 3.86], [24.0, 3.5], [24.05, 3.6], [22.6, 4.0], [21.2, 4.18]]);
+  { const p = [[20.1, 0.001], [20.1, 2.48]]; for (let i = 0; i <= 14; i++) { const s = i / 14; p.push([21.2 + 5.2 * s, 2.5 * (1 - Math.pow(s, 1.6)) + .18 * s]); } p.push([26.55, 0.001]); addG('plug', latheGeo(p, SEG)); }
+  // LP shaft (inner) + bearing housings
+  part('lpShaft', 'lpt', 'lp', sm('shaft', 'shaft'), INFO.shaft);
+  addSolid('lpShaft', [[1.0, .42], [20.4, .42], [20.4, .6], [1.0, .6]]);
+  addSolid('lpShaft', [[19.0, .6], [19.1, .78], [20.4, .78], [20.4, .6]]);
+  // ---- NACELLE (737-style, flattened bottom) ----
+  part('inlet', 'nac', null, sm('nac', 'nacelle', false), INFO.nacelle); part('lip', 'nac', null, sm('nac', 'lip', false), INFO.nacelle);
+  part('cowl', 'nac', null, sm('nac', 'nacelle', false), INFO.nacelle); part('corecowl', 'nac', null, sm('nac', 'nacelle', false), INFO.nacelle);
+  { const p = []; for (let i = 0; i <= 10; i++) { const a = Math.PI * i / 10; p.push([-8.6 + .55 * (1 - Math.sin(a)), 8.35 - .48 * Math.cos(a)]); } addG('lip', latheGeo(p, SEG)); }
+  addG('inlet', latheGeo([[-8.6, 8.83], [-6.5, 9.35], [-3.5, 9.62], [-1.4, 9.7], [-1.4, 8.3], [-3.5, 8.05], [-6.5, 7.92], [-8.05, 7.87]], SEG));
+  addG('cowl', latheGeo([[-1.4, 9.7], [3.0, 9.72], [6.6, 9.66], [9.5, 9.3], [12.5, 8.6], [14.0, 8.1], [14.0, 7.65], [12.0, 7.75], [9.0, 7.8], [6.6, 7.62]], SEG));
+  addG('corecowl', latheGeo([[6.6, 4.62], [8.5, 5.25], [11.5, 5.3], [14.0, 5.12], [17.5, 4.92], [20.4, 4.72], [20.85, 4.62], [20.85, 4.56], [17.5, 4.62], [14.0, 4.62], [6.6, 4.4]], SEG)); // core cowl + primary nozzle covers the LPT/ACC
+  // flatten the lower nacelle skin (737 NG "hamster pouch") — outer skin only
+  for (const id of ['inlet', 'cowl', 'lip']) for (const g of P(id).geos) { const a = g.attributes.position; for (let i = 0; i < a.count; i++) { const y = a.getY(i), z = a.getZ(i), r = Math.hypot(y, z); if (r > 8.5 && y < -6.2) { const k = smooth((-y - 6.2) / 3.5) * .42 * smooth((r - 8.5) / 1.0); a.setY(i, y + k * (-y - 6.2) * .55); } } a.needsUpdate = true; g.computeVertexNormals(); }
+  finalizeParts(); finalizeCaps(); finalizeBolts();
+  // flame + combustor glow (additive, inside the liner)
+  FLAME.mat = new THREE.MeshBasicMaterial({ color: '#ff7a2a', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  FLAME.mesh = new THREE.Mesh(latheGeo(closeP([[13.0, 2.1], [13.5, 2.15], [14.5, 2.4], [14.5, 2.8], [13.5, 2.88], [13.0, 2.85]]), SEG), FLAME.mat); MOD.core.add(FLAME.mesh);
+  FLAME.cones = new THREE.Mesh(mergeGeometries(Array.from({ length: 20 }, (_, i) => { const g = new THREE.ConeGeometry(.16, .9, 10, 1, true); g.rotateZ(Math.PI / 2); g.translate(13.5, 0, 0); const o = polar(0, 2.47, TAU * i / 20); g.translate(0, o.y, o.z); return g; })), new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  MOD.core.add(FLAME.cones);
+  // ground shadow catcher
+  const gnd = new THREE.Mesh(new THREE.PlaneGeometry(120, 80), new THREE.ShadowMaterial({ opacity: .28 })); gnd.rotation.x = -Math.PI / 2; gnd.position.set(10, -10.2, 0); gnd.receiveShadow = true; scene.add(gnd); ENGINE.userData.gnd = gnd;
+}
+const FLAME = { mat: null, mesh: null, cones: null };
+buildEngine(); setCut(0);
+
+// ===================== d_lessons: UI dictionary, sources, 8 lesson steps (EN default + 中文) =====================
+Object.assign(I18N.en, {
+  h1: 'How a turbofan works', h1sub: 'Interactive cutaway of a two-spool high-bypass engine with a live Brayton-cycle model',
+  badge1: 'Public data', badge2: 'Illustrative schedule', a_gl: '3D engine — drag to orbit, scroll to zoom, click a part', a_theme: 'Light / dark', a_trail: 'Lesson steps',
+  trail: 'Lesson', trailn: '8 steps', trailfoot: 'CFM56-7B-class geometry from public photos and data. Engine schedules are illustrative, not FADEC logic.',
+  lg_cold: 'cold air', lg_warm: 'compressed', lg_hot: 'hot gas', lg_cut: 'section cut',
+  b_cut: 'Cutaway', b_nac: 'Nacelle', b_exp: 'Modules', b_reset: 'Reset view',
+  w_why: 'Why', w_math: 'Math', w_try: 'Try it', w_quiz: 'Quiz', w_src: 'Sources',
+  ctl: 'Engine controls', ctl2: 'live cycle model', a_pause: 'Pause / play', a_speed: 'Animation speed',
+  r_thr: 'Throttle', r_flight: 'Flight', f_sls: 'Take-off', f_climb: 'Climb', f_cruise: 'Cruise', r_bpr: 'Bypass ratio', r_opr: 'Pressure ratio', r_t4: 'Turbine inlet T', r_eff: 'Components', e_real: 'Real', e_ideal: 'Ideal',
+  a_next: 'Skip to next phase', scope: 'Scope', scope2: 'from the cycle model',
+  s_thrust: 'Thrust', s_st: 'Stations', s_ts: 'T–s', s_pw: 'Power', s_eta: 'Efficiency', s_map: 'HPC map',
+  rothint: '<b>Rotate your phone for the full lesson</b><span>Drag to orbit · pinch to zoom · tap a part</span>',
+  tipspeed: 'tip speed', auto: 'Autoplay', autoOn: 'Playing', run: 'Run', running: 'Running…', ready: '<b>Ready</b> · press Run, or drag the controls',
+  cur: 'Now', srcnote: 'Sources for this step (public only; engine dimensions and ratings from published data, internal efficiencies and schedules are illustrative):',
+  steplab: 'Step', expwhere: 'Module view works in any step: fan, core and LPT modules slide apart along the shaft.',
+  // readouts
+  ro_thrust: 'Thrust', ro_fb: 'Bypass share', ro_tsfc: 'TSFC', ro_n1: 'N1 (fan)', ro_n2: 'N2 (core)', ro_egt: 'EGT', ro_m0: 'Air flow', ro_bpr: 'Bypass ratio', ro_opr: 'Overall PR', ro_t4: 'T4', ro_fuel: 'Fuel flow', ro_v19: 'Fan jet', ro_v9: 'Core jet', ro_hpt: 'HPT power', ro_lpt: 'LPT power', ro_fan: 'Fan power', ro_hpc: 'HPC power', ro_eth: 'Thermal η', ro_ep: 'Propulsive η', ro_eo: 'Overall η', ro_sm: 'Surge margin', ro_state: 'State', ro_parcel: 'Parcel at',
+  st_off: 'off', st_crank: 'cranking', st_light: 'light-off', st_idle: 'idle', st_run: 'running', st_surge: 'SURGE',
+  // scope captions
+  c_thrust: 'Thrust split: bypass (fan) jet vs core jet, from F = ṁ(V_jet − V₀) + pressure term. Bar heights in kN; the line is TSFC.',
+  c_st: 'Total pressure (bars) and total temperature (line) at each engine station 0 → 9. Station numbers follow the SAE ARP755 convention.',
+  c_ts: 'Brayton cycle on a T–s chart: 2→3 compression, 3→4 heat addition at ~constant p, 4→9 expansion. Dashed = ideal (isentropic) components.',
+  c_pw: 'Power balance on each shaft: HPT power = HPC power (HP spool); LPT power = fan + booster power (LP spool). Units MW.',
+  c_eta: 'Thermal, propulsive and overall efficiency vs bypass ratio at the current flight condition. Dot = current engine.',
+  c_map: 'HPC map: pressure ratio vs corrected flow. Lines = speed lines, red = surge line, dot = operating point. Gap to the red line = surge margin.',
+  sc_bypass: 'bypass', sc_core: 'core', sc_tsfc: 'TSFC', sc_p: 'Pt (bar)', sc_t: 'Tt (K)', sc_s: 'entropy s (J/kg·K) →', sc_bpr: 'bypass ratio →', sc_wc: 'corrected flow →', sc_pr: 'PR', sc_surge: 'surge line', sc_op: 'operating line', sc_now: 'now', sc_ideal: 'ideal',
+  sc_hp: 'HP spool', sc_lp: 'LP spool',
+});
+Object.assign(I18N.zh, {
+  h1: '涡扇发动机是怎么工作的', h1sub: '双转子大涵道比发动机的交互剖面，配实时布雷顿循环模型',
+  badge1: '公开数据', badge2: '控制规律为示意', a_gl: '3D 发动机：拖动旋转，滚轮缩放，点击部件查看说明', a_theme: '浅色 / 深色', a_trail: '课程步骤',
+  trail: '课程', trailn: '8 步', trailfoot: '几何依据 CFM56-7B 级公开照片与数据。发动机控制规律为示意，并非真实 FADEC 逻辑。',
+  lg_cold: '冷空气', lg_warm: '压缩空气', lg_hot: '高温燃气', lg_cut: '剖切面',
+  b_cut: '剖面', b_nac: '短舱', b_exp: '单元体', b_reset: '复位视角',
+  w_why: '原理', w_math: '公式', w_try: '动手试', w_quiz: '小测', w_src: '来源',
+  ctl: '发动机控制', ctl2: '实时循环模型', a_pause: '暂停 / 播放', a_speed: '动画速度',
+  r_thr: '油门', r_flight: '飞行状态', f_sls: '起飞', f_climb: '爬升', f_cruise: '巡航', r_bpr: '涵道比', r_opr: '总压比', r_t4: '涡轮前温度', r_eff: '部件', e_real: '真实', e_ideal: '理想',
+  a_next: '跳到下一阶段', scope: '示波器', scope2: '来自循环模型',
+  s_thrust: '推力', s_st: '截面', s_ts: 'T–s 图', s_pw: '功率', s_eta: '效率', s_map: '压气机特性',
+  rothint: '<b>横屏查看完整课程</b><span>拖动旋转 · 双指缩放 · 点击部件</span>',
+  tipspeed: '叶尖速度', auto: '自动演示', autoOn: '演示中', run: '运行', running: '运行中…', ready: '<b>就绪</b> · 点「运行」，或拖动控制条',
+  cur: '当前值', srcnote: '本步引用 (仅公开资料；发动机尺寸和额定值来自公开数据，内部效率与控制规律为示意)：',
+  steplab: '步骤', expwhere: '单元体视图在任意步骤都可用：风扇、核心机、低压涡轮三个单元体沿轴线拉开。',
+  ro_thrust: '推力', ro_fb: '外涵占比', ro_tsfc: '耗油率', ro_n1: 'N1 (风扇)', ro_n2: 'N2 (核心)', ro_egt: '排气温度 EGT', ro_m0: '空气流量', ro_bpr: '涵道比', ro_opr: '总压比', ro_t4: 'T4', ro_fuel: '燃油流量', ro_v19: '外涵射流', ro_v9: '内涵射流', ro_hpt: '高压涡轮功率', ro_lpt: '低压涡轮功率', ro_fan: '风扇功率', ro_hpc: '高压压气机功率', ro_eth: '热效率', ro_ep: '推进效率', ro_eo: '总效率', ro_sm: '喘振裕度', ro_state: '状态', ro_parcel: '气团位置',
+  st_off: '停车', st_crank: '冷转', st_light: '点火', st_idle: '慢车', st_run: '运转', st_surge: '喘振',
+  c_thrust: '推力分解：外涵 (风扇) 射流与内涵射流，F = ṁ(V_jet − V₀) + 压力项。柱高单位 kN，折线为耗油率。',
+  c_st: '各截面 0 → 9 的总压 (柱) 和总温 (线)。截面编号遵循 SAE ARP755 惯例。',
+  c_ts: 'T–s 图上的布雷顿循环：2→3 压缩，3→4 近似等压加热，4→9 膨胀。虚线为理想 (等熵) 部件。',
+  c_pw: '每根轴的功率平衡：高压涡轮功率 = 高压压气机功率 (高压转子)；低压涡轮功率 = 风扇 + 增压级功率 (低压转子)。单位 MW。',
+  c_eta: '当前飞行状态下热效率、推进效率、总效率随涵道比的变化。圆点 = 当前发动机。',
+  c_map: '高压压气机特性图：压比 vs 换算流量。细线为等转速线，红线为喘振边界，圆点为工作点。与红线的距离就是喘振裕度。',
+  sc_bypass: '外涵', sc_core: '内涵', sc_tsfc: '耗油率', sc_p: '总压 (bar)', sc_t: '总温 (K)', sc_s: '熵 s (J/kg·K) →', sc_bpr: '涵道比 →', sc_wc: '换算流量 →', sc_pr: '压比', sc_surge: '喘振线', sc_op: '共同工作线', sc_now: '当前', sc_ideal: '理想',
+  sc_hp: '高压转子', sc_lp: '低压转子',
+});
+const SRC = {
+  wiki56: 'Wikipedia, “CFM International CFM56” (specifications table: CFM56-7B fan Ø 61 in, BPR 5.1–5.5, OPR 32.8, 19.5–27.3 klbf), en.wikipedia.org/wiki/CFM_International_CFM56',
+  tcds: 'EASA Type-Certificate Data Sheet E.067, CFM56-7B series (rated thrust, N1 100 % = 5,175 rpm, N2 100 % = 14,460 rpm), easa.europa.eu',
+  leap: 'Wikipedia, “CFM International LEAP” (BPR ~9–11, OPR up to 50, 18 composite fan blades), en.wikipedia.org/wiki/CFM_International_LEAP',
+  nasa: 'NASA Glenn Research Center, “Beginner’s Guide to Propulsion”: turbofan, thrust equation, Brayton cycle, engine station numbering, grc.nasa.gov/www/k-12/airplane/',
+  faa: 'FAA-H-8083-32, Aviation Maintenance Technician Handbook — Powerplant, ch. 1 (turbine engine sections, starting, VSVs), faa.gov',
+  matt: 'J. D. Mattingly, “Elements of Propulsion: Gas Turbines and Rockets”, AIAA, 2nd ed. 2006 — ch. 7–8 parametric/performance cycle analysis',
+  sara: 'H. Saravanamuttoo, G. Rogers, H. Cohen, P. Straznicky, “Gas Turbine Theory”, 7th ed. — ch. 3 (turbofan cycles), ch. 5 (compressor maps, surge)',
+  rr: 'Rolls-Royce plc, “The Jet Engine”, 5th ed. — compressors, combustion, turbines, controls chapters',
+  arp: 'SAE ARP755, Gas Turbine Engine Performance Station Identification and Nomenclature (station numbers 0, 2, 13, 25, 3, 4, 45, 5, 9)',
+  wimg: 'Wikimedia Commons photos used as geometry references (CFM56-5C cutaway mock-up, CFM56-7B26, combustor, HPT blade, exhaust) — licences in refs/REFS.md',
+};
+// lesson steps. view = camera shot key; rows = visible control rows; op = Run button sequence
+const STEPS = [
+  { id: 'start', view: 'side', rows: ['r-thr', 'r-flight'], scope: 'st', run: 1, op: 'START', cfg: { thr: .0, flight: 'sls', bpr: 5.3, opr: 32, t4: 1600, eff: 'real' },
+    title: B('Starting: spin the core, then light it', '起动：先转起核心，再点火'), sub: B('An air starter on the gearbox spins the HP spool until the compressor can feed the combustor.', '齿轮箱上的空气起动机带转高压转子，直到压气机能给燃烧室供足空气。'),
+    why: B('<p>A turbofan cannot start itself: the turbine only makes power once there is airflow and fire. So the <b>air turbine starter</b> on the accessory gearbox drives the HP spool (N2) through a radial shaft.</p><p>At ~20–25 % N2 the FADEC opens fuel and fires the igniters. After <b>light-off</b> the turbine helps the starter; the starter cuts out around 50–55 % N2 and the engine settles at <b>ground idle</b> (~60 % N2, ~20 % N1).</p><p>The fan (N1) is not driven by the starter at all — it only turns because the core exhaust spins the LP turbine.</p>',
+      '<p>涡扇不能自己起动：只有有了气流和火焰，涡轮才会出功。所以附件齿轮箱上的<b>空气涡轮起动机</b>经径向轴带转高压转子 (N2)。</p><p>N2 约 20–25% 时，FADEC 打开燃油并让点火嘴打火。<b>点燃</b>后涡轮开始帮起动机出力；约 50–55% N2 时起动机脱开，发动机稳定在<b>地面慢车</b> (约 60% N2、20% N1)。</p><p>风扇 (N1) 根本不由起动机驱动——它只是被核心机排气吹动低压涡轮才转起来。</p>'),
+    math: B('<p>Spool acceleration is torque balance on the rotor inertia:</p>$$J_2\\,\\dot\\omega_2 = \\tau_{\\text{HPT}} + \\tau_{\\text{starter}} - \\tau_{\\text{HPC}} - \\tau_{\\text{loss}}$$<p>Before light-off \\(\\tau_{\\text{HPT}}\\approx 0\\), so the starter must beat compressor drag. After light-off the margin \\(\\tau_{\\text{HPT}}-\\tau_{\\text{HPC}}\\) grows and the engine accelerates by itself.</p>',
+      '<p>转子加速度来自转动惯量上的扭矩平衡：</p>$$J_2\\,\\dot\\omega_2 = \\tau_{\\text{HPT}} + \\tau_{\\text{starter}} - \\tau_{\\text{HPC}} - \\tau_{\\text{loss}}$$<p>点火前 \\(\\tau_{\\text{HPT}}\\approx 0\\)，起动机必须克服压气机阻力；点火后余量 \\(\\tau_{\\text{HPT}}-\\tau_{\\text{HPC}}\\) 变大，发动机自己加速。</p>'),
+    try: B('<p>Press <b>Run</b> and watch the readouts: N2 rises first, N1 lags, EGT jumps at light-off. Click the gearbox under the fan case to see what it drives.</p>', '<p>点<b>运行</b>，看读数：N2 先上升，N1 滞后，点火瞬间 EGT 跳升。点击风扇机匣下方的齿轮箱，看它带动了什么。</p>'),
+    quiz: { q: B('Which spool does the starter turn?', '起动机带转的是哪根转子？'), opts: [B('The fan (LP) spool', '风扇 (低压) 转子'), B('The HP spool, through the gearbox', '高压转子，经齿轮箱'), B('Both equally', '两根一起')], a: 1,
+      fb: B('Right — the AGB is driven from the HP spool; the fan follows only once hot gas reaches the LPT.', '对——附件齿轮箱由高压转子驱动；风扇要等燃气到达低压涡轮后才跟着转。') },
+    src: ['faa', 'rr', 'tcds', 'wimg'] },
+  { id: 'split', view: 'fan', rows: ['r-thr', 'r-bpr', 'r-flight'], scope: 'thrust', run: 1, op: 'SPLIT', cfg: { thr: 1, flight: 'sls', bpr: 5.3 },
+    title: B('Two streams: bypass and core', '两股气流：外涵与内涵'), sub: B('The fan pushes ~5 kg of air around the core for every 1 kg that goes through it.', '风扇每让 1 kg 空气进核心机，就有约 5 kg 从外面绕过去。'),
+    why: B('<p>Behind the fan the flow splits at the <b>splitter</b>. The outer stream (bypass) is only compressed by the fan (~1.6×) and blown straight out of the fan nozzle. The inner stream (core) is compressed ~32×, burned, and expanded through the turbines.</p><p>On a CFM56-7B the <b>bypass ratio</b> is about 5.3 and the bypass stream makes roughly three quarters of take-off thrust. The core is really a gas generator whose job is to drive the fan.</p>',
+      '<p>风扇后方的气流在<b>分流环</b>处一分为二。外圈 (外涵) 只被风扇压缩约 1.6 倍，直接从风扇喷口喷出；内圈 (内涵) 被压缩约 32 倍、燃烧，再经涡轮膨胀。</p><p>CFM56-7B 的<b>涵道比</b>约 5.3，外涵气流提供约四分之三的起飞推力。核心机其实是一台“燃气发生器”，它的任务是带动风扇。</p>'),
+    math: B('$$F = \\dot m_c\\,(V_9 - V_0) + \\dot m_b\\,(V_{19} - V_0) + A_e(p_e-p_0)$$<p>with \\(\\dot m_b = \\text{BPR}\\cdot \\dot m_c\\). A big, slow bypass jet gives the same thrust as a small fast one but wastes less kinetic energy.</p>', '$$F = \\dot m_c\\,(V_9 - V_0) + \\dot m_b\\,(V_{19} - V_0) + A_e(p_e-p_0)$$<p>其中 \\(\\dot m_b = \\text{BPR}\\cdot \\dot m_c\\)。大而慢的外涵射流与小而快的射流推力相同，但浪费的动能更少。</p>'),
+    try: B('<p>Drag <b>Bypass ratio</b> from 0.5 (1960s low-bypass) to 11 (LEAP-class). Watch the bypass bar grow and TSFC fall.</p>', '<p>把<b>涵道比</b>从 0.5 (60 年代小涵道) 拖到 11 (LEAP 级)。看外涵推力柱变高、耗油率下降。</p>'),
+    quiz: { q: B('At take-off, which stream gives most of the CFM56-7B thrust?', '起飞时 CFM56-7B 的大部分推力来自？'), opts: [B('The hot core jet', '高温内涵射流'), B('The cold bypass jet', '冷的外涵射流'), B('The exhaust plug', '尾锥')], a: 1,
+      fb: B('Yes — about 75 % comes from the fan stream.', '对——约 75% 来自风扇外涵气流。') },
+    src: ['wiki56', 'nasa', 'matt'] },
+  { id: 'compress', view: 'hpc', rows: ['r-thr', 'r-opr'], scope: 'st', run: 1, op: 'PARCEL', cfg: { thr: 1, opr: 32 },
+    title: B('Compression: fan, booster, 9-stage HPC', '压缩：风扇、增压级、9 级高压压气机'), sub: B('Follow one parcel of core air: pressure ×32, temperature to ~850 K.', '跟踪一团内涵空气：压力升 32 倍，温度到约 850 K。'),
+    why: B('<p>Each compressor stage is a <b>rotor</b> row that adds speed and a <b>stator</b> row that turns that speed into pressure. One stage can only add ~25–30 % before the flow separates, so the core uses the fan root, a 3-stage booster and a 9-stage HPC.</p><p>As the air gets denser the annulus shrinks: last-stage HPC blades are only a few centimetres tall. Compression also heats the air — ~850 K at the HPC exit before any fuel is burned.</p>',
+      '<p>每一级压气机由一排<b>转子</b> (给气流加速) 和一排<b>静子</b> (把速度转换成压力) 组成。一级只能增压约 25–30%，再多气流就会分离，所以核心机串联了风扇根部、3 级增压级和 9 级高压压气机。</p><p>空气越来越密，流道也越来越窄：高压末级叶片只有几厘米高。压缩本身也会加热空气——还没喷油，高压出口已约 850 K。</p>'),
+    math: B('$$\\frac{T_{t3}}{T_{t2}} = 1 + \\frac{\\pi_c^{(\\gamma-1)/\\gamma}-1}{\\eta_c},\\qquad \\pi_c = \\prod_i \\pi_i \\approx 1.3^{n}$$<p>With \\(\\pi_c\\approx 32\\), \\(\\eta_c\\approx 0.87\\): \\(T_{t3}\\approx 288\\times 2.9 \\approx 840\\,\\text{K}\\).</p>', '$$\\frac{T_{t3}}{T_{t2}} = 1 + \\frac{\\pi_c^{(\\gamma-1)/\\gamma}-1}{\\eta_c},\\qquad \\pi_c = \\prod_i \\pi_i \\approx 1.3^{n}$$<p>\\(\\pi_c\\approx 32\\)、\\(\\eta_c\\approx 0.87\\) 时：\\(T_{t3}\\approx 288\\times 2.9 \\approx 840\\,\\text{K}\\)。</p>'),
+    try: B('<p>Run the parcel, then raise <b>Pressure ratio</b> to 50 (LEAP-class) and watch station 3 temperature climb.</p>', '<p>运行气团动画，然后把<b>总压比</b>调到 50 (LEAP 级)，看截面 3 温度上升。</p>'),
+    quiz: { q: B('Why do HPC blades get shorter toward the back?', '为什么高压压气机叶片越往后越短？'), opts: [B('To save weight only', '只是为了减重'), B('The air is denser, so the same mass flow needs less area', '空气更密，同样流量需要的面积更小'), B('They wear down', '被磨短了')], a: 1,
+      fb: B('Correct — ṁ = ρ·V·A, so A falls as ρ rises.', '正确——ṁ = ρ·V·A，密度升高，面积就可以减小。') },
+    src: ['sara', 'rr', 'arp', 'nasa'] },
+  { id: 'burn', view: 'comb', rows: ['r-thr', 'r-t4'], scope: 'ts', run: 1, op: 'IGNITE', cfg: { thr: 1, t4: 1600 },
+    title: B('Combustion: heat at constant pressure', '燃烧：等压加热'), sub: B('20 fuel nozzles in one annular liner raise the gas to ~1,600 K.', '一个环形火焰筒里的 20 个喷嘴把燃气加热到约 1,600 K。'),
+    why: B('<p>Only ~30 % of the HPC air takes part in the flame. The rest flows around the liner and enters through rows of holes to cool the walls and dilute the gas down to a temperature the turbine can survive.</p><p>Each nozzle has a <b>swirler</b> that creates a recirculation zone so the flame stays anchored in a 150 m/s gale. Pressure drops only ~4–5 % across the combustor: heat addition is nearly isobaric, which is the 3→4 line of the Brayton cycle.</p>',
+      '<p>高压压气机来的空气只有约 30% 直接参与燃烧，其余绕着火焰筒流动，从一排排小孔进入，用来冷却壁面、掺混降温，让燃气温度降到涡轮能承受的水平。</p><p>每个喷嘴都带<b>旋流器</b>，制造回流区，让火焰在 150 m/s 的“大风”里稳住。燃烧室总压只损失约 4–5%：加热近似等压，这就是布雷顿循环的 3→4 线。</p>'),
+    math: B('$$f = \\frac{c_{ph}T_{t4} - c_{pc}T_{t3}}{\\eta_b\\,\\text{LHV} - c_{ph}T_{t4}} \\approx 0.025$$<p>About 1 kg of fuel per 40 kg of core air at take-off.</p>', '$$f = \\frac{c_{ph}T_{t4} - c_{pc}T_{t3}}{\\eta_b\\,\\text{LHV} - c_{ph}T_{t4}} \\approx 0.025$$<p>起飞时大约每 40 kg 内涵空气配 1 kg 燃油。</p>'),
+    try: B('<p>Raise <b>Turbine inlet T</b> toward 2,000 K and watch the T–s loop grow taller: more work per kg of air, but hotter turbine blades.</p>', '<p>把<b>涡轮前温度</b>调向 2,000 K，看 T–s 环变高：每公斤空气做功更多，但涡轮叶片更烫。</p>'),
+    quiz: { q: B('What does most of the combustor air do?', '燃烧室里的大部分空气用来做什么？'), opts: [B('Burns with the fuel', '和燃油一起燃烧'), B('Cools the liner and dilutes the hot gas', '冷却火焰筒、掺混降温'), B('Goes to the cabin', '送进客舱')], a: 1,
+      fb: B('Yes — the primary zone is rich and small; the rest is cooling and dilution air.', '对——主燃区小而富油，其余是冷却和掺混空气。') },
+    src: ['rr', 'faa', 'matt', 'wimg'] },
+  { id: 'turbine', view: 'turb', rows: ['r-thr'], scope: 'pw', run: 1, op: 'WORK', cfg: { thr: 1 },
+    title: B('Turbines pay the compressors back', '涡轮把功还给压气机'), sub: B('1 HPT stage drives the HPC; 4 LPT stages drive the fan through the inner shaft.', '1 级高压涡轮带动高压压气机；4 级低压涡轮经内轴带动风扇。'),
+    why: B('<p>Two shafts run one inside the other. The <b>HP spool</b> (outer) links the single-stage HPT to the 9-stage HPC at ~14,500 rpm. The <b>LP spool</b> (inner) links the 4-stage LPT to the fan and booster at ~5,200 rpm.</p><p>Each turbine takes exactly the power its compressor needs. The HPT blades sit in gas hotter than their melting point; internal cooling passages and film holes, fed by HPC air, keep them alive.</p>',
+      '<p>两根轴一根套在另一根里面。<b>高压转子</b> (外) 把 1 级高压涡轮和 9 级高压压气机连在一起，约 14,500 rpm；<b>低压转子</b> (内) 把 4 级低压涡轮和风扇、增压级连在一起，约 5,200 rpm。</p><p>每个涡轮恰好提取其压气机需要的功率。高压涡轮叶片所处的燃气比它的熔点还高，靠高压压气机引来的空气流过内部冷却通道和气膜孔才不被烧坏。</p>'),
+    math: B('$$\\dot m_c(1+f)\\,c_{ph}(T_{t4}-T_{t45})\\,\\eta_m = \\dot m_c\\,c_{pc}(T_{t3}-T_{t25})$$<p>HP spool balance; the LP spool is the same with the fan + booster on the right.</p>', '$$\\dot m_c(1+f)\\,c_{ph}(T_{t4}-T_{t45})\\,\\eta_m = \\dot m_c\\,c_{pc}(T_{t3}-T_{t25})$$<p>这是高压转子的功率平衡；低压转子同理，右边换成风扇 + 增压级。</p>'),
+    try: B('<p>Use <b>Explode</b> to slide the modules apart and see the concentric shafts. Click the HPT blades for their live power.</p>', '<p>点<b>单元体</b>把各模块拉开，看清同心轴。点击高压涡轮叶片查看实时功率。</p>'),
+    quiz: { q: B('What drives the fan?', '风扇由什么驱动？'), opts: [B('The HP turbine', '高压涡轮'), B('The 4-stage LP turbine via the inner shaft', '4 级低压涡轮，经内轴'), B('The gearbox', '附件齿轮箱')], a: 1,
+      fb: B('Right — the CFM56 is a direct-drive two-spool engine.', '对——CFM56 是直驱双转子发动机。') },
+    src: ['rr', 'matt', 'tcds', 'wimg'] },
+  { id: 'spool', view: 'side', rows: ['r-thr', 'r-flight'], scope: 'thrust', run: 1, op: 'SPOOL', cfg: { thr: .3, flight: 'sls' },
+    title: B('Throttle: spools take time', '油门：转子需要时间'), sub: B('Idle → take-off in ~5 s. The FADEC limits fuel so the compressor does not surge.', '慢车到起飞约 5 秒。FADEC 限制供油速度，防止压气机喘振。'),
+    why: B('<p>Moving the thrust lever does not change thrust directly. It sets an N1 target; the FADEC adds fuel, the hotter gas accelerates the HP spool first (lighter, closer to the fire), then the fan follows.</p><p>Adding fuel too fast would raise pressure in the combustor before the compressor has spun up, pushing the HPC toward <b>surge</b>. So acceleration follows a fuel schedule.</p>',
+      '<p>推油门并不会直接改变推力，它设定的是 N1 目标值；FADEC 增加供油，更热的燃气先让高压转子加速 (更轻、离火更近)，风扇随后跟上。</p><p>如果加油太快，燃烧室压力会在压气机转速跟上之前升高，把高压压气机推向<b>喘振</b>。所以加速必须遵守供油规律。</p>'),
+    math: B('$$\\tau_1\\dot N_1 = N_1^{*}(\\text{TLA}) - N_1,\\quad \\tau_1 \\approx 2\\text{ s},\\ \\tau_2 \\approx 1.4\\text{ s}$$<p>(first-order lag used here — illustrative).</p>', '$$\\tau_1\\dot N_1 = N_1^{*}(\\text{TLA}) - N_1,\\quad \\tau_1 \\approx 2\\text{ s},\\ \\tau_2 \\approx 1.4\\text{ s}$$<p>(这里用一阶滞后，示意)。</p>'),
+    try: B('<p>Slam the <b>Throttle</b> from 0 to 1 and watch N2 lead N1. Switch <b>Flight</b> to cruise: less thrust at the same throttle because the air is thin and the inlet is moving.</p>', '<p>把<b>油门</b>从 0 猛推到 1，看 N2 领先 N1。把<b>飞行状态</b>换成巡航：同样油门推力更小，因为空气稀薄且进气速度高。</p>'),
+    quiz: { q: B('Which spool speeds up first after a throttle burst?', '猛推油门后哪根转子先加速？'), opts: [B('N1 (fan)', 'N1 (风扇)'), B('N2 (core)', 'N2 (核心)')], a: 1, fb: B('Yes — the HP spool is lighter and sits right behind the combustor.', '对——高压转子更轻，而且紧挨燃烧室。') },
+    src: ['faa', 'sara', 'tcds'] },
+  { id: 'cycle', view: 'ext', rows: ['r-bpr', 'r-opr', 'r-t4', 'r-flight', 'r-eff'], scope: 'eta', run: 1, op: 'CYCLE', cfg: { thr: 1, flight: 'cruise', bpr: 5.3, opr: 32, t4: 1600, eff: 'real' },
+    title: B('Efficiency: why fans keep growing', '效率：为什么风扇越做越大'), sub: B('Thermal × propulsive = overall. LEAP raised both: BPR 11, OPR 40+.', '热效率 × 推进效率 = 总效率。LEAP 两者都提高了：涵道比 11，总压比 40+。'),
+    why: B('<p><b>Thermal efficiency</b> is how much fuel energy becomes jet kinetic energy — it rises with pressure ratio and turbine temperature. <b>Propulsive efficiency</b> is how much of that jet energy becomes useful thrust work — it rises when the jet is only a little faster than the aircraft.</p><p>A bigger fan moves more air more slowly: higher propulsive efficiency. That is why bypass ratio went 1 → 5 (CFM56) → 11 (LEAP) and why the 737 MAX needed a taller nose gear.</p>',
+      '<p><b>热效率</b>是燃油能量变成射流动能的比例——随压比和涡轮前温度提高。<b>推进效率</b>是射流动能中变成有用推进功的比例——射流只比飞机快一点时最高。</p><p>更大的风扇以更低的速度推动更多空气：推进效率更高。所以涵道比从 1 → 5 (CFM56) → 11 (LEAP)，737 MAX 也因此要加高前起落架。</p>'),
+    math: B('$$\\eta_p = \\frac{F V_0}{\\Delta KE}\\approx \\frac{2}{1+V_j/V_0},\\qquad \\eta_o = \\eta_{th}\\,\\eta_p$$', '$$\\eta_p = \\frac{F V_0}{\\Delta KE}\\approx \\frac{2}{1+V_j/V_0},\\qquad \\eta_o = \\eta_{th}\\,\\eta_p$$'),
+    try: B('<p>At cruise, set <b>Bypass ratio</b> 11, <b>Pressure ratio</b> 45 and compare with BPR 1. Switch <b>Components</b> to ideal to see the losses.</p>', '<p>巡航状态下把<b>涵道比</b>设为 11、<b>总压比</b> 45，再和涵道比 1 对比。把<b>部件</b>切到理想，看损失有多大。</p>'),
+    quiz: { q: B('A higher bypass ratio mainly improves…', '提高涵道比主要提高的是…'), opts: [B('Thermal efficiency', '热效率'), B('Propulsive efficiency', '推进效率'), B('Turbine temperature', '涡轮温度')], a: 1, fb: B('Correct — slower, bigger jets waste less kinetic energy.', '正确——更大更慢的射流浪费的动能更少。') },
+    src: ['matt', 'nasa', 'leap', 'wiki56'] },
+  { id: 'surge', view: 'hpc', rows: ['r-thr'], scope: 'map', run: 1, op: 'SURGE', cfg: { thr: .8, flight: 'sls', bpr: 5.3, opr: 32, t4: 1600, eff: 'real' },
+    title: B('Surge margin and variable vanes', '喘振裕度与可调静子'), sub: B('Push the compressor past its surge line and the flow reverses in milliseconds.', '把压气机推过喘振线，气流会在几毫秒内倒流。'),
+    why: B('<p>Every compressor has a maximum pressure ratio at each speed: the <b>surge line</b>. Beyond it the blades stall, the high-pressure air behind them blows forward, and the engine bangs, often with flame from the inlet or exhaust.</p><p>The CFM56 HPC protects itself with <b>variable stator vanes</b> (inlet guide vanes + first 3 stators, moved by unison rings and a fuel-driven actuator) and <b>bleed valves</b> that dump air at low speed.</p>',
+      '<p>每台压气机在每个转速下都有最大压比——<b>喘振线</b>。超过它，叶片失速，后面的高压空气向前倒灌，发动机会“砰”地一声，进气口或尾喷口常伴有火焰。</p><p>CFM56 高压压气机靠<b>可调静子叶片</b> (进口导叶 + 前 3 级静子，由联动环和燃油作动筒驱动) 和低转速时放气的<b>放气活门</b>保护自己。</p>'),
+    math: B('$$\\text{SM} = \\frac{\\pi_{\\text{surge}} - \\pi_{\\text{op}}}{\\pi_{\\text{op}}}\\times 100\\%$$<p>Engines are designed for ~15–25 % margin; deterioration, inlet distortion and fast fuel steps eat it.</p>', '$$\\text{SM} = \\frac{\\pi_{\\text{surge}} - \\pi_{\\text{op}}}{\\pi_{\\text{op}}}\\times 100\\%$$<p>设计喘振裕度一般约 15–25%；性能衰退、进气畸变和快速加油都会吃掉它。</p>'),
+    try: B('<p>Press <b>Run</b>: a fuel spike pushes the operating point across the red line, flow reverses, the FADEC cuts fuel and opens bleed, and the engine recovers.</p>', '<p>点<b>运行</b>：一次突增供油把工作点推过红线，气流倒流，FADEC 减油并打开放气，发动机恢复。</p>'),
+    quiz: { q: B('What do the variable stator vanes do?', '可调静子叶片的作用是？'), opts: [B('Add thrust', '增加推力'), B('Change the flow angle so front stages don’t stall at low speed', '改变气流角度，让前面几级在低转速时不失速'), B('Cool the turbine', '冷却涡轮')], a: 1, fb: B('Yes — they re-match the front stages to the actual axial velocity.', '对——它们让前几级和实际轴向速度重新匹配。') },
+    src: ['sara', 'faa', 'rr'] },
+];
+// camera shots (rig: target, azimuth, elevation, size = world height framed)
+const SHOTS = {
+  side: { tx: 11, ty: 0.4, tz: 0, az: -0.62, el: 0.3, size: 25 },
+  fan: { tx: 4.5, ty: 0.6, tz: 0, az: -0.95, el: 0.26, size: 21 },
+  hpc: { tx: 9.6, ty: 1.6, tz: 0.4, az: -0.3, el: 0.36, size: 14 },
+  comb: { tx: 13.8, ty: 1.9, tz: 0.4, az: -0.22, el: 0.4, size: 11 },
+  turb: { tx: 17.6, ty: 1.9, tz: 0.4, az: 0.2, el: 0.36, size: 13.5 },
+  ext: { tx: 10, ty: 0, tz: 0, az: -1.05, el: 0.2, size: 27 },
+  expl: { tx: 11, ty: 0.3, tz: 0, az: -0.5, el: 0.32, size: 34 },
+};
+
+// ===================== d_ops: activity state + operation sequencer (one op per lesson step) =====================
+const mkAct = () => ({ byp: .55, core: .55, parcel: -1, hi: '', starter: 0, fuelvis: 0, dil: 0, surge: 0, pw: '' });
+const ACT = mkAct(), ACTT = mkAct();
+const OPR = { q: [], cur: null, t: 0, kind: '', chips: [], chip: -1, phase: '', dev: '', running: false, result: null, thrOv: null };
+let OPSCALE = 1;
+function seg(o) { const r = Object.assign({ dur: 1, enter() { }, tick() { }, exit() { } }, o); if (!r.done) r.dur *= OPSCALE; return r; }
+function act(o) { Object.assign(ACTT, mkAct(), o); }
+function setChips(list) { OPR.chips = list.map(tr); OPR.chipsSrc = list; OPR.chip = -1; renderChips(); }
+const L2 = (en, zh) => B(en, zh);
+const OPS = {};
+OPS.START = () => {
+  setChips([L2('Off', '停车'), L2('Starter', '起动机'), L2('Light-off', '点火'), L2('Idle', '慢车')]);
+  OPR.q.push(
+    seg({ dur: 1.0, chip: 0, label: L2('Engine off: no flow, no fire', '发动机停车：无气流、无火焰'), dev: 'AGB', enter() { ENG.lit = 0; ENG.fuel = 0; ENG.motor1 = 0; ENG.motor2 = 0; ENG.n1 = 0; ENG.n2 = 0; act({ byp: 0, core: 0 }); } }),
+    seg({ dur: 3.4, chip: 1, label: L2('Air starter drives the HP spool through the gearbox', '空气起动机经齿轮箱带转高压转子'), dev: 'N2 ↑', enter() { ENG.motor2 = .27; ENG.motor1 = .07; act({ byp: .08, core: .25, starter: 1, hi: 'agb' }); } }),
+    seg({ dur: 1.6, chip: 2, label: L2('~25 % N2: fuel on, igniters fire — light-off', 'N2 约 25%：开油、点火嘴打火——点燃'), dev: 'FADEC', enter() { ENG.fuel = 1; ENG.lit = 1; OPR.thrOv = 0; act({ byp: .2, core: .5, starter: 1, hi: 'comb' }); } }),
+    seg({ dur: 6, chip: 3, label: L2('Starter cuts out ~55 % N2; engine settles at ground idle', '约 55% N2 起动机脱开；稳定在地面慢车'), dev: 'IDLE', enter() { act({ byp: .35, core: .6 }); }, done: () => ENG.n2 > .585 && OPR.t > 1.5, exit() { OPR.thrOv = null; } }),
+  );
+};
+OPS.SPLIT = () => {
+  setChips([L2('Fan', '风扇'), L2('Bypass', '外涵'), L2('Core', '内涵'), L2('Both', '合计')]);
+  OPR.q.push(
+    seg({ dur: 2.2, chip: 0, label: L2('24 fan blades accelerate all the incoming air', '24 片风扇叶片给全部进气加速'), dev: 'FAN', enter() { act({ byp: 1, core: 1, hi: 'fan' }); } }),
+    seg({ dur: 2.8, chip: 1, label: () => tr(L2('Bypass: ', '外涵：')) + `${fmt(ENG.R.mb, 0)} kg/s → ${fmt(ENG.R.Fb / 1000, 0)} kN`, dev: 'BPR', enter() { act({ byp: 1, core: .12, hi: 'ogv' }); } }),
+    seg({ dur: 2.8, chip: 2, label: () => tr(L2('Core: ', '内涵：')) + `${fmt(ENG.R.mc, 0)} kg/s → ${fmt(ENG.R.Fc / 1000, 0)} kN`, dev: 'CORE', enter() { act({ byp: .12, core: 1, hi: 'hpc' }); } }),
+    seg({ dur: 2.0, chip: 3, label: () => tr(L2('Total thrust ', '总推力 ')) + fmt(ENG.R.F / 1000, 1) + ' kN', dev: 'F', enter() { act({ byp: 1, core: 1 }); } }),
+  );
+};
+// parcel path stations (x along the core flow path) -> section highlight + label
+const PSTA = [[-3.5, '0', 'fan'], [1.0, '2', 'fan'], [4.3, '25', 'lpc'], [9.8, '3', 'hpc'], [13.6, '4', 'comb'], [15.2, '45', 'hpt'], [18.2, '5', 'lpt'], [23.0, '9', 'noz']];
+OPS.PARCEL = () => {
+  setChips([L2('Fan root', '风扇根部'), L2('Booster', '增压级'), L2('HPC', '高压压气机'), L2('Combustor', '燃烧室')]);
+  const sec = [[0, .18, 0, 'lpc'], [.18, .38, 1, 'lpc'], [.38, .72, 2, 'hpc'], [.72, 1, 3, 'comb']];
+  OPR.q.push(seg({ dur: 9, label: () => { const u = ACT.parcel, i = PSTA.findIndex(p => p[0] > lerp(-3.5, 13.6, u)); const s = ENG.R.ST.find(z => z.k === (PSTA[Math.max(0, i - 1)] || PSTA[0])[1]) || ENG.R.ST[0]; return tr(L2('Station ', '截面 ')) + s.k + ` · ${fmt(s.P / 1e5, 1)} bar · ${fmt(s.T, 0)} K`; }, dev: 'PARCEL',
+    enter() { act({ byp: .2, core: .45 }); ACTT.parcel = 0; ACT.parcel = 0; },
+    tick(u) { ACT.parcel = ACTT.parcel = u; const s = sec.find(z => u >= z[0] && u <= z[1]) || sec[3]; ACTT.hi = s[3]; if (OPR.chip !== s[2]) { OPR.chip = s[2]; renderChips(); } } }),
+    seg({ dur: 1.4, label: L2('Ready to burn: ~32× pressure, ~850 K', '准备燃烧：约 32 倍压力，约 850 K'), dev: '3', enter() { act({ byp: .3, core: .6, parcel: 1, hi: 'comb' }); } }));
+};
+OPS.IGNITE = () => {
+  setChips([L2('Manifold', '总管'), L2('Swirl', '旋流'), L2('Dilution', '掺混')]);
+  OPR.q.push(
+    seg({ dur: 2.6, chip: 0, label: () => tr(L2('Ring manifold feeds 20 nozzles: ', '环形总管给 20 个喷嘴供油：')) + fmt(ENG.R.mf, 2) + ' kg/s', dev: 'FUEL', enter() { act({ core: .5, byp: .2, fuelvis: 1, hi: 'fuel' }); } }),
+    seg({ dur: 2.6, chip: 1, label: L2('Swirlers trap a recirculating flame in the dome', '旋流器在头部形成回流区，稳住火焰'), dev: 'DOME', enter() { act({ core: .7, byp: .2, fuelvis: 1, hi: 'comb' }); } }),
+    seg({ dur: 2.8, chip: 2, label: () => tr(L2('Dilution holes cool the gas to T4 = ', '掺混孔把燃气降到 T4 = ')) + fmt(ENG.R.Tt4, 0) + ' K', dev: 'T4', enter() { act({ core: 1, byp: .2, dil: 1, hi: 'comb' }); } }),
+  );
+};
+OPS.WORK = () => {
+  setChips([L2('HPT → HPC', '高压涡轮 → 高压压气机'), L2('LPT → fan', '低压涡轮 → 风扇'), L2('Shafts', '双轴')]);
+  OPR.q.push(
+    seg({ dur: 3, chip: 0, label: () => `HPT ${fmt(ENG.R.PW.hpt, 1)} MW = HPC ${fmt(ENG.R.PW.hpc, 1)} MW`, dev: 'N2', enter() { act({ core: 1, byp: .3, hi: 'hpt', pw: 'hp' }); } }),
+    seg({ dur: 3, chip: 1, label: () => `LPT ${fmt(ENG.R.PW.lpt, 1)} MW → ${tr(L2('fan + booster', '风扇 + 增压级'))}`, dev: 'N1', enter() { act({ core: 1, byp: 1, hi: 'lpt', pw: 'lp' }); } }),
+    seg({ dur: 3.6, chip: 2, label: L2('Inner LP shaft runs inside the HP drum at a different speed', '内侧低压轴在高压转子鼓筒内以不同转速旋转'), dev: 'SHAFT', enter() { act({ core: .6, byp: .6, hi: 'shaft' }); setExplode('eng', 1, 1.8); shot(SHOTS.expl, 1.8); }, exit() { setExplode('eng', 0, 1.4); shot(SHOTS[STEPS[CUR].view], 1.4); } }),
+  );
+};
+OPS.SPOOL = () => {
+  setChips([L2('Idle', '慢车'), L2('Burst', '猛推'), L2('Take-off', '起飞')]);
+  OPR.q.push(
+    seg({ dur: 2.5, chip: 0, label: L2('Ground idle: ~20 % N1, ~60 % N2', '地面慢车：约 20% N1、60% N2'), dev: 'IDLE', enter() { OPR.thrOv = 0; act({}); }, done: () => OPR.t > 2.5 && ENG.n1 < .3 }),
+    seg({ dur: 8, chip: 1, label: () => `N2 ${fmt(ENG.n2 * 100, 0)} % · N1 ${fmt(ENG.n1 * 100, 0)} %`, dev: 'TLA ↑', enter() { OPR.thrOv = 1; act({ byp: 1, core: 1 }); }, done: () => ENG.n1 > .97 * cycle(PRM, { thr: 1 }).n1 }),
+    seg({ dur: 2, chip: 2, label: () => tr(L2('Take-off thrust ', '起飞推力 ')) + fmt(ENG.R.F / 1000, 0) + ' kN', dev: 'TO', exit() { OPR.thrOv = null; PRM.thr = 1; } }),
+  );
+};
+let RAMPS = [];
+const rampP = (key, from, to, dur) => RAMPS.push({ key, from, to, t0: SIM.t, dur });
+OPS.CYCLE = () => {
+  setChips([L2('BPR 1→11', '涵道比 1→11'), L2('OPR 20→45', '总压比 20→45'), L2('Result', '结果')]);
+  OPR.q.push(
+    seg({ dur: 6, chip: 0, label: () => `BPR ${fmt(PRM.bpr, 1)} · η_p ${fmt(ENG.R.etaP * 100, 0)} %`, dev: 'FAN', enter() { act({ byp: 1, core: 1 }); PRM.bpr = 1; rampP('bpr', 1, 11, 5.5); } }),
+    seg({ dur: 4.5, chip: 1, label: () => `OPR ${fmt(PRM.opr, 0)} · η_th ${fmt(ENG.R.etaTh * 100, 0)} %`, dev: 'CORE', enter() { PRM.opr = 20; rampP('opr', 20, 45, 4); } }),
+    seg({ dur: 2.4, chip: 2, label: () => `η_o ${fmt(ENG.R.etaO * 100, 1)} % · TSFC ${fmt(ENG.R.tsfc, 1)} g/kN·s`, dev: 'LEAP', exit() { } }),
+  );
+};
+OPS.SURGE = () => {
+  setChips([L2('Steady', '稳态'), L2('Fuel spike', '突增供油'), L2('Surge', '喘振'), L2('Recover', '恢复')]);
+  OPR.q.push(
+    seg({ dur: 1.6, chip: 0, label: () => tr(L2('Surge margin ', '喘振裕度 ')) + fmt(ENG.R.map.sm, 0) + ' %', dev: 'HPC', enter() { act({ hi: 'hpc' }); } }),
+    seg({ dur: 4, chip: 1, label: () => tr(L2('Too much fuel too fast: PR rises, margin shrinks → ', '加油过快：压比上升，裕度缩小 → ')) + fmt(ENG.R.map.sm, 0) + ' %', dev: 'FUEL ↑', enter() { act({ hi: 'hpc' }); },
+      tick(u, dt) { ENG.surgeKick = Math.min(5, ENG.surgeKick + dt * 2.2); }, done: () => ENG.R.map.sm < -1 }),
+    seg({ dur: 1.8, chip: 2, label: L2('Blades stall — high-pressure air blows forward (bang!)', '叶片失速——高压空气向前倒灌 (砰！)'), dev: 'SURGE', enter() { act({ hi: 'hpc', surge: 1, core: 1 }); ENG.surge = 1; } }),
+    seg({ dur: 3, chip: 3, label: L2('FADEC cuts fuel, opens bleed, closes VSVs — flow re-establishes', 'FADEC 减油、打开放气、关小可调静子——气流恢复'), dev: 'VSV', enter() { act({ hi: 'vsv' }); ENG.surge = 0; },
+      tick(u, dt) { ENG.surgeKick = Math.max(0, ENG.surgeKick - dt * 3); } , exit() { ENG.surgeKick = 0; } }),
+  );
+};
+function startOp(kind) {
+  if (OPR.running || !OPS[kind]) return false;
+  OPR.q = []; OPR.cur = null; OPR.kind = kind; OPR.result = null; OPR.running = true; OPS[kind](); nextSeg(); return true;
+}
+function nextSeg() {
+  if (OPR.cur) OPR.cur.exit();
+  OPR.cur = OPR.q.shift() || null; OPR.t = 0;
+  if (!OPR.cur) { OPR.running = false; OPR.phase = ''; OPR.dev = ''; act({}); onOpDone(); return; }
+  if (OPR.cur.chip !== undefined) { OPR.chip = OPR.cur.chip; renderChips(); }
+  OPR.phaseSrc = OPR.cur.label || ''; OPR.dev = OPR.cur.dev || '';
+  OPR.cur.enter();
+}
+function tickOp(dt) {
+  if (!OPR.cur) return;
+  OPR.t += dt; const u = clamp(OPR.t / OPR.cur.dur);
+  OPR.cur.tick(u, dt);
+  OPR.phase = typeof OPR.phaseSrc === 'function' ? OPR.phaseSrc() : tr(OPR.phaseSrc);
+  if (u >= 1 || (OPR.cur.done && OPR.cur.done())) nextSeg();
+}
+function abortOp() {
+  if (OPR.cur) try { OPR.cur.exit(); } catch (e) { }
+  OPR.q = []; OPR.cur = null; OPR.running = false; OPR.thrOv = null; RAMPS = []; ENG.surgeKick = 0; ENG.surge = 0; ENG.lit = 1; ENG.fuel = 1; act({});
+}
+function tickRamps() { RAMPS = RAMPS.filter(r => { const k = smooth((SIM.t - r.t0) / r.dur); PRM[r.key] = lerp(r.from, r.to, k); return k < 1; }); }
+function dampAct(dt) { for (const k in ACT) { if (typeof ACT[k] === 'number' && k !== 'parcel') ACT[k] = damp(ACT[k], ACTT[k], 5, dt); else ACT[k] = ACTT[k]; } }
+
+// ===================== f_ui: trail, controls, why box, readouts, scope, tooltip (bilingual) =====================
+let CUR = 0, SCOPE = 'st', WHYTAB = 'why';
+const ICON = {
+  play: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3v10l8-5z"/></svg>',
+  pause: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="2.6" height="10" rx=".6"/><rect x="9.4" y="3" width="2.6" height="10" rx=".6"/></svg>',
+  check: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>',
+};
+function setBtn(el, html) { if (el._h !== html) { el.innerHTML = html; el._h = html; } }
+function scopePal() {
+  return document.body.classList.contains('light')
+    ? { fg: '#111113', tx2: '#3e3f44', mu: '#66686e', dim: '#b4b4ba', grid: 'rgba(17,17,19,.07)', acc: '#2f6fbd', ok: '#22704f', bad: '#b02a43', warn: '#9a6a10', cold: '#3d7fc4', hot: '#c4561c' }
+    : { fg: '#f2f2f3', tx2: '#bdbdc0', mu: '#8a8c92', dim: '#55555b', grid: 'rgba(255,255,255,.055)', acc: '#4a8ad6', ok: '#5fc39c', bad: '#e5566f', warn: '#d9a441', cold: '#8fc4ff', hot: '#ff8a3d' };
+}
+let SC = scopePal();
+function toast(msg, ms = 3800) {
+  const el = $('toast'); el.textContent = msg; el.style.opacity = 1; toast.until = SIM.t + ms / 1000 * Math.max(1, SIM.speed);
+  const r = el.getBoundingClientRect(), s = $('stage').getBoundingClientRect();
+  TOASTRECT = { x0: (r.left - s.left) / stageScale - 6, y0: (r.top - s.top) / stageScale - 6, x1: (r.right - s.left) / stageScale + 6, y1: (r.bottom - s.top) / stageScale + 6 };
+}
+function tickToast() { if (toast.until && SIM.t > toast.until) { $('toast').style.opacity = 0; toast.until = 0; TOASTRECT = null; } }
+function renderTrail() {
+  $('steps').innerHTML = STEPS.map((s, i) => `<div class="st ${i === CUR ? 'cur' : i < CUR ? 'done' : ''}" data-i="${i}" role="button" tabindex="0" aria-label="${t('steplab')} ${i + 1}: ${tr(s.title)}"><div class="nd">${i < CUR ? ICON.check : String(i + 1).padStart(2, '0')}</div><div class="tx"><div class="tt">${tr(s.title)}</div><div class="sb">${tr(s.sub)}</div></div></div>`).join('');
+}
+$('steps').addEventListener('click', e => { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } });
+$('steps').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } } });
+function renderChips() { OPR.chips = (OPR.chipsSrc || []).map(tr); const h = OPR.chips.map((c, i) => `<span class="${i === OPR.chip ? 'on' : i < OPR.chip ? 'done' : ''}">${c}</span>`).join(''); if (h !== renderChips.last) { $('cmdseq').innerHTML = h; renderChips.last = h; } }
+function renderWhy() {
+  const s = STEPS[CUR], b = $('whybody');
+  document.querySelectorAll('#whytabs button').forEach(x => x.classList.toggle('on', x.dataset.t === WHYTAB));
+  if (WHYTAB === 'why') b.innerHTML = tr(s.why);
+  else if (WHYTAB === 'math') b.innerHTML = tr(s.math);
+  else if (WHYTAB === 'ex') b.innerHTML = tr(s.try);
+  else if (WHYTAB === 'quiz') { const q = s.quiz; b.innerHTML = `<div class="quiz"><div class="q">${tr(q.q)}</div><div class="opts">${q.opts.map((o, i) => `<button data-i="${i}">${String.fromCharCode(65 + i)}. ${tr(o)}</button>`).join('')}</div><div class="fb" id="qfb"></div></div>`; }
+  else if (WHYTAB === 'src') b.innerHTML = `<p class="note">${t('srcnote')}</p><ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.55">${s.src.map(k => `<li>${SRC[k]}</li>`).join('')}</ol>`;
+  if (window.renderMathInElement) try { renderMathInElement(b, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { }
+}
+$('whytabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); WHYTAB = b.dataset.t; renderWhy(); });
+$('whybody').addEventListener('click', e => { const b = e.target.closest('.quiz button'); if (!b) return; userTook(); const q = STEPS[CUR].quiz, i = +b.dataset.i; document.querySelectorAll('.quiz button').forEach((x, j) => { x.classList.remove('right', 'wrong'); if (j === i) x.classList.add(i === q.a ? 'right' : 'wrong'); }); $('qfb').innerHTML = i === q.a ? tr(q.fb) : (LANG === 'zh' ? '再想想。' : 'Not quite — try again.'); });
+// ---------- controls ----------
+function cfgChanged() { syncControls(); updateReadouts(); }
+function segBind(id, key) { $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); PRM[key] = b.dataset.v; cfgChanged(); }); }
+segBind('flight', 'flight'); segBind('eff', 'eff');
+const rng = (id, key) => $(id).addEventListener('input', e => { userTook(); PRM[key] = +e.target.value; cfgChanged(); });
+rng('thr', 'thr'); rng('bpr', 'bpr'); rng('opr', 'opr'); rng('t4', 't4');
+$('lang').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== LANG) setLang(b.dataset.v); });
+$('btnRun').addEventListener('click', () => { userTook(); runCurrent(); });
+$('btnStepOp').addEventListener('click', () => { userTook(); if (OPR.running) nextSeg(); });
+$('btnPause').addEventListener('click', () => { userTook(); SIM.paused = !SIM.paused; setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause); });
+$('speed').addEventListener('change', e => { userTook(); SIM.speed = +e.target.value; });
+$('btnTheme').addEventListener('click', () => { document.body.classList.toggle('light'); });
+$('btnAuto').addEventListener('click', () => { restartAutoplay(); });
+document.querySelectorAll('#scopetabs button').forEach(b => b.addEventListener('click', () => { userTook(); SCOPE = b.dataset.s; syncControls(); }));
+function runCurrent() { if (OPR.running) abortOp(); startOp(STEPS[CUR].op); syncControls(); }
+function rangeFill(r) { r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100).toFixed(1) + '%'); }
+const ROWS = ['r-thr', 'r-flight', 'r-bpr', 'r-opr', 'r-t4', 'r-eff'];
+const RUNLAB = { START: B('start sequence', '起动程序'), SPLIT: B('flow split', '分流演示'), PARCEL: B('follow a parcel', '跟踪气团'), IGNITE: B('combustion', '燃烧过程'), WORK: B('power balance', '功率平衡'), SPOOL: B('throttle burst', '猛推油门'), CYCLE: B('BPR / OPR sweep', '涵道比 / 压比扫描'), SURGE: B('surge event', '喘振事件') };
+function syncControls() {
+  const s = STEPS[CUR];
+  ROWS.forEach(id => $(id).style.display = s.rows.includes(id) ? '' : 'none');
+  const on = (id, v) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v)));
+  on('flight', PRM.flight); on('eff', PRM.eff); on('lang', LANG);
+  const thr = OPR.thrOv != null ? OPR.thrOv : PRM.thr;
+  $('thr').value = thr; $('thrv').textContent = Math.round(thr * 100) + ' %';
+  $('bpr').value = PRM.bpr; $('bprv').textContent = PRM.bpr.toFixed(1);
+  $('opr').value = PRM.opr; $('oprv').textContent = PRM.opr.toFixed(0);
+  $('t4').value = PRM.t4; $('t4v').textContent = PRM.t4.toFixed(0) + ' K';
+  setBtn($('btnRun'), OPR.running ? '<span class="spin"></span>' + t('running') : ICON.play + t('run') + ' ' + tr(RUNLAB[s.op]));
+  setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause);
+  document.querySelectorAll('#ctl input[type=range]').forEach(rangeFill);
+  $('btnRun').disabled = OPR.running; $('btnRun').parentElement.style.display = s.run ? '' : 'none';
+  document.querySelectorAll('#scopetabs button').forEach(b => b.classList.toggle('on', b.dataset.s === SCOPE));
+  setBtn($('btnAuto'), AUTOPLAY ? '<span class="live"></span>' + t('autoOn') : ICON.play + t('auto'));
+}
+// ---------- readouts ----------
+const roW = (s, a) => [...String(s).replace(/<[^>]+>/g, '')].reduce((w, c) => w + (c.charCodeAt(0) > 0x2e80 ? 12 : a), 0);
+function ro(pairs) { const h = pairs.map(([k, v]) => `<div${roW(t(k), 6.4) + roW(v, 7.3) > 150 ? ' class="w"' : ''}><span>${t(k)}</span><b>${v}</b></div>`).join(''); if (h !== ro.last) { $('readouts').innerHTML = h; ro.last = h; } }
+const kN = v => fmt(v / 1000, 1) + ' kN', pc = v => fmt(v * 100, 0) + ' %';
+function engState() { if (ENG.surge) return `<span class="neg">${t('st_surge')}</span>`; if (!ENG.lit) return t(ENG.n2 > .03 ? 'st_crank' : 'st_off'); if (ENG.n2 < .58) return t('st_light'); return ENG.n1 < .3 ? t('st_idle') : t('st_run'); }
+function updateReadouts() {
+  const R = ENG.R; if (!R) return; const id = STEPS[CUR].id;
+  const base = [['ro_thrust', kN(R.F)], ['ro_n1', pc(R.n1) + ' · ' + fmt(R.N1, 0) + ' rpm'], ['ro_n2', pc(R.n2) + ' · ' + fmt(R.N2, 0) + ' rpm']];
+  if (id === 'start') ro([...base, ['ro_egt', fmt(R.egt, 0) + ' °C'], ['ro_fuel', fmt(R.mf, 2) + ' kg/s'], ['ro_state', engState()]]);
+  else if (id === 'split') ro([['ro_thrust', kN(R.F)], ['ro_fb', pc(R.F > 1 ? R.Fb / R.F : 0)], ['ro_bpr', fmt(R.alpha, 1)], ['ro_m0', fmt(R.m0, 0) + ' kg/s'], ['ro_v19', fmt(R.V19, 0) + ' m/s'], ['ro_v9', fmt(R.V9, 0) + ' m/s'], ['ro_tsfc', fmt(R.tsfc, 1) + ' g/kN·s']]);
+  else if (id === 'compress') { const s3 = R.ST.find(z => z.k === '3'); ro([['ro_opr', fmt(R.opr, 1)], ['Tt3', fmt(s3.T, 0) + ' K'], ['Pt3', fmt(s3.P / 1e5, 1) + ' bar'], ['ro_n2', pc(R.n2)], ['ro_hpc', fmt(R.PW.hpc, 1) + ' MW'], ['ro_m0', fmt(R.mc, 0) + ' kg/s']]); }
+  else if (id === 'burn') ro([['ro_t4', fmt(R.Tt4, 0) + ' K'], ['f', fmt(R.f, 4)], ['ro_fuel', fmt(R.mf, 2) + ' kg/s'], ['ro_eth', pc(R.etaTh)], ['ro_egt', fmt(R.egt, 0) + ' °C'], ['ro_thrust', kN(R.F)]]);
+  else if (id === 'turbine') ro([['ro_hpt', fmt(R.PW.hpt, 1) + ' MW'], ['ro_hpc', fmt(R.PW.hpc, 1) + ' MW'], ['ro_lpt', fmt(R.PW.lpt, 1) + ' MW'], ['ro_fan', fmt(R.PW.fan, 1) + ' MW'], ['ro_n1', fmt(R.N1, 0) + ' rpm'], ['ro_n2', fmt(R.N2, 0) + ' rpm']]);
+  else if (id === 'spool') ro([...base, ['ro_egt', fmt(R.egt, 0) + ' °C'], ['ro_tsfc', fmt(R.tsfc, 1) + ' g/kN·s'], ['ro_state', engState()]]);
+  else if (id === 'cycle') ro([['ro_bpr', fmt(PRM.bpr, 1)], ['ro_opr', fmt(R.opr, 1)], ['ro_eth', pc(R.etaTh)], ['ro_ep', pc(R.etaP)], ['ro_eo', fmt(R.etaO * 100, 1) + ' %'], ['ro_tsfc', fmt(R.tsfc, 1) + ' g/kN·s'], ['ro_thrust', kN(R.F)]]);
+  else if (id === 'surge') ro([['ro_sm', `<span class="${R.map.sm < 5 ? 'neg' : 'pos'}">${fmt(R.map.sm, 1)} %</span>`], ['PR HPC', fmt(R.map.pr, 1)], ['ro_n2', pc(R.n2)], ['ro_state', engState()], ['ro_thrust', kN(R.F)]]);
+}
+// ---------- scope ----------
+const sc = $('scope'); let sg = sc.getContext('2d'), SW = 0, SH = 0;
+function sizeScope() { const r = sc.getBoundingClientRect(); const dpr = Math.min(2, devicePixelRatio || 1); SW = sc.clientWidth; SH = sc.clientHeight; sc.width = Math.round(Math.max(1, r.width) * dpr); sc.height = Math.round(Math.max(1, r.height) * dpr); sg.setTransform(sc.width / Math.max(1, SW), 0, 0, sc.height / Math.max(1, SH), 0, 0); }
+function ytk(g, s, y, x0, x1) { g.strokeStyle = SC.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, Math.round(y) + .5); g.lineTo(x1, Math.round(y) + .5); g.stroke(); txt(g, s, x0 - 5, y + 4, SC.mu, 'right'); }
+function txt(g, s, x, y, col = SC.mu, al = 'left', f = '11px "JetBrains Mono"') { g.fillStyle = col; g.font = f; g.textAlign = al; g.fillText(s, x, y); }
+const SANS = '11px "Inter","Noto Sans SC",sans-serif';
+const SCOPEINFO = { scope: '' };
+const ETAC = {}; // cached efficiency sweep per (flight, opr, t4, eff)
+function drawScope() {
+  const g = sg, W = SW, H = SH; if (!W || !H || !ENG.R) return; g.clearRect(0, 0, W, H); SC = scopePal();
+  const cap = t('c_' + SCOPE); if ($('scopecap').textContent !== cap) $('scopecap').textContent = cap;
+  const R = ENG.R; SCOPEINFO.scope = SCOPE;
+  if (SCOPE === 'thrust') {
+    const L = 40, Rr = W - 50, T = 14, Bt = H - 24, max = 140e3, y = v => Bt - clamp(v / max) * (Bt - T);
+    for (let v = 0; v <= 140; v += 35) ytk(g, String(v), y(v * 1e3), L, Rr);
+    txt(g, 'kN', L - 34, T - 2, SC.mu);
+    const bars = [[t('sc_bypass'), R.Fb, SC.cold], [t('sc_core'), R.Fc, SC.hot]], bw = (Rr - L) / 5;
+    bars.forEach(([n, v, c], i) => { const x = L + bw * (0.6 + i * 1.4); g.fillStyle = c; g.fillRect(x, y(Math.max(0, v)), bw, Bt - y(Math.max(0, v))); txt(g, n, x + bw / 2, Bt + 14, SC.tx2, 'center', SANS); txt(g, fmt(v / 1000, 1), x + bw / 2, y(Math.max(0, v)) - 5, SC.fg, 'center'); });
+    const x3 = L + bw * 3.6; let yy = Bt; [[R.Fb, SC.cold], [R.Fc, SC.hot]].forEach(([v, c]) => { const h = Bt - y(Math.max(0, v)); g.fillStyle = c; g.fillRect(x3, yy - h, bw * .8, h); yy -= h; });
+    txt(g, 'F ' + fmt(R.F / 1000, 1), x3 + bw * .4, yy - 5, SC.fg, 'center'); txt(g, '= F', x3 + bw * .4, Bt + 14, SC.tx2, 'center', SANS);
+    txt(g, t('sc_tsfc'), Rr + 46, T + 8, SC.warn, 'right', SANS); txt(g, fmt(R.tsfc, 1), Rr + 46, T + 24, SC.warn, 'right'); txt(g, 'g/kN·s', Rr + 46, T + 38, SC.mu, 'right');
+  } else if (SCOPE === 'st') {
+    const L = 40, Rr = W - 40, T = 14, Bt = H - 24, st = R.ST.slice(1), n = st.length, bw = (Rr - L) / n;
+    const pmax = Math.max(4, ...st.map(s => s.P / 1e5)) * 1.1, tmax = 1900, yP = p => Bt - p / pmax * (Bt - T), yT = v => Bt - v / tmax * (Bt - T);
+    for (let k = 0; k <= 4; k++) ytk(g, fmt(pmax * k / 4, 0), yP(pmax * k / 4), L, Rr);
+    txt(g, t('sc_p'), L - 34, T - 3, SC.acc, 'left', SANS); txt(g, t('sc_t'), Rr + 36, T - 3, SC.hot, 'right', SANS);
+    st.forEach((s, i) => { const x = L + i * bw + bw * .2; g.fillStyle = SC.acc; g.globalAlpha = .75; g.fillRect(x, yP(s.P / 1e5), bw * .6, Bt - yP(s.P / 1e5)); g.globalAlpha = 1; txt(g, s.k, x + bw * .3, Bt + 14, SC.tx2, 'center'); });
+    g.strokeStyle = SC.hot; g.lineWidth = 2; g.beginPath(); st.forEach((s, i) => { const x = L + i * bw + bw / 2; i ? g.lineTo(x, yT(s.T)) : g.moveTo(x, yT(s.T)); }); g.stroke();
+    st.forEach((s, i) => { const x = L + i * bw + bw / 2; g.fillStyle = SC.hot; g.beginPath(); g.arc(x, yT(s.T), 3, 0, 7); g.fill(); if (i % 2 === 0 || i === 3) txt(g, fmt(s.T, 0), x, yT(s.T) - 7, SC.hot, 'center'); });
+    for (let v = 0; v <= 1800; v += 600) txt(g, String(v), Rr + 4, yT(v) + 4, SC.mu, 'left');
+    if (ACT.parcel >= 0 && OPR.kind === 'PARCEL' && OPR.running) { const xw = lerp(-3.5, 13.6, ACT.parcel); let i = PSTA.findIndex(p => p[0] > xw); i = i < 0 ? 4 : Math.max(0, i - 2); g.strokeStyle = SC.fg; g.lineWidth = 1.5; g.strokeRect(L + i * bw + 2, T, bw - 4, Bt - T); }
+  } else if (SCOPE === 'ts') {
+    const L = 44, Rr = W - 10, T = 12, Bt = H - 26; const ideal = cycle(PRM, { thr: ENG.R.x, eff: 'ideal' });
+    const all = [...R.ST, ...ideal.ST], smin = Math.min(...all.map(s => s.s)) - 50, smax = Math.max(...all.map(s => s.s)) + 80;
+    const x = s => L + (s.s - smin) / (smax - smin) * (Rr - L), y = s => Bt - (s.T - 200) / 1700 * (Bt - T);
+    for (let v = 200; v <= 1900; v += 400) ytk(g, String(v), y({ T: v }), L, Rr);
+    txt(g, 'T (K)', L - 40, T - 2, SC.mu); txt(g, t('sc_s'), Rr, Bt + 20, SC.mu, 'right', SANS);
+    const order = ['0', '2', '25', '3', '4', '45', '5', '9'], pick = (S, k) => S.find(z => z.k === k);
+    const loop = (S, col, dash) => { g.strokeStyle = col; g.lineWidth = dash ? 1.2 : 2; g.setLineDash(dash ? [4, 3] : []); g.beginPath(); order.forEach((k, i) => { const p = pick(S, k); i ? g.lineTo(x(p), y(p)) : g.moveTo(x(p), y(p)); }); g.lineTo(x(pick(S, '0')), y(pick(S, '0'))); g.stroke(); g.setLineDash([]); };
+    loop(ideal.ST, SC.mu, true); loop(R.ST, SC.hot, false);
+    order.forEach(k => { const p = pick(R.ST, k); g.fillStyle = SC.fg; g.beginPath(); g.arc(x(p), y(p), 2.6, 0, 7); g.fill(); txt(g, k, x(p) + 5, y(p) - 4, SC.tx2); });
+    txt(g, '- - ' + t('sc_ideal'), L + 6, T + 10, SC.mu, 'left', SANS);
+  } else if (SCOPE === 'pw') {
+    const L = 50, Rr = W - 12, T = 22, Bt = H - 26, pmax = Math.max(30, R.PW.hpt, R.PW.lpt) * 1.15, x = v => L + v / pmax * (Rr - L);
+    const rows = [[t('sc_hp'), [['HPT', R.PW.hpt, SC.hot], ['HPC', R.PW.hpc, SC.warn]]], [t('sc_lp'), [['LPT', R.PW.lpt, SC.hot], ['Fan+LPC', R.PW.lpt * .995, SC.cold]]]];
+    const rh = (Bt - T) / 2;
+    rows.forEach(([n, bars], i) => { const y0 = T + i * rh; txt(g, n, L - 44, y0 + 12, SC.tx2, 'left', SANS); bars.forEach(([bn, v, c], j) => { const yy = y0 + 18 + j * 22; g.fillStyle = c; g.fillRect(L, yy, Math.max(1, x(v) - L), 15); txt(g, bn + ' ' + fmt(v, 1) + ' MW', Math.min(x(v) + 5, Rr - 120), yy + 12, SC.fg, 'left'); }); });
+    const hi = ACT.pw === 'hp' ? 0 : ACT.pw === 'lp' ? 1 : -1; if (hi >= 0) { g.strokeStyle = SC.fg; g.lineWidth = 1.2; g.strokeRect(L - 48, T + hi * rh + 1, Rr - L + 46, rh - 4); }
+  } else if (SCOPE === 'eta') {
+    const L = 40, Rr = W - 10, T = 12, Bt = H - 26, x = b => L + (b - .5) / 11.5 * (Rr - L), y = v => Bt - v * (Bt - T);
+    const key = [PRM.flight, PRM.opr.toFixed(0), PRM.t4, PRM.eff].join('|');
+    if (!ETAC[key]) { const pts = []; for (let b = .5; b <= 12.01; b += .5) { const c = cycle(PRM, { thr: 1, bpr: b }); pts.push([b, c.etaTh, c.etaP, c.etaO]); } ETAC[key] = pts; }
+    for (let v = 0; v <= 1; v += .25) ytk(g, fmt(v * 100, 0) + '%', y(v), L, Rr);
+    for (const b of [1, 3, 5, 7, 9, 11]) txt(g, String(b), x(b), Bt + 13, SC.mu, 'center');
+    txt(g, t('sc_bpr'), Rr, Bt + 24, SC.mu, 'right', SANS);
+    const pts = ETAC[key]; const ln = (k, col, nm) => { g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(x(p[0]), y(p[k])) : g.moveTo(x(p[0]), y(p[k]))); g.stroke(); const lp = pts[pts.length - 1]; txt(g, nm, x(lp[0]) - 2, y(lp[k]) - 6, col, 'right', SANS); };
+    ln(1, SC.hot, 'η_th'); ln(2, SC.cold, 'η_p'); ln(3, SC.fg, 'η_o');
+    if (PRM.flight === 'sls') txt(g, LANG === 'zh' ? '静止时 V₀ = 0，推进效率无定义——切到巡航' : 'V₀ = 0 at take-off: η_p undefined — switch to cruise', L + 6, T + 12, SC.warn, 'left', SANS);
+    const c = cycle(PRM, { thr: 1 }); [[c.etaTh, SC.hot], [c.etaP, SC.cold], [c.etaO, SC.fg]].forEach(([v, col]) => { g.fillStyle = col; g.beginPath(); g.arc(x(PRM.bpr), y(v), 4.5, 0, 7); g.fill(); });
+  } else if (SCOPE === 'map') {
+    const L = 40, Rr = W - 10, T = 12, Bt = H - 26, m = R.map, prmax = m.hpD * 1.45, x = w => L + w / 1.15 * (Rr - L), y = p => Bt - (p - 1) / (prmax - 1) * (Bt - T);
+    for (let k = 0; k <= 4; k++) { const p = 1 + (prmax - 1) * k / 4; ytk(g, fmt(p, 0), y(p), L, Rr); }
+    txt(g, t('sc_wc'), Rr, Bt + 20, SC.mu, 'right', SANS); txt(g, t('sc_pr'), L - 34, T - 2, SC.mu, 'left', SANS);
+    for (const n of [.7, .8, .9, 1.0, 1.05]) { const wc0 = n * n * .98 + .02; g.strokeStyle = SC.dim; g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 20; i++) { const w = wc0 * (.86 + .2 * i / 20), sPR = 1 + (m.hpD - 1) * 1.22 * Math.pow(wc0, 1.9); const p = sPR - (sPR - 1) * .9 * Math.pow(Math.max(0, (w - wc0 * .86) / (wc0 * .2)), 2.2) * .35; i ? g.lineTo(x(w), y(p)) : g.moveTo(x(w), y(p)); } g.stroke(); txt(g, (n * 100).toFixed(0) + '%', x(wc0 * .86) - 2, y(1 + (m.hpD - 1) * 1.22 * Math.pow(wc0, 1.9)) - 4, SC.mu, 'right'); }
+    g.strokeStyle = SC.bad; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 30; i++) { const w = .3 + .8 * i / 30, p = 1 + (m.hpD - 1) * 1.22 * Math.pow(w, 1.9); i ? g.lineTo(x(w * .86 / .86), y(p)) : g.moveTo(x(w), y(p)); } g.stroke();
+    txt(g, t('sc_surge'), x(.6), y(1 + (m.hpD - 1) * 1.22 * Math.pow(.6, 1.9)) - 8, SC.bad, 'right', SANS);
+    g.strokeStyle = SC.acc; g.setLineDash([4, 3]); g.lineWidth = 1.4; g.beginPath(); for (let i = 0; i <= 30; i++) { const n2 = .6 + .45 * i / 30, w = n2 * n2 * .98 + .02, p = 1 + (m.hpD - 1) * Math.pow(clamp((n2 - .42) / .58, 0, 2), 2.1); i ? g.lineTo(x(w), y(p)) : g.moveTo(x(w), y(p)); } g.stroke(); g.setLineDash([]);
+    txt(g, t('sc_op'), x(1.0) + 4, y(1 + (m.hpD - 1) * 1.0) + 16, SC.acc, 'left', SANS);
+    const px = x(m.wc), py = y(m.pr); g.fillStyle = m.sm < 0 ? SC.bad : SC.fg; g.beginPath(); g.arc(px, py, 5, 0, 7); g.fill();
+    txt(g, t('sc_now') + ' · SM ' + fmt(m.sm, 0) + '%', px + 9, py + 4, m.sm < 0 ? SC.bad : SC.fg, 'left', SANS);
+  }
+}
+// ---------- tooltip ----------
+let TIPS = null;
+function showTip(info, x, y) { TIPS = { info, x, y }; const el = $('tip'); el.style.left = clamp(x + 14, 0, 1440 - 300) + 'px'; el.style.top = clamp(y + 10, 60, 810 - 160) + 'px'; el.style.opacity = 1; updateTip.last = ''; updateTip(); }
+function updateTip() { if (!TIPS) return; const i = TIPS.info; const v = i.v ? i.v() : ''; const h = `<h5>${tr(i.name)}</h5><div class="tf">${tr(i.fn)}</div>${v ? `<div class="tv"><span>${t('cur')}</span>${v}</div>` : ''}`; if (h !== updateTip.last) { $('tip').innerHTML = h; updateTip.last = h; } }
+function hideTip() { TIPS = null; $('tip').style.opacity = 0; }
+
+// ================= g_main: step logic, autoplay, scene update, loop, hooks =================
+let AUTOPLAY = !INTERACTIVE_START, LT = 0, EVI = 0, EVLAST = 0, VIEW = '', NACON = false;
+const CUTT = { to: 90 * DEG, from: 90 * DEG, t0: 0, dur: .01 };
+function cutTo(deg, dur = 1.2) { Object.assign(CUTT, { from: CUT.th, to: deg * DEG, t0: SIM.t, dur }); }
+function tickCut() { const k = smooth((SIM.t - CUTT.t0) / CUTT.dur); setCut(lerp(CUTT.from, CUTT.to, k)); }
+function userTook() { if (AUTOPLAY) { AUTOPLAY = false; OPSCALE = 1; $('btnAuto').classList.remove('on'); syncControls(); } }
+const PRM0 = Object.assign({}, PRM);
+function applyCfg(c) { if (!c) return; Object.assign(PRM, c); }
+function goStep(i, dur = 1.7) {
+  i = clamp(i, 0, STEPS.length - 1); if (OPR.running) abortOp();
+  CUR = i; const s = STEPS[i]; RAMPS = [];
+  SCOPE = s.scope; WHYTAB = 'why'; hideTip(); applyCfg(s.cfg); if (toast.until) { $('toast').style.opacity = 0; toast.until = 0; TOASTRECT = null; }
+  if (EXT.eng) setExplode('eng', 0, .9); $('btnExplode').classList.remove('on');
+  VIEW = s.view; shot(SHOTS[s.view], dur);
+  OPR.chipsSrc = []; renderChips(); OPR.phase = ''; OPR.dev = ''; OPR.kind = '';
+  renderStepTitle(); renderTrail(); renderWhy(); syncControls(); updateReadouts(); sizeScope();
+}
+function renderStepTitle() { const s = STEPS[CUR]; $('steptitle').innerHTML = `<span class="ix">${String(CUR + 1).padStart(2, '0')} / ${String(STEPS.length).padStart(2, '0')}</span>${tr(s.title)}<small>${tr(s.sub)}</small>`; }
+LANGHOOKS.push(() => { renderStepTitle(); renderTrail(); renderWhy(); renderChips(); ro.last = ''; updateReadouts(); syncControls(); layout(); updateTip.last = ''; updateTip(); });
+function toggleExplode() { const on = !EXT.eng; setExplode('eng', on ? 1 : 0, on ? 2 : 1.3); shot(on ? SHOTS.expl : SHOTS[VIEW], on ? 2 : 1.4); $('btnExplode').classList.toggle('on', on); }
+$('btnExplode').addEventListener('click', () => { userTook(); toggleExplode(); });
+$('btnCut').addEventListener('click', () => { userTook(); const on = CUTT.to < .1; cutTo(on ? 90 : 0); $('btnCut').classList.toggle('on', on); });
+$('btnNac').addEventListener('click', () => { userTook(); NACON = !NACON; $('btnNac').classList.toggle('on', NACON); });
+$('btnReset').addEventListener('click', () => { userTook(); user.daz = user.del = 0; user.zoom = 1; shot(SHOTS[VIEW], 1.2); });
+function onOpDone() {
+  syncControls(); updateReadouts(); const R = ENG.R;
+  const msg = {
+    START: () => B(`Started: ground idle, N2 ${fmt(R.n2 * 100, 0)} %, EGT ${fmt(R.egt, 0)} °C`, `起动完成：地面慢车，N2 ${fmt(R.n2 * 100, 0)}%，EGT ${fmt(R.egt, 0)} °C`),
+    SPLIT: () => B(`Bypass gives ${fmt(R.Fb / R.F * 100, 0)} % of thrust from ${fmt(R.alpha, 1)}× the core's air`, `外涵用核心 ${fmt(R.alpha, 1)} 倍的空气，贡献 ${fmt(R.Fb / R.F * 100, 0)}% 的推力`),
+    PARCEL: () => B(`One parcel: ${fmt(R.opr, 0)}× pressure, ${fmt(R.ST[4].T, 0)} K before it ever meets fuel`, `一团空气：遇到燃油前已被压到 ${fmt(R.opr, 0)} 倍、${fmt(R.ST[4].T, 0)} K`),
+    IGNITE: () => B(`Fuel-air ratio ${fmt(R.f, 3)}: only ~1/40 of the air burns directly`, `油气比 ${fmt(R.f, 3)}：只有约 1/40 的空气直接参与燃烧`),
+    WORK: () => B(`HPT ${fmt(R.PW.hpt, 1)} MW drives the HPC; LPT ${fmt(R.PW.lpt, 1)} MW drives the fan`, `高压涡轮 ${fmt(R.PW.hpt, 1)} MW 带压气机；低压涡轮 ${fmt(R.PW.lpt, 1)} MW 带风扇`),
+    SPOOL: () => B('Idle → take-off in a few seconds: the heavy LP spool lags the HP spool', '慢车到起飞只需几秒：沉重的低压转子总是落后于高压转子'),
+    CYCLE: () => B(`Higher BPR → better η_p; higher OPR → better η_th. LEAP-class η_o ≈ ${fmt(R.etaO * 100, 0)} %`, `涵道比越高 η_p 越好；压比越高 η_th 越好。LEAP 级 η_o ≈ ${fmt(R.etaO * 100, 0)}%`),
+    SURGE: () => B('Recovered. FADEC schedules fuel and VSVs so the margin never hits zero in service', '已恢复。实际运行中 FADEC 调度供油和 VSV，保证裕度永不为零'),
+  }[OPR.kind];
+  if (msg && R) toast(tr(msg()));
+}
+// ---------- autoplay timeline ----------
+const idle = () => !OPR.running;
+const run = k => () => { startOp(k); syncControls(); };
+const TL = [
+  [0.0, () => goStep(0, 0)], [0.8, run('START')], [0.2, idle],
+  [1.0, () => goStep(1)], [0.8, run('SPLIT')], [0.2, idle],
+  [1.0, () => goStep(2)], [0.8, run('PARCEL')], [0.2, idle],
+  [1.0, () => goStep(3)], [0.8, run('IGNITE')], [0.2, idle],
+  [1.0, () => goStep(4)], [0.8, run('WORK')], [0.2, idle],
+  [1.0, () => goStep(5)], [0.8, run('SPOOL')], [0.2, idle],
+  [1.0, () => goStep(6)], [0.8, run('CYCLE')], [0.2, idle],
+  [1.0, () => goStep(7)], [0.8, run('SURGE')], [0.2, idle],
+  [1.4, () => { WHYTAB = 'src'; renderWhy(); }],
+  [1.6, () => { userTook(); toast(LANG === 'zh' ? '自动演示结束——现在可以自由操作：点步骤、拖动滑块、点任意部件。' : 'Tour finished — explore freely: click steps, drag sliders, click any part.', 6000); }],
+];
+function tickAuto(dt) { LT += dt; while (EVI < TL.length && LT - EVLAST >= TL[EVI][0]) { const r = TL[EVI][1](); if (r === false) break; EVLAST = LT; EVI++; } }
+function restartAutoplay() { abortOp(); Object.assign(PRM, PRM0); AUTOPLAY = true; OPSCALE = .75; LT = 0; EVI = 0; EVLAST = 0; user.daz = user.del = 0; user.zoom = 1; $('btnAuto').classList.add('on'); syncControls(); }
+// ---------- flow paths in the cut sector (psi 15..75 deg -> visible half) ----------
+const PSI = [25, 45, 65].map(d => d * DEG);
+const pol = (x, r, psi) => [x, r * Math.cos(psi), r * Math.sin(psi)];
+const BYP = PSI.flatMap((ps, k) => [.3, .7].map(f => { const r0 = lerp(4.3, 7.3, f); return path([pol(-9, lerp(2, 6.8, f), ps), pol(-3, lerp(3.6, 7.3, f), ps), pol(2.0, lerp(4.2, 7.4, f), ps), pol(7, lerp(4.8, 7.3, f), ps), pol(14, lerp(5.6, 7.2, f), ps), pol(26, lerp(6.0, 7.4, f), ps)]); }));
+const coreLine = (f, ps) => { const pts = [pol(-9, 1.2 + f * .6, ps), pol(-3, 1.7 + f * .6, ps)]; for (let x = 2.3; x <= 21.01; x += .9) pts.push(pol(x, lerp(hubR(x), tipR(x), .25 + f * .5), ps)); pts.push(pol(24, 2.6 + f * .8, ps), pol(32, 2.5 + f * 1.1, ps)); return path(pts); };
+const CORE = PSI.flatMap(ps => [.15, .5, .85].map(f => coreLine(f, ps)));
+const FUELP = Array.from({ length: 6 }, (_, i) => { const ps = (15 + i * 12) * DEG; return path([pol(13.0, 3.15, ps), pol(13.3, 2.6, ps), pol(13.9, 2.5, ps)]); });
+const CORESPAN = [-9, 32];
+const _ct = new THREE.Color(), _tc = new THREE.Color();
+const tempCol = (T, c) => { const k = clamp((T - 260) / 1500); if (k < .2) c.set(COL.cold).lerp(_tc.set(COL.warm), k / .2); else if (k < .55) c.set(COL.warm).lerp(_tc.set(COL.hot), (k - .2) / .35); else c.set(COL.hot).lerp(_tc.set(COL.flame), (k - .55) / .45); return c; };
+const STX = { '0': -9, '2': 2.3, '13': 7, '25': 7.0, '3': 12.6, '4': 14.6, '45': 16.0, '5': 21, '9': 26 };
+function coreT(x) { const S = ENG.R.ST; const seq = ['0', '2', '25', '3', '4', '45', '5', '9'].map(k => [STX[k], S.find(z => z.k === k).T]); if (x <= seq[0][0]) return seq[0][1]; for (let i = 0; i < seq.length - 1; i++) if (x <= seq[i + 1][0]) return lerp(seq[i][1], seq[i + 1][1], (x - seq[i][0]) / (seq[i + 1][0] - seq[i][0])); return seq[seq.length - 1][1]; }
+// parcel marker
+const PARCEL = new THREE.Mesh(new THREE.SphereGeometry(.32, 20, 14), new THREE.MeshBasicMaterial({ color: '#fff', toneMapped: false })); scene.add(PARCEL);
+const PARCELP = coreLine(.5, 45 * DEG);
+const PARLAB = label(() => '', PARCEL.position, { cls: 'hot', pri: 9, side: 'r' });
+// labels for the main parts (bilingual)
+const LBL = [
+  ['fan', [1.2, 6.6, 3.2], 'fan', ['side', 'fan', 'ext']], ['booster', [4.4, 3.5, 1.9], 'lpc', ['fan', 'hpc']], ['hpc', [9.6, 2.5, 1.3], 'hpc', ['hpc', 'side']],
+  ['comb', [13.6, 2.9, 1.3], 'comb', ['comb', 'side']], ['hpt', [15.2, 2.9, 1.2], 'hpt', ['turb', 'comb']], ['lpt', [18.5, 3.6, 1.6], 'lpt', ['turb', 'side']],
+  ['nozzle', [23.5, 3.4, 2.2], 'noz', ['side', 'ext']], ['shaft', [10, .55, .3], 'shaft', ['turb', 'hpc']], ['ogv', [6.4, 6.4, 2.6], 'fan', ['fan']], ['vsv', [8.7, 3.0, 1.7], 'hpc', ['hpc']],
+  ['agb', [6.5, -8.6, 1.2], 'acc', ['fan']], ['fuel', [13.0, 3.4, 1.5], 'comb', ['comb']],
+].map(([id, p, sec, views]) => ({ id, sec, views, L: label(INFO[id].name, V3(...p), { pri: 2 }) }));
+// ---------- per-frame scene ----------
+const HICOL = new THREE.Color('#4a8ad6'), HISEC = { fan: 'fan', ogv: 'fan', lpc: 'lpc', hpc: 'hpc', vsv: 'hpc', comb: 'comb', fuel: 'comb', hpt: 'hpt', lpt: 'lpt', noz: 'noz', shaft: 'shaft', agb: 'acc' };
+const HOTC = new THREE.Color('#ff5a1a');
+let SHAKE = 0;
+function sceneUpdate(dt) {
+  const R = ENG.R, s = STEPS[CUR];
+  // spools
+  SPOOL.a1 += dt * ENG.n1 * 7.5; SPOOL.a2 += dt * ENG.n2 * 7.5 * 2.6;
+  for (const g of SPOOL.lp) g.rotation.x = SPOOL.a1; for (const g of SPOOL.hp) g.rotation.x = SPOOL.a2;
+  // nacelle (hidden by default in the cutaway so the parts read)
+  MOD.nac.visible = NACON || EXV.eng > .02 ? NACON && EXV.eng < .02 : false; for (const id of ['agb', 'acc']) if (PARTS[id] && PARTS[id].mesh) PARTS[id].mesh.visible = !MOD.nac.visible; // accessories sit inside the fan cowl
+  // explode: fan module forward, LPT module aft
+  // highlight + heat
+  const hs = HISEC[ACT.hi] || '';
+  for (const sec in SECM) for (const m of SECM[sec]) {
+    m.emissive.copy(m.userData.e0);
+    if (sec === hs) m.emissive.lerp(HICOL, .28 + .1 * Math.sin(SIM.t * 5));
+    if ((sec === 'hpt' || sec === 'lpt' || sec === 'noz') && m.userData.e0) { const k = clamp((R.egt - 300) / 700) * (sec === 'hpt' ? .55 : sec === 'lpt' ? .32 : .18); m.emissive.lerp(HOTC, k * (m.metalness > .5 ? 1 : .6)); }
+  }
+  // flame
+  const fl = (ENG.lit && ENG.fuel) ? clamp((R.Tt4 - 900) / 900) : 0;
+  FLAME.mat.opacity = damp(FLAME.mat.opacity, fl * (.35 + .08 * Math.sin(SIM.t * 31)) * (CUT.th > .2 ? 1 : 0), 8, dt);
+  FLAME.cones.material.opacity = FLAME.mat.opacity * 1.4;
+  // flow particles
+  const streams = []; const thrK = .25 + .75 * clamp(R.n1);
+  const per = 2.4 / Math.max(.25, R.n1);
+  if (ACT.byp * thrK > .03) BYP.forEach((c, k) => streams.push({ curve: c, n: 26, period: per, col: COL.bypass, size: .085, rate: ACT.byp * thrK, seed: k }));
+  if (ACT.core * thrK > .03) CORE.forEach((c, k) => streams.push({ curve: c, n: 46, period: per * 1.5, colf: (u, cc) => tempCol(coreT(lerp(CORESPAN[0], CORESPAN[1], u)), cc), size: .07, rate: ACT.core * thrK, seed: 20 + k }));
+  if (ACT.fuelvis > .05 && ENG.fuel) FUELP.forEach((c, k) => streams.push({ curve: c, n: 8, period: .7, col: COL.fuel, size: .05, rate: ACT.fuelvis, seed: 40 + k }));
+  if (ACT.surge > .05) CORE.slice(0, 4).forEach((c, k) => streams.push({ curve: { getPointAt: (u, v) => c.getPointAt(clamp(.42 - u * .42), v) }, n: 30, period: .8, col: COL.bad, size: .1, rate: ACT.surge, seed: 60 + k }));
+  updateParticles(streams, SIM.t);
+  // parcel
+  const pOn = ACT.parcel >= 0 && OPR.kind === 'PARCEL'; PARCEL.visible = pOn;
+  if (pOn) { const xw = lerp(-3.5, 13.6, ACT.parcel), u = (xw - CORESPAN[0]) / (CORESPAN[1] - CORESPAN[0]); PARCELP.getPointAt(clamp(u), PARCEL.position); tempCol(coreT(xw), PARCEL.material.color); const sc = 1 - .45 * clamp((xw + 3.5) / 17); PARCEL.scale.setScalar(sc); PARLAB.set(OPR.phase); }
+  PARLAB.show = pOn ? 1 : 0;
+  // labels: show the ones relevant to the current view (skip during explode)
+  for (const l of LBL) l.L.show = l.views.includes(VIEW) && !pOn && EXV.eng < .1 ? (l.sec === hs ? 1 : .85) : 0;
+  // surge shake
+  SHAKE = damp(SHAKE, ACT.surge, 10, dt); ENGINE.position.y = SHAKE * .08 * Math.sin(SIM.t * 63); ENGINE.position.z = SHAKE * .05 * Math.sin(SIM.t * 47);
+  // ticker
+  const tk = OPR.phase ? `${OPR.dev ? `<b>${OPR.dev}</b> · ` : ''}${OPR.phase}` : `<b>${t('ready')}</b>`;
+  if (tk !== sceneUpdate.tk) { $('tkphase').innerHTML = tk; sceneUpdate.tk = tk; }
+}
+// explode wiring
+explodable(MOD.fan, 'eng', [-7, 0, 0], [0, 0, 0], 0); explodable(MOD.lpt, 'eng', [7, 0, 0], [0, 0, 0], .2);
+function simStep(dt) {
+  SIM.t += dt;
+  if (AUTOPLAY) tickAuto(dt);
+  tickOp(dt); tickRamps(); dampAct(dt);
+  ENG.thr = OPR.thrOv != null ? OPR.thrOv : PRM.thr; engineStep(dt);
+  if (ENG.surge && !OPR.running) ENG.surge = 0;
+  tickExplode(); updateExplode(dt); tickCut(); updateRig(); sceneUpdate(dt); tickToast();
+  if (RAMPS.length || OPR.thrOv != null) syncControls.dirty = true;
+}
+let FR = 0;
+function render() {
+  placeCamera(); camera.updateMatrixWorld(); updateLabels();
+  renderer.setScissorTest(false); renderer.clear(); const sx = stageOX + STAGE.x * stageScale, sy = VH - (stageOY + (STAGE.y + STAGE.h) * stageScale); renderer.setScissor(sx + 1, sy + 1, STAGE.w * stageScale - 2, STAGE.h * stageScale - 2); renderer.setScissorTest(true);
+  renderer.render(scene, camera);
+  if (CAPTURE || FR % 2 === 0) drawScope(); if (CAPTURE || FR % 6 === 0) { updateReadouts(); if (syncControls.dirty) { syncControls(); syncControls.dirty = false; } } updateTip(); FR++;
+}
+// ---------- input ----------
+const ray = new THREE.Raycaster(); let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY; if (drag.moved > 4) { userTook(); user.daz -= dx * .006; user.del = clamp(user.del + dy * .004, -.6, .9); } });
+canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (!d || d.moved > 4) return; pickAt(e.clientX, e.clientY); });
+canvas.addEventListener('wheel', e => { e.preventDefault(); userTook(); user.zoom = clamp(user.zoom * Math.exp(e.deltaY * .0012), .35, 2.5); }, { passive: false });
+function pickAt(cx, cy) {
+  ray.setFromCamera(new THREE.Vector2(cx / VW * 2 - 1, -(cy / VH) * 2 + 1), camera);
+  const hits = ray.intersectObjects(PICK.filter(visibleUp), false).filter(h => { const p = h.point; if (CUT.th < .05) return true; const ang = Math.atan2(p.z, p.y); return !(ang > 0 && ang < CUT.th && Math.hypot(p.y, p.z) > .1); });
+  if (!hits.length) { hideTip(); return; }
+  userTook(); showTip(hits[0].object.userData.info, (cx - stageOX) / stageScale, (cy - stageOY) / stageScale);
+}
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return; if (e.key === 'ArrowRight') { userTook(); goStep(CUR + 1); } else if (e.key === 'ArrowLeft') { userTook(); goStep(CUR - 1); } else if (e.key === 'Escape') hideTip(); });
+addEventListener('resize', () => { layout(); sizeScope(); });
+new ResizeObserver(() => { sizeScope(); drawScope(); }).observe(sc);
+// ---------- boot ----------
+if (CAPTURE) document.body.classList.add('capture');
+applyLang(); layout(); sizeScope(); cutTo(90, .01);
+$('btnCut').classList.add('on');
+ENG.thr = PRM.thr; for (let i = 0; i < 400; i++) engineStep(.02);
+if (AUTOPLAY) restartAutoplay();
+goStep(0, 0);
+let last = performance.now(), acc = 0;
+function frame(now) {
+  requestAnimationFrame(frame); if (CAPTURE) return;
+  const el = Math.min(.1, (now - last) / 1000); last = now;
+  if (!SIM.paused) { acc += el * SIM.speed; let n = 0; while (acc >= SIM.dt && n < 8) { simStep(SIM.dt); acc -= SIM.dt; n++; } if (n === 8) acc = 0; }
+  render();
+}
+requestAnimationFrame(frame);
+// ---------- test hooks ----------
+window.__setTime = t => { let n = 0; while (SIM.t + SIM.dt / 2 < t && n < 200000) { simStep(SIM.dt); n++; } render(); return SIM.t; };
+window.__state = () => ({ t: SIM.t, step: CUR, view: VIEW, op: OPR.kind, running: OPR.running, phase: OPR.phase, auto: AUTOPLAY, ev: EVI, nEv: TL.length, LT, lang: LANG, prm: Object.assign({}, PRM), eng: { n1: ENG.n1, n2: ENG.n2, lit: ENG.lit, F: ENG.R.F, sm: ENG.R.map.sm, egt: ENG.R.egt } });
+window.__goStep = i => goStep(i);
+window.__setLang = l => { setLang(l); render(); return LANG; };
+window.__scopeInfo = () => ({ scope: SCOPE, running: OPR.running });
+window.__perf = () => { render(); const i = renderer.info; return { calls: i.render.calls, tris: i.render.triangles, textures: i.memory.textures, geometries: i.memory.geometries, texMB: +(Object.values(TX || {}).reduce((a, tx) => a + (tx && tx.image ? (tx.image.width * tx.image.height * 4 * 1.33) : 0), 0) / 1048576).toFixed(1) }; };
+window.__audit = () => {
+  // per-mesh: raw primitive w/o bevel/map, metal w/o env, and screen-coverage estimate via bbox projection
+  const out = { primitives: [], metalNoEnv: [], hue: null }; const env = !!scene.environment;
+  scene.traverse(o => { if (!o.isMesh || !visibleUp(o)) return; const g = o.geometry, m = o.material; const raw = /^(Box|Sphere|Cylinder|Plane)Geometry$/.test(g.type) && !(m.map || m.normalMap || m.bumpMap); if (raw && !o.isInstancedMesh && o !== PARCEL && !(m.isShadowMaterial)) { const b = new THREE.Box3().setFromObject(o), c = []; for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) c.push(new THREE.Vector3(x, y, z).project(camera)); const xs = c.map(v => v.x), ys = c.map(v => v.y); const a = (clamp(Math.max(...xs), -1, 1) - clamp(Math.min(...xs), -1, 1)) * (clamp(Math.max(...ys), -1, 1) - clamp(Math.min(...ys), -1, 1)) / 4; if (a > .02) out.primitives.push({ type: g.type, area: +a.toFixed(3), name: o.userData.part || o.name }); } if (m.metalness > .5 && !m.envMap && !env) out.metalNoEnv.push(o.userData.part || g.type); });
+  // dominant hue over the 3D canvas
+  const gl = renderer.getContext(), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight; render(); const px = new Uint8Array(w * h * 4); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const bins = new Array(12).fill(0); let n = 0; for (let i = 0; i < px.length; i += 4 * 37) { if (px[i + 3] < 10) continue; const r = px[i] / 255, gg = px[i + 1] / 255, b = px[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b); n++; if (mx - mn < .08) continue; let hh = mx === r ? (gg - b) / (mx - mn) : mx === gg ? 2 + (b - r) / (mx - mn) : 4 + (r - gg) / (mx - mn); hh = ((hh * 60) + 360) % 360; bins[Math.floor(hh / 30)]++; }
+  out.hue = { maxShare: n ? +(Math.max(...bins) / n).toFixed(3) : 0, n };
+  out.pass = !out.primitives.length && !out.metalNoEnv.length && out.hue.maxShare <= .6; return out;
+};
+window.__layout = () => { const r = []; for (const L of LABELS) if (L.el.style.visibility === 'visible' && +L.el.style.opacity > .05) { const b = L.el.getBoundingClientRect(); r.push({ t: L.el.textContent.slice(0, 30), x0: b.left, y0: b.top, x1: b.right, y1: b.bottom }); } const tt = $('toast'), tb = tt.getBoundingClientRect(); return { labels: r, toast: +getComputedStyle(tt).opacity > .05 ? { x0: tb.left, y0: tb.top, x1: tb.right, y1: tb.bottom, text: tt.textContent } : null, stage: (() => { const s = $('stage').getBoundingClientRect(); return { x0: s.left + STAGE.x * stageScale, y0: s.top + STAGE.y * stageScale, x1: s.left + (STAGE.x + STAGE.w) * stageScale, y1: s.top + (STAGE.y + STAGE.h) * stageScale }; })() }; };
+window.I18N = I18N;
+window.__fid = (o = {}) => { if (OPR.running) abortOp(); AUTOPLAY = false; NACON = !!o.nac; setExplode('eng', o.expl ? 1 : 0, 0.01); cutTo(o.cut ?? 90, 0.01); const sh = Object.assign({}, SHOTS[o.shot || 'side'], o.cam || {}); shot(sh, 0); labelsEl.style.display = o.labels ? '' : 'none'; document.body.classList.toggle('fid', !o.labels); PART.mesh.visible = !!o.labels; $('toast').style.opacity = 0; ACT.hi = ''; if (typeof ACTT !== 'undefined') ACTT.hi = ''; window.__setTime(SIM.t + 2.5); return __layout().stage; };
+window.__dbg = { ENG, PRM, OPR, ACT, PARTS, MOD, CUT, LABELS, STAGE, SPOOL };
+{ const m = QS.match(/[?&]step=(\d+)/); if (m) goStep(Math.min(STEPS.length - 1, +m[1]), 0); }
+window.__ready = true;
+
+</script>
+</body></html>

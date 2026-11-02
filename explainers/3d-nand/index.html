@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D NAND · READ / PROGRAM / ERASE — Inside the device</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<style>
+/* ===== Data-terminal instrument theme (tasteskill app sheet: data-terminal, dark) ===== */
+:root{
+  --ground:#171719;--surface:#131217;--raised:#212023;--hover:#1c1b1f;--border:#222224;--rule:#1b1a1f;--control:#3a3a3e;--control2:#4c4c50;
+  --tx:#ffffff;--tx2:#bdbdc0;--mu:#8a8c92;--ac:#4a8ad6;--ok:#44a282;--bad:#e5566f;--warn:#d9a441;
+  --pos-bg:#1b2828;--pos-ink:#5fc39c;--neg-bg:#2c1a20;--neg-ink:#e5566f;--warn-bg:#2a2416;--warn-ink:#d9a441;--neu-bg:#212023;--neu-ink:#bdbdc0;
+  --callout:rgba(19,18,23,.9);--callout-bd:#2e2d32;
+  --shadow:0 12px 28px rgba(0,0,0,.28);
+  --r-card:6px;--r-ctl:999px;--r-chip:4px;--ctl-h:34px;
+  --mono:"JetBrains Mono","Noto Sans SC",ui-monospace,monospace;--sans:"Public Sans","Noto Sans SC",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* legacy aliases used by inline content */
+  --bg:var(--ground);--panel:var(--surface);--panel2:var(--raised);--bd:var(--border);
+}
+body.light{
+  --ground:#f2f2f3;--surface:#fbfbfb;--raised:#ececee;--hover:#f4f4f5;--border:#e1e1e4;--rule:#ebebed;--control:#c8c8cd;--control2:#a9a9b0;
+  --tx:#111113;--tx2:#3e3f44;--mu:#66686e;--ac:#2f6fbd;--ok:#2e8467;--bad:#c8364f;--warn:#9a6a10;
+  --pos-bg:#e3f2ec;--pos-ink:#22704f;--neg-bg:#f8e4e8;--neg-ink:#b02a43;--warn-bg:#f6eedc;--warn-ink:#80570c;--neu-bg:#ececee;--neu-ink:#3e3f44;
+  --callout:rgba(251,251,251,.94);--callout-bd:#d9d9dd;--shadow:0 10px 24px rgba(17,17,19,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ground);color:var(--tx);font-family:var(--sans);font-size:13px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:0}
+#stage{position:fixed;left:0;top:0;width:1440px;height:810px;transform-origin:0 0;z-index:1;pointer-events:none}
+#stage>*{pointer-events:auto}
+#labels,#stageui{pointer-events:none!important}
+button{font-family:var(--sans);cursor:pointer;color:inherit}
+svg.i{width:14px;height:14px;flex:0 0 auto;display:block}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+#hdr{position:absolute;left:16px;top:10px;width:1408px;height:46px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:32px;height:32px;border-radius:var(--r-card);border:1px solid var(--control);display:grid;place-items:center;color:var(--tx)}
+.logo svg{width:18px;height:18px}
+.brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:0;line-height:20px}
+.brand h1 .op{color:var(--mu);font-weight:400}
+.brand p{margin:2px 0 0;font-size:12px;line-height:16px;color:var(--mu)}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.badge{font:500 12px/24px var(--sans);height:24px;padding:0 10px;border-radius:var(--r-ctl);background:var(--neu-bg);color:var(--neu-ink)}
+.badge.ghost{background:transparent;color:var(--mu);box-shadow:inset 0 0 0 1px var(--border)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.hbtn,.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 12px var(--sans);height:30px;padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s var(--ease),border-color .15s var(--ease),color .15s,transform .08s}
+.hbtn:hover,.sbtn:hover{background:var(--raised);border-color:var(--control2)}
+.hbtn:active,.sbtn:active,.run:active{transform:translateY(.5px) scale(.985)}
+.hbtn.on{border-color:var(--control2);background:var(--raised)}
+.hbtn.on .live{width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 1.6s var(--ease) infinite}
+@keyframes pulse{50%{opacity:.35}}
+.hbtn.icon,.sbtn.icon{width:30px;padding:0}
+
+/* ---------- trail ---------- */
+#trail{position:absolute;left:16px;top:66px;width:250px;height:730px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 10px;overflow:hidden}
+#trail h3{margin:0 8px 12px;font:600 16px/20px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:baseline}
+#trail h3 span{font:400 12px var(--sans);color:var(--mu)}
+.st{position:relative;display:flex;gap:12px;padding:10px 8px;border-radius:var(--r-card);cursor:pointer;margin-bottom:2px;transition:background .15s var(--ease)}
+.st:hover{background:var(--hover)}
+.st .nd{flex:0 0 24px;height:24px;border-radius:50%;border:1px solid var(--control);display:grid;place-items:center;font:500 11px var(--mono);color:var(--mu);background:var(--surface);z-index:1;transition:border-color .25s,color .25s,background .25s}
+.st .nd svg{width:12px;height:12px}
+.st .tt{display:inline-block;position:relative;font:500 14px/20px var(--sans);color:var(--tx2);transition:color .2s}
+.st .tt::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:var(--ac);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
+.st .sb{font:400 12px/16px var(--sans);color:var(--mu);margin-top:3px}
+.st.cur{background:var(--raised)}
+.st.cur .tt{color:var(--tx);font-weight:600}
+.st.cur .tt::after{transform:scaleX(1)}
+.st.cur .nd{border-color:var(--tx);color:var(--tx)}
+.st.done .nd{border-color:var(--control);color:var(--tx2)}
+.st.done .tt{color:var(--tx2)}
+.st:not(:last-child)::after{content:"";position:absolute;left:19.5px;top:36px;bottom:-10px;width:1px;background:var(--border)}
+.st.done::after{background:var(--control)!important}
+#trailfoot{position:absolute;left:18px;right:18px;bottom:14px;font:400 12px/18px var(--sans);color:var(--mu);border-top:1px solid var(--border);padding-top:10px}
+#trailfoot b{color:var(--tx2);font-weight:500}
+kbd{font:500 11px var(--mono);border:1px solid var(--control);border-radius:var(--r-chip);padding:0 4px;color:var(--tx2)}
+
+/* ---------- 3D stage overlay ---------- */
+#stageui{position:absolute;left:278px;top:66px;width:758px;height:536px;border:1px solid var(--border);border-radius:var(--r-card)}
+#stageui::before{content:"";position:absolute;left:0;right:0;top:0;height:104px;border-radius:var(--r-card) var(--r-card) 0 0;background:linear-gradient(180deg,var(--ground) 0,var(--ground) 40%,transparent)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#steptitle{position:absolute;left:16px;top:10px;font:600 21px/28px var(--sans);letter-spacing:-.2px;color:var(--tx);white-space:nowrap}
+#steptitle .ix{display:block;font:500 11px/16px var(--mono);letter-spacing:.2px;color:var(--mu);margin:0 0 1px}
+#steptitle small{display:block;font:400 13px/18px var(--sans);color:var(--tx2);margin-top:4px;max-width:430px;white-space:normal}
+#ticker{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.tk{font:400 12px/18px var(--mono);padding:5px 10px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx2);max-width:600px;text-align:right}
+#ticker .tk{position:absolute;right:0;top:84px;width:max-content}
+#ticker .tk:empty{display:none}
+body.capture *{transition:none!important;animation:none!important}
+.tk b{color:var(--tx);font-weight:600}
+.cmdseq{display:flex;gap:0;height:26px;align-items:stretch;border:1px solid var(--callout-bd);border-radius:var(--r-chip);background:var(--callout);overflow:hidden}
+.cmdseq:empty{display:none}
+.cmdseq span{position:relative;font:500 12px/24px var(--mono);padding:0 9px;color:var(--mu);border-left:1px solid var(--callout-bd);transition:color .2s}
+.cmdseq span:first-child{border-left:0}
+.cmdseq span::after{content:"";position:absolute;left:9px;right:9px;bottom:3px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.cmdseq span.on{color:var(--tx)}
+.cmdseq span.on::after{transform:scaleX(1)}
+.cmdseq span.done{color:var(--tx2)}
+#legend{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:8px;font:400 11px var(--mono);color:var(--mu);background:var(--callout);border:1px solid var(--callout-bd);border-radius:var(--r-chip);padding:5px 10px;height:26px}
+#legend .bar{width:120px;height:4px;border-radius:1px}
+#legend .q{display:flex;align-items:center;gap:5px;font-family:var(--sans);margin-left:6px}
+#legend .q i{width:6px;height:6px;border-radius:50%;display:inline-block}
+#viewbtns{position:absolute;left:836px;top:610px;width:200px;height:41px;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-right:10px;z-index:2}
+#viewbtns .hbtn{height:28px;padding:0 10px;border-color:transparent;color:var(--tx2)}
+#viewbtns .hbtn:hover{border-color:var(--control);color:var(--tx)}
+#viewbtns .hbtn.on{color:var(--tx);border-color:var(--control)}
+#toast{position:absolute;left:50%;bottom:52px;transform:translate(-50%,4px);font:500 13px/18px var(--sans);padding:9px 14px;border-radius:var(--r-card);background:var(--raised);color:var(--tx);box-shadow:var(--shadow);opacity:0;transition:opacity .25s var(--ease),transform .35s var(--ease);max-width:560px;text-align:center}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#toast[style*="opacity: 1"]{transform:translate(-50%,0)}
+
+/* ---------- 3D callouts ---------- */
+#labels{position:absolute;inset:0}
+.lb{position:absolute;transform:translate(-50%,-50%);font:500 12px/16px var(--sans);white-space:nowrap;padding:2px 7px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx);opacity:0;transition:opacity .25s var(--ease)}
+.lb.l{transform:translate(-100%,-50%)}
+.lb.r{transform:translate(0,-50%)}
+.lb.big{font:500 12px/16px var(--mono);padding:4px 9px}
+.lb .v{font:500 12px var(--mono);color:var(--tx2);margin-left:2px}
+.lb .s{color:var(--mu);font-weight:400}
+.lb b{font-weight:600}
+.lb sub{font-size:9px;line-height:0}
+.lb.dot{padding-left:6px}
+.lb.dot::before{content:"";display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c,#8a8c92);margin-right:6px;vertical-align:-1px}
+.lb.sel{border-color:var(--ac);box-shadow:inset 0 -1px 0 var(--ac)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.lb.sel .v{color:var(--tx)}
+
+/* ---------- lesson box ---------- */
+#why{position:absolute;left:278px;top:610px;width:758px;height:186px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);display:flex;flex-direction:column;overflow:hidden}
+#whytabs{display:flex;gap:20px;padding:0 16px;border-bottom:1px solid var(--border);height:41px;align-items:stretch;padding-right:210px}
+.tabs button,#whytabs button{position:relative;font:500 13px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.tabs button:hover,#whytabs button:hover{color:var(--tx2)}
+.tabs button::after,#whytabs button::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.tabs button.on,#whytabs button.on{color:var(--tx)}
+.tabs button.on::after,#whytabs button.on::after{transform:scaleX(1)}
+#whybody{padding:12px 16px;flex:1;overflow:auto;font-size:13px;line-height:22px;color:var(--tx2)}
+#whybody p{margin:0 0 6px}
+#whybody b{color:var(--tx);font-weight:600}
+#whybody .ce{color:var(--warn)}
+#whybody::-webkit-scrollbar,#readouts::-webkit-scrollbar{width:8px}
+#whybody::-webkit-scrollbar-thumb{background:var(--control);border-radius:4px;border:2px solid var(--surface)}
+.katex{font-size:1.04em!important;color:var(--tx)}
+.mrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:2px 0 6px}
+.mrow .k{padding:4px 10px;background:var(--raised);border-radius:var(--r-chip)}
+.note{font-size:12px;color:var(--mu)}
+.quiz .q{font-weight:600;color:var(--tx);margin-bottom:8px}
+.quiz .opts{display:flex;flex-wrap:wrap;gap:6px}
+.quiz button{font:400 13px var(--sans);min-height:32px;padding:6px 12px;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx2);text-align:left;transition:background .15s,border-color .15s}
+.quiz button:hover{background:var(--raised);border-color:var(--control2);color:var(--tx)}
+.quiz button.right{border-color:var(--pos-ink);background:var(--pos-bg);color:var(--pos-ink)}
+.quiz button.wrong{border-color:var(--neg-ink);background:var(--neg-bg);color:var(--neg-ink)}
+.quiz .fb{margin-top:8px;font-size:13px}
+.quiz .fb .ok{color:var(--pos-ink);font-weight:600}.quiz .fb .no{color:var(--neg-ink);font-weight:600}
+
+/* ---------- right panel ---------- */
+#panel{position:absolute;left:1048px;top:66px;width:376px;height:730px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 16px}
+.card h4{margin:0 0 8px;font:600 16px/30px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:center}
+.card h4 .sub{font:400 12px var(--sans);color:var(--mu);margin-left:8px}
+#ctl{flex:0 0 auto}
+#speedw{display:flex;gap:6px;align-items:center}
+#speed{appearance:none;-webkit-appearance:none;height:30px;padding:0 26px 0 12px;font:500 12px var(--mono);background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8c92' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--tx);border:1px solid var(--control);border-radius:var(--r-ctl)}
+#speed option{background:var(--surface);color:var(--tx)}
+.row{display:flex;align-items:center;gap:10px;min-height:32px;margin:0}
+.row+.row{border-top:1px solid var(--rule)}
+.row>label{flex:0 0 96px;font:400 12px var(--sans);color:var(--mu)}
+.row>label sub{font-size:11px}
+.seg{display:flex;flex:1;gap:16px;height:32px;align-items:stretch}
+.seg button{position:relative;font:500 12px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.seg button:hover{color:var(--tx2)}
+.seg button::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.seg button.on{color:var(--tx)}
+.seg button.on::after{transform:scaleX(1)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:22px;background:transparent;margin:0;cursor:pointer;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:1px;background:linear-gradient(90deg,var(--tx2) var(--p),var(--control) var(--p))}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;border-radius:50%;background:var(--tx);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--control2);transition:transform .12s var(--ease)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.3)}
+input[type=range]::-moz-range-track{height:2px;background:var(--control)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--tx2)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--tx);border:2px solid var(--surface)}
+.rv{flex:0 0 62px;text-align:right;font:500 12px var(--mono);color:var(--tx)}
+.bls{display:flex;gap:6px;flex:1;padding:6px 0}
+.bls button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:0;font:500 12px/16px var(--mono);padding:3px 7px;white-space:nowrap;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s,border-color .15s}
+.bls button:hover{background:var(--raised);border-color:var(--control2)}
+.bls button .sw{display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c);margin-right:5px;vertical-align:-1px}
+.bls button small{display:block;font:400 11px var(--mono);color:var(--mu)}
+.runrow{display:flex;gap:8px;margin-top:10px}
+.run{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 13px var(--sans);height:var(--ctl-h);border-radius:var(--r-ctl);border:none;background:var(--tx);color:var(--ground);transition:opacity .15s,transform .08s,background .15s}
+.run:hover{background:var(--tx2)}
+.run:disabled{opacity:.5;cursor:default}
+.run:disabled:hover{background:var(--tx)}
+.runrow .sbtn{height:var(--ctl-h);width:var(--ctl-h);padding:0}
+#readouts{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:10px;border-top:1px solid var(--border)}
+#readouts div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--rule);min-width:0}
+#readouts span{font:400 12px/16px var(--sans);color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:3em;flex:0 1 auto}
+#readouts b{font:500 12px/16px var(--mono);color:var(--tx);text-align:right;flex:0 0 auto;white-space:nowrap}
+#readouts div.w{grid-column:1/-1;order:-1}
+#readouts b span{min-width:0;font:inherit}
+#readouts b .pos{color:var(--pos-ink)}#readouts b .neg{color:var(--neg-ink)}
+#scopecard{flex:1;display:flex;flex-direction:column;min-height:0;padding-bottom:12px}
+#scopecard h4{margin-bottom:0}
+#scopetabs{display:flex;gap:14px;height:34px;align-items:stretch;border-bottom:1px solid var(--border);margin:0 -16px 10px;padding:0 16px}
+#scopetabs button{font-size:12px;white-space:nowrap}
+#scope{flex:1;width:100%;min-height:0;display:block}
+#scopecap{font:400 12px/17px var(--sans);color:var(--mu);margin-top:8px}
+#tip{position:absolute;max-width:300px;padding:10px 12px;border-radius:var(--r-card);background:var(--raised);box-shadow:var(--shadow);font-size:12px;line-height:18px;color:var(--tx2);opacity:0;transform:translateY(3px);pointer-events:none;transition:opacity .15s var(--ease),transform .2s var(--ease);z-index:5}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#tip[style*="opacity: 1"]{transform:none}
+#tip h5{margin:0 0 4px;font:600 13px/18px var(--sans);color:var(--tx)}
+#tip .tv{display:flex;justify-content:space-between;gap:12px;font:500 12px var(--mono);color:var(--tx);margin-top:8px;padding-top:6px;border-top:1px solid var(--control)}
+#tip .tv span{font-family:var(--sans);font-weight:400;color:var(--mu)}
+#tip .tf{color:var(--tx2)}
+body.capture #trailfoot{display:none}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.seg button:focus-visible,#whytabs button:focus-visible,#scopetabs button:focus-visible{outline-offset:-2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+#rothint{position:fixed;left:16px;right:16px;display:none;font:400 13px/20px var(--sans);color:var(--mu);text-align:center;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-card);background:var(--surface)}
+#rothint b{color:var(--tx);font-weight:600}
+#rothint span{display:block;font-size:12px}
+.spin{width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+*{font-variant-numeric:tabular-nums}
+/* Bilingual labels share the existing fixed design stage at every viewport size. */
+#lang{flex:0 0 auto;height:30px;gap:12px;padding:0 10px;border:1px solid var(--control);border-radius:var(--r-ctl)}
+#lang button{white-space:nowrap}
+.brand{min-width:0;flex:1}
+.brand>div:last-child{min-width:0}
+.brand h1,.brand p,.hdr-r,.badge,.hbtn,.sbtn,.seg button,.row>label,#whytabs button{white-space:nowrap}
+.brand p{font-size:11px}
+.hdr-r{flex:0 0 auto;margin-left:16px}
+#steptitle{right:16px;font-size:19px;white-space:normal;line-height:25px}
+#steptitle small{max-width:610px;font-size:12px;line-height:17px}
+#scopetabs{gap:11px}
+#scopetabs button{font-size:11px}
+#viewbtns{width:220px;left:816px}
+#whytabs{gap:18px;padding-right:230px}
+.st{padding:8px;gap:10px}
+.st .sb{font-size:11px;line-height:15px}
+#trailfoot{font-size:11px;line-height:17px}
+.row>label{flex-basis:96px}
+.row input[type=range]{min-width:0}
+#readouts b{font-family:var(--sans);font-variant-numeric:tabular-nums}
+#readouts div.w{order:0}
+#readouts span{overflow:visible;text-overflow:clip}
+
+</style></head><body>
+<canvas aria-label="3D NAND structural view" data-i18n-title="scene" id="gl" title="3D NAND structural view"></canvas>
+<div id="stage">
+<header id="hdr">
+<div class="brand"><div aria-hidden="true" class="logo"><svg fill="none" stroke-width="1.2" viewBox="0 0 18 18"><path d="M2 3.5h14M2 7h14M2 14.5h14" stroke="currentColor" stroke-opacity=".45"></path><path d="M2 10.75h14" stroke="#4a8ad6" stroke-width="1.6"></path><path d="M9 1.5v15" stroke="currentColor" stroke-opacity=".8"></path></svg></div><div><h1 data-i18n="brand">Inside 3D NAND <span class="op">READ · PROGRAM · ERASE</span></h1><p data-i18n="intro">Controller command → CMOS periphery → word / bit lines → charge-trap layer</p></div></div>
+<div class="hdr-r"><div class="seg" id="lang"><button data-v="en">EN</button><button data-v="zh">中文</button></div><span class="badge" data-i18n="level">Advanced · semiconductors</span><span class="badge ghost" data-i18n="duration">15–20 min</span><button class="hbtn" id="btnAuto">Autoplay</button><button aria-label="Toggle light / dark" class="hbtn icon" data-i18n-title="theme" id="btnTheme" title="Toggle light / dark"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"></path></svg></button></div>
+</header>
+<nav aria-label="Lesson steps" data-i18n-title="trailLabel" id="trail" title="Lesson steps"><h3 data-i18n="trail">Lesson <span>8 steps</span></h3><div id="steps"></div>
+<div data-i18n="keyboard" id="trailfoot">Use <kbd>←</kbd><kbd>→</kbd> for steps · drag to rotate · scroll to zoom · click parts for details.<br>Public sources: textbooks / IEEE / ONFI. Values are <b>typical ranges</b>, independent of vendor designs.</div></nav>
+<div id="stageui">
+<div id="steptitle"></div>
+<div id="ticker"><div class="cmdseq" id="cmdseq"></div><div class="tk" id="tkphase"></div></div>
+<div id="legend"><!-- taste-skill-ignore: particle colours must match the 3D model --><span>0 V</span><div class="bar" id="legbar"></div><span>22 V</span><span class="q" data-i18n="electrons"><i style="background:#60a5fa"></i>e⁻ electrons</span><span class="q" data-i18n="holes"><i style="background:#fb7185"></i>h⁺ holes</span></div>
+<div id="toast"></div>
+</div>
+<div id="labels"></div>
+<div id="viewbtns"><button aria-label="Explode" class="hbtn" data-i18n="explode" data-i18n-title="explodeTitle" id="btnExplode" title="Explode"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10" stroke-dasharray="0"></path><path d="M8 1v2M8 13v2"></path></svg>Explode</button><button aria-label="Reset view" class="hbtn" data-i18n="resetView" data-i18n-title="resetViewTitle" id="btnReset" title="Reset view"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.6"></path><path d="M3 2.5V5h2.5"></path></svg>Reset view</button></div>
+<section id="why"><div id="whytabs"><button class="on" data-i18n="tabwhy" data-t="why">Why</button><button data-i18n="tabmath" data-t="math">Math</button><button data-i18n="tabex" data-t="ex">Try</button><button data-i18n="tabquiz" data-t="quiz">Quiz</button><button data-i18n="tabsrc" data-t="src">Sources</button></div><div id="whybody"></div></section>
+<aside id="panel">
+<div class="card" id="ctl"><h4><span data-i18n="controls">Controls</span><span id="speedw"><button aria-label="Pause / resume" class="sbtn icon" data-i18n-title="pause" id="btnPause" title="Pause / resume"></button><select aria-label="Playback speed" data-i18n-title="speed" id="speed" title="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option><option value="2">2×</option></select></span></h4>
+<div class="row" id="r-op"><label data-i18n="controlop">Operation</label><div class="seg op" id="op" role="tablist"><button data-v="READ">READ</button><button data-v="PROGRAM">PROGRAM</button><button data-v="ERASE">ERASE</button></div></div>
+<div class="row" id="r-mode"><label data-i18n="controlmode">Bits / cell</label><div class="seg" id="mode"><button data-v="SLC">SLC 1b</button><button data-v="TLC">TLC 3b</button></div></div>
+<div class="row" id="r-page"><label data-i18n="controlpage">Logical page</label><div class="seg" id="page"><button data-v="LP">LP</button><button data-v="MP">MP</button><button data-v="UP">UP</button></div></div>
+<div class="row" id="r-wl"><label data-i18n="controlwl">Selected WL</label><input aria-label="Selected word line" data-i18n-title="selectedWL" id="wl" max="7" min="0" step="1" title="Selected word line" type="range" value="2"/><span class="rv" id="wlv">WL2</span></div>
+<div class="row" id="r-bl"><label data-i18n="controlbl">BL targets</label><div class="bls" id="bls"></div></div>
+<div class="row" id="r-step"><label data-i18n="controlstep">ISPP step ΔV</label><input aria-label="ISPP step" data-i18n-title="isppStep" id="ispp" max="1.0" min="0.1" step="0.05" title="ISPP step" type="range" value="0.3"/><span class="rv" id="isppv">0.30 V</span></div>
+<div class="row" id="r-vpass"><label data-i18n="controlvpass">V<sub>pass</sub> (prog)</label><input id="vpass" max="13" min="6" step="0.25" type="range" value="9.5"/><span class="rv" id="vpassv">9.5 V</span></div>
+<div class="row" id="r-vread"><label data-i18n="controlvread">V<sub>pass</sub> (read)</label><input id="vread" max="9" min="3" step="0.25" type="range" value="6"/><span class="rv" id="vreadv">6.0 V</span></div>
+<div class="row" id="r-shift"><label data-i18n="controlshift">Read offset</label><input id="rshift" max="0.6" min="-0.6" step="0.05" type="range" value="0"/><span class="rv" id="rshiftv">+0.00 V</span></div>
+<div class="row" id="r-vers"><label data-i18n="controlvers">Start V<sub>erase</sub></label><input id="vers" max="22" min="14" step="0.5" type="range" value="17"/><span class="rv" id="versv">17.0 V</span></div>
+<div class="row" id="r-vg"><label data-i18n="controlvg">Gate V<sub>g</sub></label><input id="vg" max="22" min="0" step="0.5" type="range" value="17"/><span class="rv" id="vgv">17.0 V</span></div>
+<div class="row" id="r-ret"><label data-i18n="controlret">Retention</label><input id="ret" max="10" min="0" step="0.5" type="range" value="0"/><span class="rv" id="retv">0 yr</span></div>
+<div class="row" id="r-pe"><label data-i18n="controlpe">P/E cycles</label><input id="pe" max="5000" min="0" step="100" type="range" value="0"/><span class="rv" id="pev">0</span></div>
+<div class="runrow"><button class="run" id="btnRun">Run READ</button><button aria-label="Next phase" class="sbtn icon" data-i18n-title="nextPhase" id="btnStepOp" title="Next phase"><svg class="i" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 3v10l7-5z"></path><rect height="10" width="1.4" x="11.5" y="3"></rect></svg></button></div>
+<div id="readouts"></div>
+</div>
+<div class="card" id="scopecard"><h4><span data-i18n="scope">Scope</span></h4><div class="tabs" id="scopetabs"><button data-i18n="scopebus" data-s="bus">Bus</button><button data-i18n="scopebias" data-s="bias">Bias</button><button data-i18n="scopefield" data-s="field">Field</button><button data-i18n="scopevt" data-s="vt">Vt dist.</button><button data-i18n="scopebl" data-s="bl">BL sense</button><button data-i18n="scopeispp" data-s="ispp">ISPP</button><button data-i18n="scopeerase" data-s="erase">Erase</button></div>
+<canvas id="scope"></canvas><div id="scopecap"></div></div>
+</aside>
+<div id="tip"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+let LANG = (() => { const m = location.search.match(/[?&]lang=(en|zh)/); if (m) return m[1]; try { const s = localStorage.getItem('lang'); if (s === 'en' || s === 'zh') return s; } catch (e) { } return 'en'; })();
+document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+const I18N = { en: {}, zh: {} }; window.I18N = I18N;
+function t(k) { const v = I18N[LANG][k]; return v == null ? (I18N.en[k] == null ? k : I18N.en[k]) : v; }
+const tr = o => (o && typeof o === 'object' && ('en' in o || 'zh' in o)) ? (o[LANG] != null ? o[LANG] : o.en) : o;
+const B = (en, zh) => ({ en, zh });
+const trFor = (o, l) => o && typeof o === 'object' ? (o[l] != null ? o[l] : o.en) : o;
+const LANGHOOKS = [];
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(e => { e.innerHTML = t(e.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = t(e.dataset.i18nTitle); e.setAttribute('aria-label', t(e.dataset.i18nTitle)); });
+  for (const f of LANGHOOKS) f();
+}
+function setLang(l) {
+  LANG = l; try { localStorage.setItem('lang', l); } catch (e) { }
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  const u = new URL(location.href); u.searchParams.set('lang', l); try { history.replaceState(null, '', u); } catch (e) { }
+  applyLang();
+}
+window.__setLang = l => setLang(l);
+
+Object.assign(I18N.en, {"brand": "Inside 3D NAND <span class=\"op\">READ · PROGRAM · ERASE</span>", "intro": "Controller command → CMOS periphery → word / bit lines → charge-trap layer", "level": "Advanced · semiconductors", "duration": "15–20 min", "autoplay": "Autoplay", "scene": "3D NAND structural view", "theme": "Toggle light / dark", "trailLabel": "Lesson steps", "trail": "Lesson <span>8 steps</span>", "keyboard": "Use <kbd>←</kbd><kbd>→</kbd> for steps · drag to rotate · scroll to zoom · click parts for details.<br>Public sources: textbooks / IEEE / ONFI. Values are <b>typical ranges</b>, independent of vendor designs.", "electrons": "<i style=\"background:#60a5fa\"></i>e⁻ electrons", "holes": "<i style=\"background:#fb7185\"></i>h⁺ holes", "explode": "<svg class=\"i\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" viewBox=\"0 0 16 16\"><path d=\"M3 4.5h10M3 8h10M3 11.5h10\" stroke-dasharray=\"0\"></path><path d=\"M8 1v2M8 13v2\"></path></svg>Explode", "explodeTitle": "Explode", "resetView": "<svg class=\"i\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" viewBox=\"0 0 16 16\"><path d=\"M3 8a5 5 0 1 0 1.5-3.6\"></path><path d=\"M3 2.5V5h2.5\"></path></svg>Reset view", "resetViewTitle": "Reset view", "tabwhy": "Why", "tabmath": "Math", "tabex": "Try", "tabquiz": "Quiz", "tabsrc": "Sources", "controls": "Controls", "scope": "Scope", "pause": "Pause / resume", "speed": "Playback speed", "controlop": "Operation", "controlmode": "Bits / cell", "controlpage": "Logical page", "controlwl": "Selected WL", "controlbl": "BL targets", "controlstep": "ISPP step ΔV", "controlvpass": "V<sub>pass</sub> (prog)", "controlvread": "V<sub>pass</sub> (read)", "controlshift": "Read offset", "controlvers": "Start V<sub>erase</sub>", "controlvg": "Gate V<sub>g</sub>", "controlret": "Retention", "controlpe": "P/E cycles", "selectedWL": "Selected word line", "isppStep": "ISPP step", "yearsZero": "0 yr", "runRead": "Run READ", "nextPhase": "Next phase", "scopebus": "Bus", "scopebias": "Bias", "scopefield": "Field", "scopevt": "Vt dist.", "scopebl": "BL sense", "scopeispp": "ISPP", "scopeerase": "Erase", "documentTitle": "3D NAND · READ / PROGRAM / ERASE — Inside the device", "portrait": "In portrait, the lesson scales to fit. Use <b>landscape</b> or a desktop for the full experience. Pinch to zoom.<br><span>Rotate to landscape for the full lesson.</span>", "currentValue": "Current value", "step": "Step", "correct": "Correct", "incorrect": "Incorrect"});
+Object.assign(I18N.zh, {"brand": "3D NAND 内部机制 <span class=\"op\">READ · PROGRAM · ERASE</span>", "intro": "从控制器的一条命令出发 → CMOS 外围 → word line / bit line → 电荷陷阱层，一个结构一个结构地走完整条信号链", "level": "中高级 · 半导体背景", "duration": "约 15–20 分钟", "autoplay": "自动演示", "scene": "3D NAND 结构三维视图", "theme": "切换明暗", "trailLabel": "课程步骤", "trail": "课程 <span>8 步</span>", "keyboard": "键盘 <kbd>←</kbd><kbd>→</kbd> 切换步骤 · 拖动 3D 旋转 · 滚轮缩放 · 点击任意结构看名称、功能和典型电压。<br/>只用公开资料（教科书 / IEEE 论文 / ONFI），数值均为<b>典型范围</b>，非任何厂商的具体设计。", "electrons": "<i style=\"background:#60a5fa\"></i>e⁻ 电子", "holes": "<i style=\"background:#fb7185\"></i>h⁺ 空穴", "explode": "<svg class=\"i\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" viewBox=\"0 0 16 16\"><path d=\"M3 4.5h10M3 8h10M3 11.5h10\" stroke-dasharray=\"0\"></path><path d=\"M8 1v2M8 13v2\"></path></svg>爆炸视图", "explodeTitle": "爆炸视图", "resetView": "<svg class=\"i\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" viewBox=\"0 0 16 16\"><path d=\"M3 8a5 5 0 1 0 1.5-3.6\"></path><path d=\"M3 2.5V5h2.5\"></path></svg>重置视角", "resetViewTitle": "重置视角", "tabwhy": "原理", "tabmath": "数学", "tabex": "试试看", "tabquiz": "小测", "tabsrc": "来源", "controls": "控制", "scope": "示波器", "pause": "暂停/继续", "speed": "播放速度", "controlop": "操作", "controlmode": "每单元位数", "controlpage": "读哪一页", "controlwl": "选中 WL", "controlbl": "每条 BL 数据", "controlstep": "ISPP 步长 ΔV", "controlvpass": "V<sub>pass</sub> (编程)", "controlvread": "V<sub>pass</sub> (读)", "controlshift": "读参考偏移", "controlvers": "V<sub>erase</sub> 起始", "controlvg": "栅压 V<sub>g</sub>", "controlret": "保持时间", "controlpe": "P/E 次数", "selectedWL": "选中 word line", "isppStep": "ISPP 步长", "yearsZero": "0 年", "runRead": "运行 READ", "nextPhase": "单步", "scopebus": "接口", "scopebias": "偏压", "scopefield": "电场", "scopevt": "Vt 分布", "scopebl": "BL 感测", "scopeispp": "ISPP", "scopeerase": "擦除", "documentTitle": "3D NAND · READ / PROGRAM / ERASE 结构级讲解", "portrait": "竖屏时整页按比例缩小；<b>横屏</b>或用电脑打开可获得完整体验。双指可放大。<br><span>Rotate to landscape for the full lesson.</span>", "currentValue": "当前值", "step": "步骤", "correct": "正确", "incorrect": "不对"});
+LANGHOOKS.push(() => { document.title = t('documentTitle'); document.querySelectorAll('#lang button').forEach(b => b.classList.toggle('on', b.dataset.v === LANG)); });
+document.getElementById('lang').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setLang(b.dataset.v); });
+
+// ---------- deterministic helpers ----------
+let _seed = 1234567;
+const rnd = () => { _seed = (_seed * 1664525 + 1013904223) >>> 0; return _seed / 4294967296; };
+const rr = (a, b) => a + (b - a) * rnd();
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const spring = t => { t = clamp(t); return 1 - Math.exp(-6 * t) * Math.cos(9 * t) * (1 - t) - (t >= 1 ? 0 : 0) ; };
+const damp = (cur, target, lambda, dt) => lerp(cur, target, 1 - Math.exp(-lambda * dt));
+const fract = x => x - Math.floor(x);
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 1) => (v >= 0 ? '' : '−') + Math.abs(v).toFixed(d);
+
+const SIM = { t: 0, dt: 1 / 60, speed: 1, paused: false };
+const QS = location.search;
+const CAPTURE = /capture/.test(QS);
+const INTERACTIVE_START = /interactive|[?&]step=/.test(QS);
+if (CAPTURE) document.body.classList.add('capture');
+
+// ---------- renderer ----------
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.setClearColor(0x000000, 0);
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+
+// ---------- lights ----------
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), .04).texture;
+const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x1a2233, .7); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 80 });
+key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+scene.add(key); scene.add(key.target);
+const rim = new THREE.DirectionalLight(0x88ccff, .55); scene.add(rim);
+
+// ---------- camera rig (spherical, tweened shots) ----------
+const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 500);
+const STAGE = { x: 278, y: 66, w: 758, h: 536 };      // design px region of the 3D stage
+const rig = { tx: 0, ty: 1.5, tz: 0, az: 0.6, el: 0.5, size: 15 };
+const rigFrom = { ...rig }, rigTo = { ...rig }; let rigT0 = -1, rigDur = 1;
+const user = { daz: 0, del: 0, zoom: 1 };
+function shot(s, dur = 1.6) {
+  Object.assign(rigFrom, rig); Object.assign(rigTo, rig, s);
+  // shortest azimuth
+  rigT0 = SIM.t; rigDur = dur;
+  if (dur <= 0) { Object.assign(rig, rigTo); rigT0 = -1; }
+}
+function updateRig() {
+  if (rigT0 >= 0) {
+    const k = ease((SIM.t - rigT0) / rigDur);
+    for (const p in rigTo) rig[p] = lerp(rigFrom[p], rigTo[p], k);
+    if (k >= 1) rigT0 = -1;
+  }
+}
+let stageScale = 1, stageOX = 0, stageOY = 0, VW = 1, VH = 1;
+function placeCamera() {
+  const t = SIM.t;
+  const az = rig.az + user.daz + 0.012 * Math.sin(t * .31) , el = clamp(rig.el + user.del + 0.008 * Math.sin(t * .23 + 1), -0.2, 1.45);
+  const sh = STAGE.h * stageScale; // stage px height on window
+  const d = rig.size * user.zoom * VH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * sh);
+  const tgt = new THREE.Vector3(rig.tx, rig.ty, rig.tz);
+  camera.position.set(tgt.x + d * Math.cos(el) * Math.sin(az), tgt.y + d * Math.sin(el), tgt.z + d * Math.cos(el) * Math.cos(az));
+  camera.up.set(0, 1, 0); camera.lookAt(tgt);
+  camera.near = Math.max(0.1, d * 0.05); camera.far = d * 6;
+  const px = stageOX + (STAGE.x + STAGE.w / 2) * stageScale, py = stageOY + (STAGE.y + STAGE.h / 2) * stageScale;
+  camera.aspect = VW / VH;
+  camera.setViewOffset(VW, VH, VW / 2 - px, VH / 2 - py, VW, VH);
+  camera.updateProjectionMatrix();
+  // light follows the view
+  const kd = new THREE.Vector3(-0.45, 1, 0.55).normalize();
+  key.position.copy(tgt).addScaledVector(kd, 40); key.target.position.copy(tgt);
+  const sc = rig.size * 0.9; Object.assign(key.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc }); key.shadow.camera.updateProjectionMatrix();
+  rim.position.copy(tgt).add(new THREE.Vector3(10, 4, -12));
+}
+function layout() {
+  VW = window.innerWidth; VH = window.innerHeight;
+  stageScale = Math.min(VW / 1440, VH / 810);
+  stageOX = (VW - 1440 * stageScale) / 2; stageOY = Math.max(0, (VH - 810 * stageScale) / 2);
+  $('stage').style.transform = `translate(${stageOX}px,${stageOY}px) scale(${stageScale})`;
+  renderer.setSize(VW, VH, false);
+  let h = document.getElementById('rothint'); if (!h) { h = document.createElement('div'); h.id = 'rothint'; h.dataset.i18n = 'portrait'; h.innerHTML = t('portrait'); document.body.appendChild(h); }
+  h.style.display = VH - 810 * stageScale > 120 ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
+}
+
+// ---------- voltage colormap ----------
+const VSTOPS = [[0, '#3b4a63'], [2.5, '#2dd4bf'], [6, '#facc15'], [10, '#fb923c'], [15, '#f43f5e'], [22, '#d946ef']].map(([v, c]) => [v, new THREE.Color(c)]);
+const NEG = new THREE.Color('#1e3a8a');
+function vColor(v, out = new THREE.Color()) {
+  if (v < 0) return out.copy(VSTOPS[0][1]).lerp(NEG, clamp(-v / 3));
+  for (let i = 1; i < VSTOPS.length; i++) if (v <= VSTOPS[i][0]) { const [a, ca] = VSTOPS[i - 1], [b, cb] = VSTOPS[i]; return out.copy(ca).lerp(cb, (v - a) / (b - a)); }
+  return out.copy(VSTOPS[VSTOPS.length - 1][1]);
+}
+const vCss = v => '#' + vColor(v).getHexString();
+$('legbar').style.background = `linear-gradient(90deg,${VSTOPS.map(([v, c]) => '#' + c.getHexString() + ' ' + (v / 22 * 100).toFixed(0) + '%').join(',')})`;
+
+// ---------- material helpers ----------
+function M(color, o = {}) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .55, metalness: 0.05, envMapIntensity: .7 }, o)); }
+const EDGE = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: .28 });
+function mesh(geo, mat, { x = 0, y = 0, z = 0, parent, shadow = true, edge = true } = {}) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
+  m.castShadow = shadow; m.receiveShadow = true;
+  if (edge) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), EDGE); e.raycast = () => { }; m.add(e); }
+  if (parent) parent.add(m);
+  return m;
+}
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const rbox = (w, h, d, r = .04) => new RoundedBoxGeometry(w, h, d, 2, r);
+// box defined by ranges
+function boxR(x0, x1, y0, y1, z0, z1, mat, parent, o = {}) {
+  return mesh(box(x1 - x0, y1 - y0, z1 - z0), mat, Object.assign({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: (z0 + z1) / 2, parent }, o));
+}
+function tube(points, r, mat, parent, seg = 24) {
+  const c = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.0001);
+  const m = new THREE.Mesh(new THREE.TubeGeometry(c, seg, r, 6, false), mat); m.castShadow = true;
+  if (parent) parent.add(m); return m;
+}
+// polyline tube with sharp corners (manhattan routing)
+function wire(points, r, mat, parent) {
+  const g = new THREE.Group();
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = new THREE.Vector3(...points[i]), b = new THREE.Vector3(...points[i + 1]);
+    const L = a.distanceTo(b); if (L < 1e-4) continue;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L + r * 1.6, 6), mat);
+    m.position.copy(a).add(b).multiplyScalar(.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    m.castShadow = true; g.add(m);
+  }
+  if (parent) parent.add(g); return g;
+}
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+// text plate lying on a top face
+function topText(text, w, d, { color = '#e6edf7', bg = null, size = 64, sub = '' } = {}) {
+  const tex = canvasTex(512, Math.round(512 * d / w), (g, W, H) => {
+    if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+    g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${size}px Inter, "Noto Sans SC", sans-serif`; g.fillText(text, W / 2, H / 2 - (sub ? size * .35 : 0));
+    if (sub) { g.globalAlpha = .75; g.font = `500 ${size * .55}px "JetBrains Mono", monospace`; g.fillText(sub, W / 2, H / 2 + size * .55); }
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2; m.raycast = () => { }; return m;
+}
+
+// ---------- pick registry & labels ----------
+const PICK = []; // {obj, info:{name, fn, v: () => string}}
+function pickable(obj, info) { for (const k of ['name', 'fn']) if (typeof info[k] === 'string') info[k] = B(info[k], info[k]); obj.userData.info = info; PICK.push(obj); return obj; }
+const LABELS = [];
+const labelsEl = $('labels');
+function label(html, pos, { cls = '', group = null, side = '' } = {}) {
+  if (typeof html === 'string') html = B(html, html);
+  const el = document.createElement('div'); el.className = 'lb ' + cls + ' ' + side; el.innerHTML = tr(html); labelsEl.appendChild(el);
+  const L = { el, pos: typeof pos === 'function' ? pos : () => pos, show: 0, op: 0, group, html, rendered: tr(html), set(h) { this.html = typeof h === 'string' ? B(h, h) : h; const text = tr(this.html); if (text !== this.rendered) { this.rendered = text; el.innerHTML = text; this.w = 0; } }, w: 0, side };
+  LABELS.push(L); return L;
+}
+LANGHOOKS.push(() => { for (const L of LABELS) { L.rendered = tr(L.html); L.el.innerHTML = L.rendered; L.w = 0; } });
+const _lv = new THREE.Vector3();
+function updateLabels() {
+  for (const L of LABELS) {
+    const vis = L.show && (!L.group || L.group.visible);
+    if (!vis) { if (L.op) { L.el.style.opacity = 0; L.op = 0; } continue; }
+    _lv.copy(L.pos()); _lv.project(camera);
+    // window px -> design px
+    const wx = (_lv.x * .5 + .5) * VW, wy = (-_lv.y * .5 + .5) * VH;
+    const x = (wx - stageOX) / stageScale, y = (wy - stageOY) / stageScale;
+    const w = L.w || (L.w = L.el.offsetWidth || 80), xl = L.side === 'l' ? x - w : L.side === 'r' ? x : x - w / 2, xr = xl + w;
+    const inside = _lv.z < 1 && xl > STAGE.x + 2 && xr < STAGE.x + STAGE.w - 2 && y > STAGE.y + 34 && y < STAGE.y + STAGE.h - 6 && !(y > STAGE.y + STAGE.h - 48 && xl < STAGE.x + 360);
+    const o = inside ? (typeof L.show === 'number' ? L.show : 1) : 0;
+    L.el.style.left = x.toFixed(1) + 'px'; L.el.style.top = y.toFixed(1) + 'px';
+    if (o !== L.op) { L.el.style.opacity = o; L.op = o; }
+  }
+}
+
+// ---------- explode registry ----------
+const EXP = []; // {obj, p0, r0, dir, tilt, delay, ch}
+const EXV = { die: 0, tier: 0, cell: 0 }; const EXT = { die: 0, tier: 0, cell: 0 };
+function explodable(obj, ch, dir, tilt = [0, 0, 0], delay = rnd()) {
+  EXP.push({ obj, ch, p0: obj.position.clone(), r0: obj.rotation.clone(), dir: new THREE.Vector3(...dir), tilt: new THREE.Vector3(...tilt), delay }); return obj;
+}
+const springBack = t => { t = clamp(t); return 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2); };
+function updateExplode(dt) {
+  for (const e of EXP) { e.obj.position.copy(e.p0); e.obj.rotation.copy(e.r0); }
+  for (const e of EXP) {
+    const ex = EXV[e.ch]; if (!ex) continue; const k = clamp(ex * 1.45 - e.delay * .45);
+    const s = springBack(k);
+    e.obj.position.addScaledVector(e.dir, s);
+    e.obj.rotation.x += e.tilt.x * s; e.obj.rotation.y += e.tilt.y * s; e.obj.rotation.z += e.tilt.z * s;
+  }
+}
+// explode channel tweens driven by lesson time
+const EXA = {}; // ch -> {from,to,t0,dur}
+function setExplode(ch, to, dur = 1.8) { EXA[ch] = { from: EXV[ch], to, t0: SIM.t, dur }; EXT[ch] = to; }
+function tickExplode() { for (const ch in EXA) { const a = EXA[ch]; const k = clamp((SIM.t - a.t0) / a.dur); EXV[ch] = lerp(a.from, a.to, k); if (k >= 1) delete EXA[ch]; } }
+
+// opacity tween for material sets
+const FADES = [];
+function fadeable(mat) { mat.transparent = true; mat.userData.base = mat.opacity; return mat; }
+
+// ================= PHYSICS: compact public-textbook models =================
+// FN: J = A E^2 exp(-B/E)  (Lenzlinger & Snow 1969; Si/SiO2, phiB~3.2 eV, m*~0.42 m0)
+const PHY = {
+  A: 1.15e-6, B: 2.53e8, Bh: 3.05e8,
+  EOT: 13.5e-7,      // cm, tunnel-field equivalent thickness derived from the GAA geometry (cell step)
+  Cb: 4.3e-7,        // F/cm^2, trapped-charge -> gate coupling
+  tp: 15e-6,         // program pulse (typical 10-20 us)
+  tpe: 0.6e-3,       // erase pulse (typical ~0.5-1 ms)
+  Cr: 0.88,           // boosting ratio C_ins/(C_ins+C_ch)
+  Vcc: 2.5, VthSG: 1.2,
+  Ion: 80e-9, Cbl: 0.35e-12, Vpre: 0.7, trip: 0.4, tStrobe: 2.5e-6,
+};
+const STATES = ['Er', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const TLC_BITS = [[1,1,1],[1,1,0],[1,0,0],[0,0,0],[0,1,0],[0,1,1],[0,0,1],[1,0,1]]; // [LP,MP,UP] 2-3-2 Gray code
+const LEVELS = {
+  SLC: { n: 2, PV: [null, 1.2], R: [0.5], names: ['1 (Er)', '0 (P)'] },
+  TLC: { n: 8, PV: [null, 0.4, 1.1, 1.8, 2.5, 3.2, 3.9, 4.6], R: [0.1, 0.8, 1.5, 2.2, 2.9, 3.6, 4.3], names: STATES },
+};
+const PAGE_REFS = { SLC: [0], LP: [2, 6], MP: [1, 3, 5], UP: [0, 4] }; // indices into R
+const EV = -1.0;   // erase-verify level (effective; negative sensing via source bias)
+const fnJ = (E, B = PHY.B) => E <= 2e6 ? 0 : PHY.A * E * E * Math.exp(-B / E);
+// prng (separate from geometry prng)
+let _sseed = 987654321;
+const srnd = () => { _sseed = (_sseed * 1664525 + 1013904223) >>> 0; return _sseed / 4294967296; };
+const gauss = () => { let u = 0, v = 0; while (u === 0) u = srnd(); v = srnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+function pgmPulse(vt, Vg, Vch, eotf, tp = PHY.tp) {
+  let t = 0, it = 0;
+  while (t < tp && it++ < 500) {
+    const E = (Vg - Vch - (vt - 0)) / (PHY.EOT * eotf);
+    const r = fnJ(E) / PHY.Cb; if (r <= 1e-3) break;
+    let dv = r * (tp - t); if (dv > 0.03) { dv = 0.03; t += dv / r; } else t = tp;
+    vt += dv;
+  }
+  return vt;
+}
+const vchErase = (t, Vers, tau) => (Vers - 1.0) * (1 - Math.exp(-t / tau));
+function erasePulse(vt, Vers, eotf, tau, tp = PHY.tpe) {
+  let t = 0, it = 0;
+  while (t < tp && it++ < 800) {
+    const Vch = vchErase(t, Vers, tau);
+    const E = (Vch - 0 + vt) / (PHY.EOT * eotf);
+    const r = fnJ(E, PHY.Bh) / PHY.Cb;
+    let dt = tp / 60; if (r * dt > 0.03) dt = 0.03 / r;
+    if (t + dt > tp) dt = tp - t;
+    vt -= r * dt; t += dt;
+  }
+  return vt;
+}
+const boostV = (Vpass, Vpgm, nWL = 8) => (PHY.Vcc - PHY.VthSG) + PHY.Cr * ((Vpass * (nWL - 1) + Vpgm) / nWL - (PHY.Vcc - PHY.VthSG));
+const sig = x => 1 / (1 + Math.exp(-x));
+function stringCurrent(VrefSel, vtSel, others, Vpass) {
+  let I = PHY.Ion * sig((VrefSel - vtSel) / 0.1);
+  for (const v of others) I *= sig((Vpass - v) / 0.15);
+  return I;
+}
+const blV = (I, t) => Math.max(0, PHY.Vpre - I * t / PHY.Cbl);
+function decodeState(vt, mode, shift = 0) { const R = LEVELS[mode].R; let s = 0; for (let i = 0; i < R.length; i++) if (vt > R[i] + shift) s = i + 1; return s; }
+function pageBit(state, mode, page) { if (mode === 'SLC') return state === 0 ? 1 : 0; return TLC_BITS[state][{ LP: 0, MP: 1, UP: 2 }[page]]; }
+
+// ---- populations ----
+const NPOP = 3072;
+function newCell() { return { vt: -1.6 + 0.3 * gauss(), eotf: 1 + 0.012 * gauss(), tgt: 0, lock: false }; }
+function makePop() { const p = []; for (let i = 0; i < NPOP; i++) p.push(newCell()); return p; }
+// ISPP engine: one call = one program pulse + verify, returns stats
+function isppInit(pop, mode, Vstart, step, Vpass) { return { pop, mode, k: 0, Vstart, step, Vpass, Vpgm: Vstart, history: [], done: false, maxLoops: 40 }; }
+function isppPulse(st, extra = []) {
+  const L = LEVELS[st.mode]; st.Vpgm = st.Vstart + st.k * st.step;
+  const Vb = boostV(st.Vpass, st.Vpgm);
+  const all = st.pop.concat(extra);
+  for (const c of all) {
+    if (c.tgt === 0 || c.lock) c.vt = pgmPulse(c.vt, st.Vpgm, Vb, c.eotf);       // inhibited: boosted channel (program disturb)
+    else { const v0 = c.vt; c.vt = pgmPulse(c.vt, st.Vpgm, 0, c.eotf); if (c.vt - v0 > 0.04) c.vt += 0.045 * gauss(); }
+  }
+  // verify (PV of each target state)
+  let remaining = 0;
+  for (const c of all) { if (c.tgt > 0 && !c.lock) { if (c.vt >= L.PV[c.tgt]) c.lock = true; else remaining++; } }
+  st.history.push({ k: st.k, Vpgm: st.Vpgm, remaining, Vb });
+  st.k++; if (remaining === 0 || st.k >= st.maxLoops) st.done = true;
+  return remaining;
+}
+function programPopulation(pop, mode, step = 0.3, Vpass = 9, targets) {
+  const n = LEVELS[mode].n; pop.forEach((c, i) => { c.tgt = targets ? targets[i] : Math.floor(srnd() * n); c.lock = false; });
+  const st = isppInit(pop, mode, mode === 'SLC' ? 15.0 : 14.6, step, Vpass); while (!st.done) isppPulse(st); return st;
+}
+function stats(pop, mode) {
+  const L = LEVELS[mode]; const per = []; for (let s = 0; s < L.n; s++) per.push({ n: 0, m: 0, m2: 0, lo: 99, hi: -99 });
+  let err = 0; for (const c of pop) { const p = per[c.tgt]; p.n++; p.m += c.vt; p.m2 += c.vt * c.vt; p.lo = Math.min(p.lo, c.vt); p.hi = Math.max(p.hi, c.vt); if (decodeState(c.vt, mode) !== c.tgt) err++; }
+  per.forEach(p => { if (p.n) { p.m /= p.n; p.sd = Math.sqrt(Math.max(0, p.m2 / p.n - p.m * p.m)); } });
+  return { per, err, rber: err / pop.length };
+}
+if (typeof module !== 'undefined') module.exports = { PHY, LEVELS, pgmPulse, erasePulse, boostV, makePop, programPopulation, stats, isppInit, isppPulse, stringCurrent, blV, fnJ };
+
+// ================= DIE MODEL (system view, CMOS-under-array) =================
+const DIE = { g: new THREE.Group(), cua: {}, tiers: [], arrayMats: [], packets: [], labels: [] };
+scene.add(DIE.g);
+{
+  const g = DIE.g;
+  const NT = 12, PITCH = 0.2, Y0 = 1.15, AX0 = -4, AX1 = 5.5, STEPW = 0.18;
+  DIE.NT = NT; DIE.Y0 = Y0; DIE.PITCH = PITCH;
+  const BLKZ = [[-3.85, -1.38], [-1.18, 1.18], [1.38, 3.85]];
+  DIE.BLKZ = BLKZ;
+  // substrate
+  const sub = boxR(-8, 8, 0, 0.6, -5, 5.6, M('#2a3140', { roughness: .8 }), g);
+  pickable(sub, { name: B("p-Si substrate", 'p-Si 衬底 (substrate)'), fn: B("Single-crystal silicon supporting CMOS peripheral circuits. In CuA/PUC structures, the memory array is stacked above the periphery rather than formed in the silicon substrate.", '承载 CMOS 外围电路的单晶硅片。CuA/PUC 结构里存储阵列不再做在硅衬底上，而是叠在外围电路之上。'), v: () => '0 V (GND)' });
+  explodable(sub, 'die', [0, -2.6, 0], [0.04, 0, -0.03], 0);
+  // CuA blocks
+  const cuaY0 = 0.6, cuaY1 = 0.98;
+  const blocks = [
+    ['rowdec', B("Row decoder (HV)", '行译码器 Row decoder (HV)'), [-6.8, -4.15, -3.9, 3.9], '#7c3aed', 'X-DEC', B("Decodes the block address, enables that block’s HV pass transistors, and transfers Vpgm/Vpass/Vread from global to local WLs. Located below the staircase; voltages can reach ~20 V+.", '把块地址译码成 block-select 信号，打开该 block 的高压 pass transistors，把 global WL 上的 Vpgm/Vpass/Vread 传到选中块的 local WL。位于 staircase 下方，电压最高可达 ~20 V+。'), () => B("Pass-transistor gate ≈ Vpgm + Vth ≈ 22–25 V (typical)", 'pass Tr 栅压 ≈ Vpgm + Vth ≈ 22–25 V (typical)')],
+    ['pbN', B("Page buffer / sense amp (even)", 'Page buffer / Sense amp (偶)'), [-4, 5.5, 1.05, 4.4], '#0e7490', 'PAGE BUFFER · S/A', B("One sense amplifier and several data latches per BL. READ: precharge and detect BL discharge at strobe. PROGRAM: set BL to 0 V (program) or Vcc (inhibit) according to data.", '每条 BL 一个 sense amplifier + 若干数据锁存器 (latches)。READ 时预充 BL 并在 strobe 时刻判断 BL 是否放电；PROGRAM 时根据数据把 BL 设成 0 V (编程) 或 Vcc (禁止)。'), () => B("BL precharge ≈ 0.5–1.0 V; program-inhibit BL ≈ Vcc 2.5 V", 'BL 预充 ≈ 0.5–1.0 V；禁止编程 BL ≈ Vcc 2.5 V')],
+    ['pbS', B("Page buffer / sense amp (odd)", 'Page buffer / Sense amp (奇)'), [-4, 5.5, -4.4, -1.05], '#0e7490', 'PAGE BUFFER · S/A', B("Page buffers for the other half of the BLs. CuA places these circuits beneath the array, saving silicon area outside it.", '另一半 BL 的 page buffer。阵列下方 CuA 让 page buffer 面积不再挤占阵列外的硅面积。'), () => B("Same as above", '同上')],
+    ['coldec', B("Column decoder · data path", '列译码 / 数据通路 Column decoder · Data path'), [-4, 5.5, -0.85, 0.85], '#0369a1', 'Y-DEC · DATA PATH', B("Uses the column address to serialize page-buffer data to I/O (READ), or transfer incoming DQ data into the page buffer (PROGRAM).", '按列地址把 page buffer 中的数据串行化送到 I/O (READ)，或把 DQ 上收到的数据写入 page buffer (PROGRAM)。'), () => B("Vcc / VccQ logic levels", 'Vcc / VccQ 逻辑电平')],
+    ['pump', B("Charge pumps", '电荷泵 Charge pumps'), [5.75, 7.6, -4.4, -1.2], '#be123c', 'CHARGE PUMPS', B("On-die Dickson charge pumps raise Vcc (~2.5–3.3 V) to Vpass (~8–10 V), Vpgm (~15–20 V+), and Verase (~18–20 V+).", '片内 Dickson 型电荷泵，把 Vcc (~2.5–3.3 V) 抬到 Vpass (~8–10 V)、Vpgm (~15–20 V+) 和 Verase (~18–20 V+)。'), () => B("Output 8 – 22 V (typical)", '输出 8 – 22 V (typical)')],
+    ['reg', B("Regulators · bandgap reference", '稳压器 / 带隙 Regulators · Bandgap'), [5.75, 7.6, -1.0, 1.0], '#b45309', 'REG · BGR', B("A bandgap reference supplies a temperature-stable reference. Regulators set pump outputs precisely to FSM-requested Vpgm(k), Vread(Rk), and Verify(PVk) levels.", '带隙基准产生温度无关的参考电压，稳压器把泵输出精确调节到 FSM 要求的 Vpgm(k)、Vread(Rk)、Verify(PVk) 等电平。'), () => B("Precision ~ tens of mV", '精度 ~ tens of mV')],
+    ['fsm', B("Control logic · FSM", '控制逻辑 / 状态机 Control logic · FSM'), [5.75, 7.6, 1.2, 4.4], '#15803d', 'FSM · µCODE', B("Parses commands/addresses, sequences pumps, regulators, decoders, and page buffers for READ, ISPP, erase loops and verify, and maintains the status register (70h).", '解析命令/地址，按内部算法 (READ 时序、ISPP 循环、擦除循环、verify) 依次给泵、稳压器、译码器、page buffer 下指令，并维护状态寄存器 (70h)。'), () => B("Logic levels", '逻辑电平')],
+  ];
+  for (const [id, name, [x0, x1, z0, z1], col, tag, fn, v] of blocks) {
+    const mat = M(col, { roughness: .45, emissive: new THREE.Color(col), emissiveIntensity: 0.08 });
+    const m = boxR(x0, x1, cuaY0, cuaY1, z0, z1, mat, g);
+    const tt = topText(tag, x1 - x0, z1 - z0, { size: Math.min(70, 900 / tag.length) , color: '#ffffffdd' }); tt.position.y = (cuaY1 - cuaY0) / 2 + 0.005; m.add(tt);
+    pickable(m, { name, fn, v });
+    explodable(m, 'die', [((x0 + x1) / 2) * 0.12, -1.1 - rnd() * .5, ((z0 + z1) / 2) * 0.12], [rr(-.06, .06), rr(-.08, .08), rr(-.06, .06)]);
+    DIE.cua[id] = { m, mat, col: new THREE.Color(col), glow: 0 };
+  }
+  // I/O pads along front edge
+  const padMat = M('#d4b16a', { metalness: .9, roughness: .3 });
+  const pads = new THREE.Group(); g.add(pads);
+  const padNames = ['CE#', 'CLE', 'ALE', 'WE#', 'RE#', 'R/B#', 'DQ0', 'DQ1', 'DQ2', 'DQ3', 'DQ4', 'DQ5', 'DQ6', 'DQ7', 'DQS', 'VCC'];
+  DIE.padX = [];
+  padNames.forEach((n, i) => { const x = -6.2 + i * 0.83; DIE.padX.push(x); const p = boxR(x - .28, x + .28, 0.6, 0.66, 4.85, 5.4, padMat, pads); pickable(p, { name: 'I/O pad · ' + n, fn: B("ONFI/Toggle pins. CLE: command latch enable; ALE: address latch enable; WE# rising edge latches commands/addresses/data; RE#: data read; DQ[7:0]: 8-bit data bus; R/B#: ready/busy.", 'ONFI/Toggle 接口引脚。CLE=命令锁存使能，ALE=地址锁存使能，WE# 上升沿锁存命令/地址/数据，RE# 读数据，DQ[7:0] 8 位数据总线，R/B# 忙闲指示。'), v: () => 'VccQ 1.2 / 1.8 V (typical)' }); });
+  explodable(pads, 'die', [0, -1.4, 1.2], [0.05, 0, 0]);
+  // source plate (n+ poly)
+  const spMat = M('#5b6b8a', { roughness: .6 });
+  const sp = boxR(AX0 - 2.5, AX1, 0.98, Y0, -3.95, 3.95, spMat, g);
+  pickable(sp, { name: B("Source plate (n+ poly SL)", 'Source plate / 公共源 (n+ poly SL)'), fn: B("An n+ poly-Si layer deposited above CuA forms the common source for all strings. CMOS, rather than a p-well, lies below it, preventing substrate hole injection during erase → GIDL is needed.", '在 CuA 上方沉积的 n+ 多晶硅层，作为所有 string 的公共 source line。因为它下面是 CMOS 而不是 p-阱，擦除时无法从衬底注入空穴 → 需要 GIDL 擦除。'), v: () => 'READ 0 V · PGM ~1–2 V · ERS ~18–20 V' });
+  explodable(sp, 'die', [0, -0.35, 0], [0, 0, 0.02], .1);
+  DIE.sp = sp; DIE.spMat = spMat;
+  // tier stack per block, plates with holes for pillars
+  const NX = 24, NZ = 3, PX = (AX1 - AX0 - 0.5) / (NX - 1);
+  const pillarPos = [];
+  BLKZ.forEach(([z0, z1], b) => { for (let iz = 0; iz < NZ; iz++) for (let ix = 0; ix < NX; ix++) { const zz = z0 + 0.42 + iz * ((z1 - z0 - 0.84) / (NZ - 1)); pillarPos.push([AX0 + 0.25 + ix * PX + (iz % 2) * PX * .5 - PX * .25, zz, b]); } });
+  DIE.pillarPos = pillarPos;
+  const tierNames = i => i === 0 ? 'SGS' : i === NT - 1 ? 'SGD' : (i === 1 || i === NT - 2) ? 'Dummy WL' : 'WL' + (i - 2);
+  for (let b = 0; b < 3; b++) {
+    const [z0, z1] = BLKZ[b]; DIE.tiers[b] = [];
+    for (let i = 0; i < NT; i++) {
+      const xl = AX0 - (NT - 1 - i) * STEPW;
+      const sh = new THREE.Shape(); sh.moveTo(xl, -z0); sh.lineTo(AX1, -z0); sh.lineTo(AX1, -z1); sh.lineTo(xl, -z1); sh.closePath();
+      for (const [px, pz, pb] of pillarPos) if (pb === b) { const h = new THREE.Path(); h.absarc(px, -pz, 0.1, 0, Math.PI * 2, false); sh.holes.push(h); }
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: false, curveSegments: 3 });
+      geo.rotateX(-Math.PI / 2);
+      const mat = M(i === 0 || i === NT - 1 ? '#8e9bb0' : '#a7b1c2', { metalness: .55, roughness: .35, transparent: true, opacity: 1 });
+      const m = new THREE.Mesh(geo, mat); m.position.y = Y0 + 0.08 + i * PITCH; m.castShadow = true; m.receiveShadow = true; g.add(m);
+      const nm = tierNames(i);
+      pickable(m, { name: B(`Block ${b} · ${nm} (W gate plate)`, `Block ${b} · ${nm} (W 栅极平板)`), fn: i === 0 ? B("Source-select gate SGS: connects or isolates the string and source plate.", '源端选择栅 SGS：把 string 与 source plate 连通/隔离。') : i === NT - 1 ? B("Drain-select gate SGD: connects or isolates the string and bit line; during programming, works with BL=Vcc to enable self-boosting.", '漏端选择栅 SGD：把 string 与 bit line 连通/隔离；编程时与 BL=Vcc 配合形成自升压 (self-boosting)。') : B("W word-line plate shared by all pillars in one layer of one block. It forms each memory cell’s control gate.", '钨 (W) word line 平板：同一层同一 block 内所有 pillar 共享。它就是每个存储单元的控制栅。'), v: () => DIE.tierV ? DIE.tierV(b, i) : '' });
+      explodable(m, 'die', [rr(-.25, .25), 0.55 * i + 0.2, rr(-.25, .25) + (b - 1) * 0.9], [rr(-.05, .05), rr(-.04, .04), rr(-.05, .05)], i / NT * .7 + rnd() * .3);
+      explodable(m, 'tier', [rr(-.08, .08) - 0.02 * i, 0.32 * i + 0.1, (b - 1) * 0.5], [rr(-.04, .04), 0, rr(-.03, .03)], i / NT * .6 + rnd() * .2);
+      DIE.tiers[b][i] = { m, mat, base: mat.color.clone() }; DIE.arrayMats.push(mat);
+    }
+  }
+  // pillars
+  const pg = new THREE.CylinderGeometry(0.085, 0.085, NT * PITCH + 0.2, 10);
+  const pmat = M('#d6b36a', { roughness: .5, transparent: true });
+  const pil = new THREE.InstancedMesh(pg, pmat, pillarPos.length);
+  const dm = new THREE.Object3D();
+  pillarPos.forEach(([x, z], i) => { dm.position.set(x, Y0 + (NT * PITCH) / 2 + 0.02, z); dm.updateMatrix(); pil.setMatrixAt(i, dm.matrix); });
+  pil.castShadow = true; g.add(pil); DIE.arrayMats.push(pmat);
+  pickable(pil, { name: B("Vertical pillar (macaroni channel)", '垂直沟道 pillar (macaroni channel)'), fn: B("A high-aspect-ratio hole lined with blocking oxide / SiN charge trap / tunnel oxide / poly-Si channel, with oxide filling the core (macaroni). One pillar = one NAND string; each WL intersection forms a cell.", '刻蚀出的高深宽比孔，孔壁依次沉积 blocking oxide / SiN 电荷陷阱层 / tunnel oxide / 多晶硅沟道，中心填氧化物 (macaroni)。一根 pillar = 一个 NAND string，与每层 WL 相交处形成一个存储单元。'), v: () => B("Vch: READ 0 V conducting · PGM 0 V or boosted ~8 V · ERS ~18 V", 'Vch: READ 0 V 导通 · PGM 0 V 或升压 ~8 V · ERS ~18 V') });
+  explodable(pil, 'die', [0, 3.4, 0], [0, 0, 0.02], .5);
+  explodable(pil, 'tier', [0, 2.0, 0], [0, 0, 0], .4);
+  DIE.pil = pil;
+  // slits (common-source walls)
+  const slitMat = M('#4b5568', { metalness: .4, roughness: .5, transparent: true });
+  for (const z of [-1.28, 1.28, -3.92, 3.92]) { const s = boxR(AX0 - 2.5, AX1, Y0, Y0 + NT * PITCH + 0.05, z - 0.04, z + 0.04, slitMat, g, { edge: false }); pickable(s, { name: B("Slit (common-source contact)", 'Slit / 栅线缝 (common-source contact)'), fn: B("Deep trench dividing the array into blocks. Replacement-gate processing removes sacrificial SiN through it and fills W; insulation and a conductor then form the common-source contact.", '把阵列切成一个个 block 的深沟槽。工艺上用于 replacement-gate：经 slit 把 SiN 牺牲层湿法去除再填 W；随后在其中填绝缘+导体作为公共源接触。'), v: () => B("Same as SL", '同 SL') }); explodable(s, 'die', [0, 2.4 + rnd(), z * 0.35], [0, 0, rr(-.05, .05)]); explodable(s, 'tier', [0, 1.6, z * .25], [0, 0, 0]); DIE.arrayMats.push(slitMat); }
+  // staircase contacts and routing to row decoder
+  const cmat = M('#c9a227', { metalness: .9, roughness: .3, transparent: true });
+  const metal = new THREE.Group(); g.add(metal);
+  const YM = Y0 + NT * PITCH + 0.45;
+  for (let b = 0; b < 3; b++) for (let i = 0; i < NT; i++) {
+    const x = AX0 - (NT - 1 - i) * STEPW - STEPW * .5 + 0.02, z = (BLKZ[b][0] + BLKZ[b][1]) / 2 + (i % 3 - 1) * 0.35;
+    const ytop = Y0 + 0.2 + i * PITCH; const xr = -6.55 - 0.012 * i;
+    wire([[x, ytop, z], [x, YM + 0.02 * (i % 4), z], [xr, YM + 0.02 * (i % 4), z], [xr, 0.98, z]], 0.022, cmat, metal);
+  }
+  // bit lines along z on top + via fences to page buffers
+  const blMat = M('#e0b54d', { metalness: .9, roughness: .28, transparent: true });
+  const xs = []; for (let ix = 0; ix < NX; ix++) xs.push(AX0 + 0.25 + ix * PX);
+  xs.forEach((x, k) => {
+    const zEnd = k % 2 ? -4.25 : 4.25;
+    const bl = wire([[x, Y0 + NT * PITCH + 0.3, -4.25], [x, Y0 + NT * PITCH + 0.3, 4.25]], 0.035, blMat, metal);
+    wire([[x, Y0 + NT * PITCH + 0.3, zEnd], [x, 0.98, zEnd]], 0.026, blMat, metal);
+    bl.children.forEach(c => pickable(c, { name: `Bit line BL${k}`, fn: B("Top-metal bit line running along z, linking pillar tops (through SGD) across blocks in the same column. A via connects it down to the CuA page buffer.", '顶层金属 bit line，沿 z 方向把同一列中各 block 的 pillar 顶端 (经 SGD) 连起来，下行 via 连接到 CuA 中的 page buffer。'), v: () => B("READ precharge ~0.7 V · PGM 0 V / Vcc · ERS ~18–20 V", 'READ 预充 ~0.7 V · PGM 0 V / Vcc · ERS ~18–20 V') }));
+  });
+  DIE.arrayMats.push(cmat, blMat);
+  explodable(metal, 'die', [0, 6.2, 0], [0.03, 0, -0.04], .9);
+  explodable(metal, 'tier', [0, 4.9, 0], [0, 0, 0], .8);
+  DIE.metal = metal;
+  // controller & bus
+  const ctrl = new THREE.Group(); g.add(ctrl);
+  const cbody = mesh(rbox(5.2, 0.5, 2.0, .12), M('#1f2937', { roughness: .4 }), { x: 0, y: 0.25, z: 9.0, parent: ctrl });
+  const ct = topText('NAND CONTROLLER', 5.0, 1.8, { size: 52, color: '#93c5fd', sub: 'ECC (LDPC) · FTL · ONFI PHY' }); ct.position.y = 0.26; cbody.add(ct);
+  pickable(cbody, { name: B("NAND controller (SSD / UFS / eMMC)", 'NAND 控制器 (SSD / UFS / eMMC 主控)'), fn: B("Off-die controller: FTL mapping, wear leveling, LDPC ECC, and read-retry. Sends commands to each NAND die via ONFI/Toggle. The die executes commands without knowing the file system.", '片外控制器：做 FTL 映射、磨损均衡、LDPC ECC、读重试 (read-retry)，并通过 ONFI/Toggle 接口给每颗 NAND die 发命令。NAND die 本身只执行命令，不知道文件系统。'), v: () => B("VccQ 1.2 V I/O · typical 800–3600 MT/s (ONFI 4.x–5.x)", 'VccQ 1.2 V I/O · 典型 800–3600 MT/s (ONFI 4.x–5.x)') });
+  explodable(ctrl, 'die', [0, 0.6, 1.8], [0, 0.08, 0]);
+  const busMat = M('#64748b', { metalness: .6, roughness: .4 });
+  DIE.busCurves = [];
+  for (let i = 0; i < 16; i++) {
+    const x = DIE.padX[i]; const xc = -2.2 + i * 0.29;
+    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(xc, 0.3, 8.0), new THREE.Vector3(xc * 0.9 + x * 0.1, 0.45, 7.0), new THREE.Vector3(x, 0.7, 5.9), new THREE.Vector3(x, 0.66, 5.25)]);
+    const m = new THREE.Mesh(new THREE.TubeGeometry(c, 20, 0.03, 5, false), busMat); ctrl.add(m); DIE.busCurves.push(c);
+  }
+  // packets traveling the bus
+  const pkMat = new THREE.MeshBasicMaterial({ color: '#22d3ee', toneMapped: false });
+  for (let i = 0; i < 10; i++) { const p = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8), pkMat.clone()); p.visible = false; g.add(p); DIE.packets.push(p); }
+  DIE.pkLabel = label('', () => DIE.packets[0].position, { cls: 'big', group: DIE.g });
+  DIE.ctrl = ctrl;
+  // descriptive labels
+  const L = (txt, p, side = '') => { const l = label(txt, new THREE.Vector3(...p), { group: DIE.g, side }); DIE.labels.push(l); return l; };
+  DIE.lab = {
+    ctrl: L(B("NAND controller · off-die", 'NAND 控制器 · 片外'), [0, 0.9, 9.2]),
+    pads: L('I/O pads · ONFI', [4.5, 0.8, 5.3]),
+    stack: L(B("W/SiO₂ stack (WL tiers)", 'W/SiO₂ 交替叠层 (WL tiers)'), [5.6, 2.6, 2.6], 'r'),
+    stair: L(B("Staircase contacts", 'Staircase 阶梯接触'), [-6.0, 3.0, 3.0], 'l'),
+    bl: L(B("Bit lines (top metal)", 'Bit lines (顶层金属)'), [3.5, 4.5, 3.6]),
+    sp: L('n+ Source plate', [-5.6, 1.15, 3.95], 'l'),
+    rowdec: L('Row decoder (HV)', [-5.5, 0.98, 0.4]),
+    pb: L('Page buffer / S/A', [1, 0.98, 4.4]),
+    cold: L('Column dec · data path', [3.5, 0.98, 0.85]),
+    pump: L('Charge pumps', [6.7, 0.98, -1.4]),
+    reg: L('Regulators · BGR', [6.7, 0.98, 1.0]),
+    fsm: L(B("FSM", 'FSM 状态机'), [6.7, 0.98, 4.4]),
+    cua: L('CMOS under Array (CuA/PUC)', [-7.8, 0.6, 5.0], 'l'),
+  };
+  // which tier is the "selected" WL in die view: block 1, WL index
+  DIE.selBlock = 1;
+}
+// path of a command inside the die (for periphery step): list of CuA ids glowing in order
+function dieGlow(id, v) { const c = DIE.cua[id]; if (c) c.glow = Math.max(c.glow, v); }
+function updateDie(dt, nodes) {
+  for (const id in DIE.cua) { const c = DIE.cua[id]; c.mat.emissiveIntensity = 0.08 + 0.9 * c.glow; c.glow = Math.max(0, c.glow - dt * 1.6); }
+  // tier colouring of selected block from node voltages
+  const b = DIE.selBlock;
+  for (let bb = 0; bb < 3; bb++) for (let i = 0; i < DIE.NT; i++) {
+    const T = DIE.tiers[bb][i]; let v = 0;
+    if (bb === b && nodes) { if (i === 0) v = nodes.SGS; else if (i === DIE.NT - 1) v = nodes.SGD; else if (i === 1 || i === DIE.NT - 2) v = nodes.DWL; else v = nodes.WL[i - 2]; }
+    else if (nodes && nodes.op === 'ERASE') v = nodes.unselWL || 0;
+    const k = clamp(Math.abs(v) / 4); T.mat.color.copy(T.base).lerp(vColor(v), k * 0.85);
+    T.mat.emissive = T.mat.emissive || new THREE.Color(); T.mat.emissive.copy(vColor(v)).multiplyScalar(clamp(v / 20) * 0.35);
+  }
+}
+DIE.tierV = (b, i) => {
+  const n = NODES; if (b !== DIE.selBlock) return B("Unselected block: WL floating / 0 V", '未选中 block：WL 浮空 / 0 V');
+  if (i === 0) return 'SGS = ' + fmt(n.SGS) + ' V'; if (i === DIE.NT - 1) return 'SGD = ' + fmt(n.SGD) + ' V';
+  if (i === 1 || i === DIE.NT - 2) return 'Dummy WL = ' + fmt(n.DWL) + ' V'; return `WL${i - 2} = ${fmt(n.WL[i - 2])} V`;
+};
+
+// ================= SLICE MODEL: 4 strings x (SGS, WL0-7, SGD), cut through the pillars =================
+const SL = { g: new THREE.Group(), X: 30, PX: [-2.4, -0.8, 0.8, 2.4], NTI: 10, tiers: [], ch: [], lab: {}, pb: [], wlLab: [], blLab: [], vchLab: [], vtLab: [], pbLab: [] };
+SL.g.position.x = SL.X; scene.add(SL.g);
+const yc = i => 0.25 + i * 0.62;     // tier i centre (0=SGS, 1..8 = WL0..7, 9 = SGD)
+const xl = i => -3.4 - (9 - i) * 0.42;
+const tierName = i => i === 0 ? 'SGS' : i === 9 ? 'SGD' : 'WL' + (i - 1);
+{
+  const g = SL.g, PX = SL.PX, GT = 0.34;
+  // substrate + CuA
+  boxR(-8.8, 6.8, -1.75, -1.5, -3.7, 0.3, M('#2a3140', { roughness: .85 }), g);
+  const cuaBlk = (x0, x1, z0, z1, col, name, fn, v, tag) => { const mat = M(col, { emissive: new THREE.Color(col), emissiveIntensity: .1, roughness: .45 }); const m = boxR(x0, x1, -1.5, -0.72, z0, z1, mat, g); pickable(m, { name, fn, v }); if (tag) { const t = topText(tag, x1 - x0, z1 - z0, { size: Math.min(64, 700 / tag.length), color: '#ffffffdd' }); t.position.y = 0.395; m.add(t); } return { m, mat, glow: 0, col: new THREE.Color(col) }; };
+  SL.rowdec = cuaBlk(-8.6, -3.6, -1.6, 0, '#7c3aed', B("Row decoder + HV pass transistors", '行译码器 + HV pass transistors'), B("After block selection, BLKSEL rises to ~Vpgm+Vth. The 10 HV pass transistors connect global WLs (from the pumps/regulators) to this block’s local WLs. Unselected blocks have their pass transistors off and WLs floating.", '块地址选中后，BLKSEL 栅被抬到 ~Vpgm+Vth，10 个高压 pass transistor 导通，把 global WL (来自泵/稳压器) 接到本 block 的 local WL。未选 block 的 pass Tr 关断，其 WL 浮空。'), () => 'BLKSEL ≈ ' + fmt(Math.max(NODES.WLmax + 3, 5)) + ' V (typical: Vpgm + Vth)', 'ROW DEC · HV SWITCH');
+  SL.pump = cuaBlk(3.9, 6.6, -1.6, 0, '#be123c', B("Charge pump + regulator", '电荷泵 + 稳压器'), B("The Dickson pump raises Vcc to Vpass / Vpgm / Verase; the regulator sets Vpgm(k) precisely for each FSM-controlled ISPP step.", 'Dickson 泵把 Vcc 抬升到 Vpass / Vpgm / Verase；稳压器按 FSM 的 ISPP 步进精确设定 Vpgm(k)。'), () => tr(B("Peak output now ≈ ", '当前最高输出 ≈ ')) + fmt(NODES.WLmax) + ' V', 'PUMP · REG');
+  SL.fsm = cuaBlk(3.9, 6.6, -3.5, -1.8, '#15803d', B("Control logic / FSM", '控制逻辑 / 状态机'), B("Runs the internal READ/PROGRAM/ERASE algorithms: sets biases, times pulses, triggers S/A strobes, counts ISPP loops, checks verify results, and updates the status register.", '执行 READ/PROGRAM/ERASE 内部算法：设偏压、计时、触发 S/A strobe、ISPP 计数、verify 判断、更新状态寄存器。'), () => B("Logic levels", '逻辑电平'), 'FSM');
+  PX.forEach((x, k) => { SL.pb[k] = cuaBlk(x - 0.62, x + 0.62, -3.5, -2.0, '#0e7490', `Page buffer / S/A · BL${k}`, B("Sense amplifier + data latches (SDL/DL). READ: precharge BL → develop discharge → strobe → latch. PROGRAM: hold target data and set BL=0 V (continue programming) or Vcc (inhibit / verify passed).", '感测放大器 + 数据锁存器 (SDL/DL)。READ：预充 BL → 等待放电 → strobe 判定 → 锁存结果。PROGRAM：存目标数据，决定 BL=0 V (继续编程) 或 Vcc (禁止/已 verify 通过)。'), () => `BL${k} = ${fmt(NODES.BL[k], 2)} V`, 'S/A ' + k); });
+  // HV pass transistors on rowdec top + GWL bus
+  const hvMat = M('#c4b5fd', { roughness: .4 });
+  SL.route = [];
+  const cMat = M('#c9a227', { metalness: .9, roughness: .3 });
+  for (let i = 0; i < 10; i++) {
+    const zi = -1.3 + i * 0.12, xd = -7.7 - i * 0.07, xc = i === 9 ? -3.1 : xl(i) + 0.21;
+    boxR(xd - 0.05, xd + 0.05, -0.72, -0.64, zi - 0.045, zi + 0.045, hvMat, g, { edge: false });
+    const w = wire([[xc, yc(i) + GT / 2, zi], [xc, 6.45 + 0.02 * i, zi], [xd, 6.45 + 0.02 * i, zi], [xd, -0.66, zi]], 0.028, cMat.clone(), g);
+    SL.route[i] = w;
+    w.children.forEach(c => pickable(c, { name: B(`${tierName(i)} contact + metal routing`, `${tierName(i)} 接触 + 金属走线`), fn: B("Each staircase landing receives a contact via. Upper metal routes it around the array and down to the corresponding CuA HV pass transistor: the physical path from CMOS to each WL.", 'Staircase 每一级上落一个接触孔，经上层金属绕到阵列外侧，再下行到 CuA 中对应的 HV pass transistor。这就是 "CMOS 控制哪一个结构" 的物理路径。'), v: () => `${tierName(i)} = ${fmt(tierV(i))} V` }));
+  }
+  wire([[5.0, -0.66, -0.05], [-8.4, -0.66, -0.05]], 0.05, M('#f43f5e', { emissive: new THREE.Color('#f43f5e'), emissiveIntensity: .25 }), g).children.forEach(c => pickable(c, { name: B("Global WL bus (GWL)", 'Global WL 总线 (GWL)'), fn: B("Global word-line bus from pumps/regulators to row decoders, shared by all blocks. Only the selected block’s enabled pass transistors connect it to local WLs.", '泵/稳压器 → 行译码器的全局字线总线，所有 block 共享；只有被选中 block 的 pass Tr 打开时才传到 local WL。'), v: () => 'Vpgm / Vpass / Vread' }));
+  // source plate
+  SL.spMat = M('#5b6b8a', { roughness: .55 });
+  SL.sp = boxR(-7.45, 3.75, -0.6, -0.3, -1.6, 0, SL.spMat, g);
+  pickable(SL.sp, { name: B("Source plate · common SL (n+ poly)", 'Source plate · 公共源 SL (n+ poly)'), fn: B("Common source at the bottom of all strings. READ: 0 V. PROGRAM: slightly raised (~1–2 V) to keep SGS off. ERASE: raised with BL to ~18–20 V to generate GIDL holes at the SGS edge.", '所有 string 底部的公共源。READ 时接 0 V；PROGRAM 时略抬高 (~1–2 V) 以关紧 SGS；ERASE 时与 BL 一起升到 ~18–20 V，在 SGS 边缘制造 GIDL 空穴。'), v: () => 'SL = ' + fmt(NODES.SL) + ' V' });
+  // slit / common source wall (behind)
+  const slit = boxR(-7.45, 3.75, -0.3, 6.15, -1.58, -1.48, M('#4b5568', { metalness: .4 }), g, { edge: false });
+  pickable(slit, { name: B("Slit + common-source contact wall (CSL)", 'Slit + 公共源接触墙 (CSL)'), fn: B("Deep trench separating adjacent blocks. In replacement-gate processing, sacrificial SiN is removed and W is filled through it; its conductor connects top metal to the source plate.", '分隔相邻 block 的深槽；replacement-gate 工艺经此去除 SiN 牺牲层并回填 W；槽中导体把顶部金属接到 source plate。'), v: () => 'SL = ' + fmt(NODES.SL) + ' V' });
+  // gate plates (W) + oxide
+  const oxMat = new THREE.MeshStandardMaterial({ color: '#9fb5d6', transparent: true, opacity: .28, roughness: .3, depthWrite: false });
+  for (let i = 0; i < 10; i++) {
+    const mat = M('#a7b1c2', { metalness: .55, roughness: .35 });
+    const m = boxR(xl(i), 3.4, yc(i) - GT / 2, yc(i) + GT / 2, -1.4, 0, mat, g);
+    pickable(m, { name: B(tierName(i) + (i === 0 || i === 9 ? ' · select gate' : ' · W word-line plate'), tierName(i) + (i === 0 || i === 9 ? ' · 选择栅 (select gate)' : ' · W word line 平板')), fn: i === 0 ? B("SGS: source-select transistor gate. On during READ (~4–5 V), off during PROGRAM (0 V), and ~6–8 V below SL during ERASE to generate GIDL at its edge.", 'SGS：源端选择晶体管的栅。READ 时开 (~4–5 V)，PROGRAM 时关 (0 V)，ERASE 时保持比 SL 低 ~6–8 V 以在边缘产生 GIDL。') : i === 9 ? B("SGD: drain-select transistor gate. At ~Vcc during PROGRAM: a BL=0 V string conducts (channel discharges to 0 V); a BL=Vcc string cuts off, leaving a floating channel that WL coupling boosts.", 'SGD：漏端选择晶体管的栅。PROGRAM 时设 ~Vcc：BL=0 V 的 string 导通 (沟道放电到 0 V)，BL=Vcc 的 string 截止 → 沟道浮空并被 WL 耦合升压。') : B("Control gate shared by all cells on this layer. Selected WL: Vread/Vverify/Vpgm. Other WLs: Vread_pass / Vpass. ERASE: all WLs in the block at 0 V.", '该层所有单元共享的控制栅。选中 WL 加 Vread/Vverify/Vpgm，未选 WL 加 Vread_pass / Vpass，擦除时整个 block 的 WL 都接 0 V。'), v: () => `${tierName(i)} = ${fmt(tierV(i), 2)} V` });
+    SL.tiers[i] = { m, mat, base: mat.color.clone() };
+    if (i < 9) boxR(xl(i + 1), 3.4, yc(i) + GT / 2, yc(i + 1) - GT / 2, -1.4, -0.005, oxMat, g, { edge: false, shadow: false });
+  }
+  boxR(xl(0), 3.4, -0.3, yc(0) - GT / 2, -1.4, -0.005, oxMat, g, { edge: false, shadow: false });
+  boxR(-3.4, 3.4, yc(9) + GT / 2, 6.3, -1.4, -0.005, oxMat, g, { edge: false, shadow: false });
+  // pillar cross-section strips
+  const LAY = [[0, .13, '#cfd8e3', 'core'], [.13, .21, '#c9a86b', 'ch'], [.21, .25, '#e7f0ff', 'tun'], [.25, .32, '#3fbf8f', 'sin'], [.32, .40, '#9fb5d6', 'blk']];
+  const LAYINFO = {
+    core: [B("Core SiO₂ (macaroni fill)", 'Core SiO₂ (macaroni 填充)'), B("Oxide filling the hollow channel core. A thin channel (~7 nm) has fewer grain-boundary traps, better subthreshold swing, and less cell variability than a solid poly-Si pillar.", '中空沟道中心填充的氧化物。薄沟道 (~7 nm) 比实心多晶硅柱的晶界陷阱更少、亚阈值摆幅更好、单元间差异更小。'), () => '—'],
+    ch: [B("Poly-Si channel", 'Poly-Si 沟道'), B("Each pillar’s thin poly-Si channel forms the series conduction path through the NAND string.", '每根 pillar 的薄多晶硅沟道，是整条 NAND string 的串联导电通路。'), null],
+    tun: [B("Tunnel oxide (~5–7 nm)", 'Tunnel oxide 隧穿氧化层 (~5–7 nm)'), B("During programming, electrons cross it from the channel into SiN by FN tunneling; during erase, holes tunnel into SiN in the reverse field. Many CT devices use an ONO engineered tunnel stack.", '编程时电子从沟道 FN 隧穿穿过它进入 SiN；擦除时空穴反向隧穿进入 SiN。许多 CT 器件用 ONO 能带工程的复合隧穿层。'), () => B("E_tun ≈ 10–12 MV/cm (during program pulse)", 'E_tun ≈ 10–12 MV/cm (编程脉冲期间)')],
+    sin: [B("SiN charge-trap layer", 'SiN 电荷陷阱层 (charge trap)'), B("Insulating layer that traps electrons locally, changing cell Vt. Unlike a floating gate, it does not conduct, so one defect need not drain the entire cell.", '绝缘的陷阱层，电子被局域地俘获在 SiN 陷阱中 → 改变该单元 Vt。与浮栅不同它不导电，所以一个缺陷不会让整个单元漏光。'), () => B("Trapped charge ↔ ΔVt ≈ −ΔQ/C", '俘获电荷 ↔ ΔVt ≈ −ΔQ/C')],
+    blk: [B("Blocking oxide (SiO₂ / Al₂O₃)", 'Blocking oxide 阻挡层 (SiO₂ / Al₂O₃)'), B("Blocks electrons from escaping SiN toward the gate and suppresses reverse electron injection from the gate (erase saturation).", '阻止电子从 SiN 继续跑到栅极、也阻止栅极电子反向注入 (擦除饱和)。'), () => '—'],
+  };
+  for (let k = 0; k < 4; k++) {
+    const x0 = PX[k];
+    for (const [a, b, col, id] of LAY) for (const s of [-1, 1]) {
+      if (id === 'core' && s === 1) continue;
+      const w = id === 'core' ? 2 * b : (b - a), cx = id === 'core' ? x0 : x0 + s * (a + b) / 2;
+      const mat = id === 'ch' ? M(col, { roughness: .5, emissive: new THREE.Color('#000'), toneMapped: true }) : M(col, { roughness: .5 });
+      const m = mesh(box(w, 6.65, 0.03), mat, { x: cx, y: 2.975, z: 0.016, parent: g, edge: false, shadow: false });
+      const [nm, fn, v] = LAYINFO[id];
+      pickable(m, { name: B(nm.en + ` · string ${k} (BL${k})`, nm.zh + ` · string ${k} (BL${k})`), fn, v: v || (() => `Vch ≈ ${fmt(NODES.Vch[k], 1)} V`) });
+      if (id === 'ch') { SL.ch[k] = SL.ch[k] || []; SL.ch[k].push({ m, mat, base: mat.color.clone() }); }
+    }
+    // BL plug + bit line + via to page buffer
+    const blMat = M('#e0b54d', { metalness: .9, roughness: .28, emissive: new THREE.Color('#000') });
+    boxR(x0 - .12, x0 + .12, 6.3, 6.78, -0.24, 0.0, blMat, g, { edge: false });
+    const bl = boxR(x0 - .1, x0 + .1, 6.78, 6.94, -2.85, 0.35, blMat, g);
+    const via = wire([[x0, 6.8, -2.72], [x0, -0.72, -2.72]], 0.06, blMat, g);
+    const info = { name: `Bit line BL${k}`, fn: B("Top-metal bit line connecting the string top (through SGD) to the CuA page buffer. READ: precharge, then discharge; the S/A detects conduction. PROGRAM: 0 V = program, Vcc = inhibit.", '顶层金属 bit line，连接 string 顶端 (经 SGD) 与 CuA 中的 page buffer。READ 时它的电压被预充再放电，S/A 据此判断单元开/关；PROGRAM 时 0 V = 编程，Vcc = 禁止。'), v: () => `BL${k} = ${fmt(NODES.BL[k], 2)} V` };
+    pickable(bl, info); via.children.forEach(c => pickable(c, info));
+    SL.blMat = SL.blMat || []; SL.blMat[k] = blMat;
+  }
+  // trapped charge dots (instanced)
+  SL.NDOT = 9;
+  SL.dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.026, 8, 6), new THREE.MeshBasicMaterial({ color: '#93c5fd', toneMapped: false }), 8 * 4 * 2 * SL.NDOT);
+  SL.dots.raycast = () => { }; g.add(SL.dots);
+  // moving particles (electrons/holes)
+  SL.NP = 900;
+  SL.parts = new THREE.InstancedMesh(new THREE.SphereGeometry(0.042, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), SL.NP);
+  SL.parts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(SL.NP * 3), 3);
+  SL.parts.raycast = () => { }; SL.parts.frustumCulled = false; g.add(SL.parts);
+  // labels
+  const V = (x, y, z) => () => new THREE.Vector3(SL.X + x, y, z);
+  for (let i = 0; i < 10; i++) SL.wlLab[i] = label('', V(xl(i) - 0.12, yc(i), 0), { group: SL.g, side: 'l', cls: 'dot' });
+  for (let k = 0; k < 4; k++) {
+    SL.blLab[k] = label('', V(PX[k], k % 2 ? 8.0 : 7.25, 0.2), { group: SL.g, cls: 'dot' });
+    SL.vchLab[k] = label('', V(PX[k] + 0.3, yc(9) - 0.31, 0.05), { group: SL.g, side: 'r' });
+    SL.vtLab[k] = label('', () => new THREE.Vector3(SL.X + SL.PX[k] + 0.45, yc(SEL.wl + 1), 0.05), { group: SL.g, side: 'r' });
+    SL.pbLab[k] = label('', V(PX[k], -0.5, -2.75), { group: SL.g });
+  }
+  SL.slLab = label('', V(-7.5, -0.45, 0), { group: SL.g, side: 'l', cls: 'dot' });
+  SL.lab.rowdec = label('Row decoder · HV pass Tr', V(-6.1, -1.1, 0.05), { group: SL.g });
+  SL.lab.pump = label('Charge pump · Reg', V(5.25, -1.1, 0.05), { group: SL.g });
+  SL.lab.pb = label('Page buffers (CuA)', V(6.3, -0.7, -2.7), { group: SL.g, side: 'r' });
+  SL.lab.cua = label('CMOS under Array', V(-8.7, -1.3, 0), { group: SL.g, side: 'l' });
+}
+function tierV(i) { return i === 0 ? NODES.SGS : i === 9 ? NODES.SGD : NODES.WL[i - 1]; }
+const _dm = new THREE.Object3D(), _c = new THREE.Color();
+function updateSliceStatic() {
+  // colours from voltages
+  for (let i = 0; i < 10; i++) { const T = SL.tiers[i], v = tierV(i); T.mat.color.copy(T.base).lerp(vColor(v), clamp(Math.abs(v) / 3) * .88); T.mat.emissive.copy(vColor(v)).multiplyScalar(clamp(v / 22) * .45); }
+  for (let k = 0; k < 4; k++) {
+    const v = NODES.Vch[k];
+    for (const c of SL.ch[k]) { c.mat.color.copy(c.base).lerp(vColor(v), clamp(Math.abs(v) / 3) * .85); c.mat.emissive.copy(vColor(v)).multiplyScalar(clamp(v / 22) * .5); }
+    SL.blMat[k].emissive.copy(vColor(NODES.BL[k])).multiplyScalar(clamp(NODES.BL[k] / 3) * .55);
+    const pb = SL.pb[k]; pb.mat.emissiveIntensity = .1 + pb.glow; pb.glow = Math.max(0, pb.glow - .03);
+  }
+  SL.spMat.color.set('#5b6b8a').lerp(vColor(NODES.SL), clamp(NODES.SL / 3) * .85);
+  for (const b of [SL.rowdec, SL.pump, SL.fsm]) { b.mat.emissiveIntensity = .1 + b.glow; b.glow = Math.max(0, b.glow - .03); }
+  // trapped charge dots from Vt
+  let n = 0;
+  for (let w = 0; w < 8; w++) for (let k = 0; k < 4; k++) {
+    const vt = CELLS[w][k].vt; const cnt = clamp(Math.round((vt + 2.8) * 2.2), 0, 18);
+    for (let s = 0; s < 2; s++) for (let j = 0; j < SL.NDOT; j++) {
+      const on = (j * 2 + s) < cnt;
+      _dm.position.set(SL.PX[k] + (s ? 1 : -1) * 0.285, yc(w + 1) - 0.14 + j * 0.035, 0.045);
+      _dm.scale.setScalar(on ? 1 : 0); _dm.updateMatrix(); SL.dots.setMatrixAt(n++, _dm.matrix);
+    }
+  }
+  SL.dots.instanceMatrix.needsUpdate = true;
+}
+// particle emitters: list of {n, a:[x,y,z], b:[x,y,z], period, col, jit, spread}
+function updateParticles(emitters, t) {
+  let i = 0;
+  for (const e of emitters) {
+    const col = _c.set(e.col);
+    for (let j = 0; j < e.n && i < SL.NP; j++, i++) {
+      const h = fract(Math.sin((j + 1) * 12.9898 + e.seed * 78.233) * 43758.5453);
+      const u = fract(t / e.period + j / e.n + h * 0.37);
+      const jy = (fract(h * 91.7) - .5) * (e.jy || 0), jx = (fract(h * 53.3) - .5) * (e.jx || 0);
+      _dm.position.set(lerp(e.a[0], e.b[0], u) + jx, lerp(e.a[1], e.b[1], u) + jy, lerp(e.a[2], e.b[2], u));
+      const fade = Math.min(1, u * 6, (1 - u) * 6);
+      _dm.scale.setScalar(fade * (e.size || 1)); _dm.updateMatrix(); SL.parts.setMatrixAt(i, _dm.matrix); SL.parts.setColorAt(i, col);
+    }
+  }
+  for (; i < SL.NP; i++) { _dm.scale.setScalar(0); _dm.position.set(0, -50, 0); _dm.updateMatrix(); SL.parts.setMatrixAt(i, _dm.matrix); }
+  SL.parts.instanceMatrix.needsUpdate = true; if (SL.parts.instanceColor) SL.parts.instanceColor.needsUpdate = true;
+}
+
+// ================= CELL MODEL: one GAA charge-trap cell, real proportions =================
+const CELL = { g: new THREE.Group(), X: 60, shells: [], lab: {}, A0: -0.085 * Math.PI, SW: 1.55 * Math.PI };
+CELL.g.position.x = CELL.X; scene.add(CELL.g);
+// radii in nm (typical public values), 1 unit = 20 nm
+const CR = { core: [0, 25], ch: [25, 32], tun: [32, 38], sin: [38, 45], blk: [45, 53], gate: [53, 80] };
+const NM = 1 / 20;
+{
+  const g = CELL.g, SW = CELL.SW, A0 = CELL.A0;
+  const sector = (r0, r1, h) => {
+    const s = new THREE.Shape(); const a1 = A0 + SW;
+    if (r0 <= 0) { s.moveTo(0, 0); s.absarc(0, 0, r1, A0, a1, false); s.lineTo(0, 0); }
+    else { s.absarc(0, 0, r1, A0, a1, false); s.absarc(0, 0, r0, a1, A0, true); }
+    const geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 48 });
+    geo.rotateX(-Math.PI / 2); geo.translate(0, -h / 2, 0); return geo;
+  };
+  const H = 4.4, HG = 1.5;
+  const defs = [
+    ['core', CR.core, H, '#cfd8e3', 'Core SiO₂ (macaroni)', B("Central oxide fill, radius ~25 nm (typical).", '中心氧化物填充，半径 ~25 nm (typical)。'), 2.4, [0.15, 0, 0.1]],
+    ['ch', CR.ch, H, '#c9a86b', B("Poly-Si channel ~7 nm", 'Poly-Si 沟道 ~7 nm'), B("Electrons conduct here. It supplies electrons during programming; GIDL holes raise its potential during erase.", '电子在这里导电；编程时它是电子源，擦除时被 GIDL 空穴抬高电位。'), 1.5, [0.1, 0, -0.08]],
+    ['tun', CR.tun, H, '#e7f0ff', 'Tunnel oxide ~6 nm', B("Layer where FN tunneling occurs. Its small inner radius gives the highest electric field.", 'FN 隧穿发生的地方。场强最高的一层 (内半径最小)。'), 0.6, [-0.06, 0, 0.08]],
+    ['sin', CR.sin, H, '#3fbf8f', 'SiN charge-trap ~7 nm', B("Charge-storage layer, continuous between adjacent cells. Lateral charge migration is therefore one retention concern in 3D CT NAND.", '电荷存储层。注意它在相邻单元间是连续的 → 横向电荷迁移是 3D CT 的保持问题之一。'), -0.4, [0.08, 0, 0.05]],
+    ['blk', CR.blk, H, '#9fb5d6', 'Blocking oxide ~8 nm', B("Largest radius → lowest field, suppressing gate injection.", '半径最大 → 场强最低，抑制栅极注入。'), -1.4, [-0.1, 0, -0.06]],
+    ['gate', CR.gate, HG, '#a7b1c2', B("W / TiN gate (word line)", 'W / TiN 栅 (word line)'), B("A ring within the W word-line plate; its voltage surrounds the channel (gate-all-around).", '整层 W 平板中的一圈；栅压从外向内包围 (gate-all-around)。'), -2.6, [0.12, 0, -0.1]],
+  ];
+  for (const [id, [r0, r1], h, col, name, fn, dy, tilt] of defs) {
+    const mat = id === 'gate' ? M(col, { metalness: .6, roughness: .3 }) : M(col, { roughness: .45, transparent: id === 'tun', opacity: id === 'tun' ? .85 : 1 });
+    const m = mesh(sector(r0 * NM, r1 * NM, h), mat, { parent: g, edge: false });
+    pickable(m, { name, fn, v: () => id === 'gate' ? `Vg = ${fmt(CELLSTEP.vg)} V` : id === 'tun' ? `E_tun = ${(fieldAt(CELLSTEP.vg, CR.tun[0]) / 1e6).toFixed(1)} MV/cm` : id === 'blk' ? B(`E_blk(outer) = ${(fieldAt(CELLSTEP.vg, CR.blk[1]) / 1e6).toFixed(1)} MV/cm`, `E_blk(外) = ${(fieldAt(CELLSTEP.vg, CR.blk[1]) / 1e6).toFixed(1)} MV/cm`) : id === 'sin' ? `ΔVt = ${fmt(CELLSTEP.vt + 1.6, 2)} V` : '' });
+    explodable(m, 'cell', [0, dy, 0], tilt, Math.abs(dy) / 3);
+    CELL.shells.push({ id, m, mat });
+    if (id === 'gate') CELL.gateMat = mat;
+  }
+  const oxMat = new THREE.MeshStandardMaterial({ color: '#9fb5d6', transparent: true, opacity: .35, depthWrite: false });
+  for (const s of [1, -1]) { const m = mesh(sector(CR.gate[0] * NM, CR.gate[1] * NM, (H - HG) / 2), oxMat, { y: s * (HG / 2 + (H - HG) / 4), parent: g, edge: false }); pickable(m, { name: B("Inter-gate SiO₂", '层间 SiO₂ (inter-gate oxide)'), fn: B("Oxide separating adjacent WLs. Its thickness sets WL-to-WL capacitive coupling (cell-to-cell interference).", '把上下相邻 WL 隔开的氧化层，厚度决定 WL 间电容耦合 (cell-to-cell interference)。'), v: () => '' }); explodable(m, 'cell', [0, s * 3.2, 0], [s * .08, 0, .05], .8); }
+  CELL.dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshBasicMaterial({ color: '#93c5fd', toneMapped: false }), 60); CELL.dots.raycast = () => { }; g.add(CELL.dots);
+  CELL.parts = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshBasicMaterial({ color: '#60a5fa', toneMapped: false }), 80); CELL.parts.raycast = () => { }; CELL.parts.frustumCulled = false; g.add(CELL.parts);
+  const P = (x, y, z) => () => { const v = new THREE.Vector3(x, y, z); return v.add(CELL.g.position); };
+  const LAB = (id, txt, ang, y, side) => { const sh = CELL.shells.find(s => s.id === id); const r = (CR[id][0] + CR[id][1]) / 2 * NM; CELL.lab[id] = label(txt, () => { const p = new THREE.Vector3(Math.cos(ang) * r, y, -Math.sin(ang) * r).applyMatrix4(sh.m.matrixWorld); return p; }, { group: CELL.g, side, cls: 'dot' }); };
+  LAB('core', 'Core SiO₂', 2.2, 0.5, 'l');
+  LAB('ch', B("Poly-Si channel · 7 nm", 'Poly-Si 沟道 · 7 nm'), 2.6, 1.8, 'l');
+  LAB('tun', 'Tunnel SiO₂ · 6 nm', 0.25, 1.6, 'r');
+  LAB('sin', B("SiN trap layer · 7 nm", 'SiN 陷阱层 · 7 nm'), 0.15, 0.9, 'r');
+  LAB('blk', 'Blocking SiO₂ · 8 nm', 0.05, 0.2, 'r');
+  LAB('gate', B("W gate (WL) · GAA", 'W 栅 (WL) · GAA'), 3.6, 0.0, 'l');
+  CELL.fieldLab = label('', P(0, 2.9, 0), { group: CELL.g, cls: 'big' });
+}
+// cylindrical field (V/cm) at radius r(nm) for gate voltage V (channel 0, no stored charge)
+const EPS = { tun: 3.9, sin: 7.5, blk: 3.9 };
+const SIGMA = Math.log(CR.tun[1] / CR.tun[0]) / EPS.tun + Math.log(CR.sin[1] / CR.sin[0]) / EPS.sin + Math.log(CR.blk[1] / CR.blk[0]) / EPS.blk;
+function fieldAt(V, rnm) { const eps = rnm < CR.tun[1] ? EPS.tun : rnm < CR.sin[1] ? EPS.sin : EPS.blk; return V / (eps * rnm * 1e-7 * SIGMA); }
+const PLANAR_EOT = (CR.tun[1] - CR.tun[0]) + (CR.sin[1] - CR.sin[0]) * 3.9 / 7.5 + (CR.blk[1] - CR.blk[0]); // nm
+const CELLSTEP = { vg: 17, vt: -1.6, pulses: 0 };
+function updateCell(t) {
+  // dots
+  const cnt = clamp(Math.round((CELLSTEP.vt + 2.8) * 4), 0, 60);
+  for (let i = 0; i < 60; i++) { const a = CELL.A0 + 0.05 + (i * 2.399) % (CELL.SW - 0.1), r = (CR.sin[0] + 1.5 + (i % 3) * 2) * NM, y = -0.6 + ((i * 0.618) % 1) * 1.2; _dm.position.set(Math.cos(a) * r, y, -Math.sin(a) * r); _dm.scale.setScalar(i < cnt ? 1 : 0); _dm.updateMatrix(); CELL.dots.setMatrixAt(i, _dm.matrix); }
+  CELL.dots.instanceMatrix.needsUpdate = true;
+  const sin = CELL.shells.find(s => s.id === 'sin'); CELL.dots.position.copy(sin.m.position); CELL.dots.rotation.copy(sin.m.rotation);
+  // tunnelling electrons: rate ~ FN J
+  const E = fieldAt(CELLSTEP.vg - (CELLSTEP.vt + 1.6), CR.tun[0]); const J = fnJ(E);
+  const n = clamp(Math.round(Math.log10(J / 1e-9 + 1) * 14), 0, 80);
+  const ch = CELL.shells.find(s => s.id === 'ch');
+  for (let i = 0; i < 80; i++) {
+    const h = fract(Math.sin(i * 12.9898) * 43758.5); const u = fract(t * 0.9 + h);
+    const a = CELL.A0 + 0.05 + h * (CELL.SW - 0.1), r = lerp(CR.ch[0] + 3, CR.sin[0] + 2, u) * NM, y = (fract(h * 7.1) - .5) * 1.2;
+    _dm.position.set(Math.cos(a) * r, y, -Math.sin(a) * r).add(ch.m.position); _dm.scale.setScalar(i < n ? Math.min(1, u * 5, (1 - u) * 5) : 0); _dm.updateMatrix(); CELL.parts.setMatrixAt(i, _dm.matrix);
+  }
+  CELL.parts.instanceMatrix.needsUpdate = true;
+  CELL.gateMat.color.set('#a7b1c2').lerp(vColor(CELLSTEP.vg), clamp(CELLSTEP.vg / 3) * .85); CELL.gateMat.emissive.copy(vColor(CELLSTEP.vg)).multiplyScalar(clamp(CELLSTEP.vg / 22) * .4);
+}
+
+// ================= STATE, NODES, OPERATION SEQUENCER =================
+const SEL = { op: 'READ', mode: 'TLC', page: 'LP', wl: 2, data: [0, 4, 7, 1], slc: [1, 0, 0, 1], ispp: 0.3, vpass: 9.5, vread: 6, rshift: 0, vers: 17, ret: 0, pe: 0 };
+const mkNodes = () => ({ WL: [0, 0, 0, 0, 0, 0, 0, 0], SGD: 0, SGS: 0, SL: 0, BL: [0, 0, 0, 0], Vch: [0, 0, 0, 0], DWL: 0, WLmax: 0, op: '', unselWL: 0 });
+const NODES = mkNodes(), NT = mkNodes();
+let CELLS = [], POPS = [], WRITTEN = [];
+let BLOCKMODE = 'TLC';
+function resetBlock(mode) {
+  BLOCKMODE = mode; _sseed = 987654321;
+  CELLS = []; POPS = []; WRITTEN = [];
+  for (let w = 0; w < 8; w++) {
+    CELLS[w] = []; for (let k = 0; k < 4; k++) CELLS[w][k] = newCell();
+    POPS[w] = makePop(); WRITTEN[w] = false;
+  }
+  // WL0-3 pre-programmed with random data (so READ has something to read)
+  const n = LEVELS[mode].n;
+  for (let w = 0; w < 4; w++) {
+    const tg = CELLS[w].map((c, k) => mode === 'TLC' ? [3, 6, 1, 5][(k + w) % 4] : (k + w) % 2);
+    CELLS[w].forEach((c, k) => { c.tgt = tg[k]; c.lock = false; });
+    const pop = POPS[w]; pop.forEach(c => { c.tgt = Math.floor(srnd() * n); c.lock = false; });
+    const st = isppInit(pop, mode, mode === 'SLC' ? 15.0 : 14.6, mode === 'SLC' ? 0.5 : 0.3, 9.5);
+    while (!st.done) isppPulse(st, CELLS[w]);
+    WRITTEN[w] = true;
+  }
+}
+// ---------- the sequencer ----------
+const OPR = { q: [], cur: null, t: 0, kind: '', chips: [], chip: -1, phase: '', dev: '', running: false, result: null, log: [] };
+const TR = { bl: [], ispp: [], erase: [], eraseLoops: [], bus: [], busIdx: 0, refs: [], lastRead: null };
+let OPCLK = 0; // operation clock (lesson seconds x speed)
+function setChips(list) { OPR.chips = list; OPR.chip = -1; renderChips(); }
+function seg(o) { return Object.assign({ dur: 1, enter() { }, tick() { }, exit() { } }, o); }
+function startOp(kind) {
+  if (OPR.running) return false;
+  OPR.q = []; OPR.cur = null; OPR.kind = kind; OPR.result = null; OPR.running = true; OPR.log = [];
+  if (kind === 'READ') buildRead(); else if (kind === 'PROGRAM') { if (!buildProgram()) { OPR.running = false; return false; } } else if (kind === 'ERASE') buildErase();
+  nextSeg(); return true;
+}
+function nextSeg() {
+  if (OPR.cur) OPR.cur.exit();
+  OPR.cur = OPR.q.shift() || null; OPR.t = 0;
+  if (!OPR.cur) { OPR.running = false; OPR.phase = B("Complete · R/B# = 1 (Ready)", '完成 · R/B# = 1 (Ready)'); OPR.dev = ''; idleBias(); onOpDone && onOpDone(); return; }
+  if (OPR.cur.chip !== undefined) { OPR.chip = OPR.cur.chip; renderChips(); }
+  OPR.phase = OPR.cur.label || ''; OPR.dev = OPR.cur.dev || '';
+  OPR.cur.enter();
+}
+function tickOp(dt) {
+  OPCLK += dt;
+  if (!OPR.cur) return;
+  OPR.t += dt; const u = clamp(OPR.t / OPR.cur.dur);
+  OPR.cur.tick(u);
+  if (u >= 1) nextSeg();
+}
+function abortOp() { OPR.q = []; OPR.cur = null; OPR.running = false; idleBias(); }
+function idleBias() { NT.WL.fill(0); NT.SGD = NT.SGS = NT.SL = NT.DWL = 0; NT.BL.fill(0); NT.Vch.fill(0); NT.unselWL = 0; NT.op = ''; }
+function busCycles(list) { TR.bus = list; TR.busIdx = 0; }
+// command-phase segment: walks through bus cycles, sends packets on the die bus
+function cmdSeg(chipStart, cycles, label, chipsSpan) {
+  return seg({ dur: 0.22 * cycles.length + 0.3, label, chip: chipStart, dev: 'tWC ≈ 10–25 ns / cycle', enter() { busCycles(cycles); dieGlow('fsm', .2); },
+    tick(u) { const i = Math.min(cycles.length - 1, Math.floor(u * cycles.length)); TR.busIdx = i; const c = cycles[i]; let ch = chipStart; for (let j = 0; j < chipsSpan.length; j++) if (i >= chipsSpan[j]) ch = chipStart + j; if (ch !== OPR.chip) { OPR.chip = ch; renderChips(); } PKT.active = true; PKT.u = fract(u * cycles.length); PKT.txt = c.v; PKT.col = c.t === 'cmd' ? '#22d3ee' : c.t === 'addr' ? '#fbbf24' : '#a78bfa'; dieGlow('fsm', .5); },
+    exit() { PKT.active = false; } });
+}
+const PKT = { active: false, u: 0, txt: '', col: '#22d3ee', dir: 1 };
+const addrCycles = (n) => Array.from({ length: n }, (_, i) => ({ t: 'addr', v: (i < 2 && n === 5) ? 'C' + (i + 1) : 'R' + (i + 1 - (n === 5 ? 2 : 0)) }));
+function refsFor() { return BLOCKMODE === 'SLC' ? PAGE_REFS.SLC : PAGE_REFS[SEL.page]; }
+function bitFromCount(cnt) { return cnt % 2 === 0 ? 1 : 0; }
+function trueBit(state) { return BLOCKMODE === 'SLC' ? (state === 0 ? 1 : 0) : TLC_BITS[state][{ LP: 0, MP: 1, UP: 2 }[SEL.page]]; }
+// ---------- READ ----------
+function buildRead() {
+  const w = SEL.wl, refs = refsFor(), R = LEVELS[BLOCKMODE].R;
+  setChips(['00h', 'ADDR×5', '30h', 'tR', 'DOUT']);
+  const res = { above: [0, 0, 0, 0], bits: null, refs: refs.map(i => R[i] + SEL.rshift) };
+  TR.bl = []; TR.refs = res.refs; TR.lastRead = res;
+  const cyc = [{ t: 'cmd', v: '00h' }, ...addrCycles(5), { t: 'cmd', v: '30h' }];
+  OPR.q.push(cmdSeg(0, cyc, B("Command/address cycles: CLE=1 latches 00h → ALE=1 latches 5 address cycles → 30h starts READ", '命令/地址周期：CLE=1 锁存 00h → ALE=1 锁存 5 个地址周期 → 30h 启动'), [0, 1, 6]));
+  OPR.q.push(seg({ dur: 0.9, chip: 3, label: B("R/B#=0 · FSM starts: pumps ramp up; row decoder enables this block’s pass transistors", 'R/B#=0 · FSM 启动：泵升压，行译码器打开本 block 的 pass Tr'), dev: 't ≈ 0–5 µs', enter() { NT.op = 'READ'; NT.WL.fill(SEL.vread); NT.WL[w] = 0; NT.DWL = SEL.vread; NT.SGD = NT.SGS = 4.5; NT.SL = 0; NT.Vch.fill(0); TR.bl = []; }, tick() { dieGlow('pump', .9); dieGlow('reg', .6); dieGlow('rowdec', .8); SL.pump.glow = .9; SL.rowdec.glow = .8; } }));
+  refs.forEach((ri, n) => {
+    const Vr = R[ri] + SEL.rshift, nm = BLOCKMODE === 'SLC' ? 'Vref' : 'R' + (ri + 1);
+    OPR.q.push(seg({ dur: 0.55, chip: 3, label: B(`Selected WL${w} ← ${nm} = ${Vr.toFixed(2)} V; other WLs ← Vread_pass = ${SEL.vread} V (forced on)`, `选中 WL${w} ← ${nm} = ${Vr.toFixed(2)} V；其余 WL ← Vread_pass = ${SEL.vread} V (强制导通)`), dev: B("~µs WL settling (RC)", '~µs WL 建立 (RC)'), enter() { NT.WL[w] = Vr; }, tick() { SL.rowdec.glow = .7; dieGlow('rowdec', .7); } }));
+    OPR.q.push(seg({ dur: 0.6, chip: 3, label: B(`BL precharge: S/A charges 4 BLs to Vpre ≈ ${PHY.Vpre} V (SGD/SGS on)`, `BL 预充：S/A 把 4 条 BL 充到 Vpre ≈ ${PHY.Vpre} V (SGD/SGS 已开)`), dev: B("Precharge ~1–3 µs", '预充 ~1–3 µs'), enter() { NT.BL.fill(PHY.Vpre); }, tick() { SL.pb.forEach(p => p.glow = .6); dieGlow('pbN', .6); dieGlow('pbS', .6); } }));
+    OPR.q.push(seg({ dur: 1.35, chip: 3, label: B(`BL discharge (develop): cells with Vt < ${nm} conduct → string current pulls BL low`, `BL 放电 (develop)：Vt < ${nm} 的单元导通 → string 电流把 BL 拉低`), dev: 't = 0 → ' + (PHY.tStrobe * 1e6).toFixed(1) + ' µs', enter() { this.I = CELLS[w].map((c, k) => stringCurrent(Vr, c.vt, CELLS.filter((_, j) => j !== w).map(r => r[k].vt), SEL.vread)); TR.bl.push({ ref: nm, I: this.I, pts: [[], [], [], []] }); },
+      tick(u) { const td = u * PHY.tStrobe * 1.25; const tr = TR.bl[TR.bl.length - 1]; for (let k = 0; k < 4; k++) { const v = blV(this.I[k], td); NODES.BL[k] = NT.BL[k] = v; tr.pts[k].push([td, v]); } } }));
+    OPR.q.push(seg({ dur: 0.5, chip: 3, label: B(`Strobe @ ${(PHY.tStrobe * 1e6).toFixed(1)} µs: BL < trip ${PHY.trip} V → conducting (Vt < ${nm}); page buffer latches result`, `Strobe @ ${(PHY.tStrobe * 1e6).toFixed(1)} µs：BL < trip ${PHY.trip} V → 判为 "导通" (Vt < ${nm})，结果锁存到 page buffer`), dev: 'latch', enter() { for (let k = 0; k < 4; k++) { const v = blV(stringCurrent(Vr, CELLS[w][k].vt, CELLS.filter((_, j) => j !== w).map(r => r[k].vt), SEL.vread), PHY.tStrobe); if (v >= PHY.trip) res.above[k]++; } SL.pb.forEach(p => p.glow = 1); }, tick() { } }));
+  });
+  OPR.q.push(seg({ dur: 1.4, chip: 4, label: B("tR ends · R/B#=1 → controller toggles RE#; page-buffer data passes through column decoder to DQ[7:0]", 'tR 结束 · R/B#=1 → 控制器翻转 RE#，page buffer 数据经列译码器从 DQ[7:0] 输出'), dev: 'tR ≈ 25–80 µs (TLC, typical)',
+    enter() { res.bits = res.above.map(bitFromCount); idleBias(); busCycles(res.bits.map((b, k) => ({ t: 'dout', v: 'BL' + k + '=' + b }))); OPR.result = res; },
+    tick(u) { dieGlow('coldec', .8); PKT.active = true; PKT.dir = -1; PKT.u = fract(u * 4); TR.busIdx = Math.min(3, Math.floor(u * 4)); PKT.txt = 'DOUT'; PKT.col = '#34d399'; }, exit() { PKT.active = false; PKT.dir = 1; } }));
+}
+// ---------- PROGRAM ----------
+let ISPP = null;
+function buildProgram() {
+  const w = SEL.wl;
+  if (WRITTEN[w]) { toast(() => (B(`WL${w} is already programmed. NAND can only raise Vt in place → ERASE the entire block first, or select another WL.`, `WL${w} 这一页已经写过。NAND 只能把 Vt 往上推，不能原地改写 → 先擦除整个 block (ERASE)，或换一条 WL。`))); return false; }
+  setChips(['80h', 'ADDR×5', 'DATA', '10h', 'tPROG', '70h']);
+  const tg = BLOCKMODE === 'TLC' ? SEL.data.slice() : SEL.slc.map(b => b ? 0 : 1);
+  CELLS[w].forEach((c, k) => { c.tgt = tg[k]; c.lock = false; });
+  const n = LEVELS[BLOCKMODE].n; _sseed = 4242 + w; POPS[w].forEach(c => { c.tgt = Math.floor(srnd() * n); c.lock = false; });
+  const step = SEL.ispp, Vs = BLOCKMODE === 'SLC' ? 15.0 : 14.6;
+  ISPP = isppInit(POPS[w], BLOCKMODE, Vs, step, SEL.vpass); TR.ispp = ISPP.history; ISPP.lockedVis = [false, false, false, false];
+  const cyc = [{ t: 'cmd', v: '80h' }, ...addrCycles(5), { t: 'din', v: 'DATA…' }, { t: 'din', v: '16 KiB' }, { t: 'cmd', v: '10h' }];
+  OPR.q.push(cmdSeg(0, cyc, B("80h + 5 address cycles + a full page of data via DQ into page buffer; 10h confirms start", '80h + 5 个地址周期 + 一整页数据经 DQ 写入 page buffer，10h 确认启动'), [0, 1, 6, 8]));
+  OPR.q.push(seg({ dur: 0.9, chip: 4, label: B("Data → latches: BL ← 0 V for “0/high state”; BL ← Vcc to retain erased state (inhibit). SGD ≈ Vcc, SGS = 0 V", '数据→锁存器：要写 "0/高态" 的 BL ← 0 V；保持擦除态的 BL ← Vcc (禁止编程)。SGD ≈ Vcc，SGS = 0 V'), dev: 'BL setup ~µs',
+    enter() { NT.op = 'PROGRAM'; for (let k = 0; k < 4; k++) { const inh = CELLS[w][k].tgt === 0; NT.BL[k] = inh ? PHY.Vcc : 0; NT.Vch[k] = inh ? PHY.Vcc - PHY.VthSG : 0; } NT.SGD = PHY.Vcc; NT.SGS = 0; NT.SL = 1.5; }, tick() { SL.pb.forEach(p => p.glow = .7); dieGlow('pbN', .7); } }));
+  pushLoop(w); return true;
+}
+function pushLoop(w) {
+  const st = ISPP, k = st.k, Vp = st.Vstart + k * st.step, slow = k < 2;
+  OPR.q.push(seg({ dur: slow ? 1.1 : 0.32, chip: 4, label: B(`ISPP pulse ${k + 1}: WL${w} ← Vpgm = ${Vp.toFixed(2)} V, other WLs ← Vpass = ${SEL.vpass} V; BL=0 cells receive electrons by FN tunneling`, `ISPP 第 ${k + 1} 次脉冲：WL${w} ← Vpgm = ${Vp.toFixed(2)} V，其余 WL ← Vpass = ${SEL.vpass} V；BL=0 的单元 FN 隧穿注入电子`), dev: `t_pulse ≈ ${(PHY.tp * 1e6).toFixed(0)} µs`,
+    enter() { NT.WL.fill(SEL.vpass); NT.DWL = SEL.vpass; NT.WL[w] = Vp; NT.SGD = PHY.Vcc; NT.SGS = 0; NT.SL = 1.5; for (let j = 0; j < 4; j++) { const c = CELLS[w][j]; const inh = c.tgt === 0 || c.lock; NT.BL[j] = inh ? PHY.Vcc : 0; NT.Vch[j] = inh ? boostV(SEL.vpass, Vp) : 0; } this.v0 = CELLS[w].map(c => c.vt); },
+    tick() { SL.pump.glow = 1; SL.rowdec.glow = .8; dieGlow('pump', 1); dieGlow('rowdec', .8); },
+    exit() { isppPulse(st, CELLS[w]); // disturb on unselected WLs: Vpass stress on cells of programmed strings
+      for (let j = 0; j < 4; j++) { const inh = CELLS[w][j].tgt === 0; for (let ww = 0; ww < 8; ww++) if (ww !== w) { const c = CELLS[ww][j]; c.vt = pgmPulse(c.vt, SEL.vpass, inh ? boostV(SEL.vpass, Vp) : 0, c.eotf); } }
+      this.dv = CELLS[w].map((c, j) => c.vt - this.v0[j]); LASTDV = this.dv; } }));
+  const L = LEVELS[BLOCKMODE];
+  OPR.q.push(seg({ dur: slow ? 0.8 : 0.22, chip: 4, label: BLOCKMODE === 'TLC' ? B(`Program-verify: WL${w} steps through PV_A…PV_G (${L.PV[1]}…${L.PV[7]} V); cells at target → BL switches to Vcc (locked)`, `Program-verify：WL${w} 依次加 PV_A…PV_G (${L.PV[1]}…${L.PV[7]} V)，达到目标的单元 → BL 改为 Vcc (锁定)`) : B(`Program-verify: WL${w} ← PV = ${L.PV[1]} V; passing cells lock`, `Program-verify：WL${w} ← PV = ${L.PV[1]} V；通过的单元锁定`), dev: 'verify ~µs / level',
+    enter() { NT.WL.fill(SEL.vread); NT.DWL = SEL.vread; NT.WL[w] = L.PV[1]; NT.SGD = NT.SGS = 4.5; NT.SL = 0; NT.Vch.fill(0); for (let j = 0; j < 4; j++) NT.BL[j] = (CELLS[w][j].tgt === 0) ? 0 : PHY.Vpre; },
+    tick(u) { if (BLOCKMODE === 'TLC') NT.WL[w] = L.PV[1 + Math.min(6, Math.floor(u * 7))]; SL.pb.forEach(p => p.glow = .5); },
+    exit() { if (!st.done) pushLoop(w); else OPR.q.push(statusSeg(B(`PASS · ${st.k} ISPP loops; SR[0]=0`, `PASS · ${st.k} 个 ISPP loop；SR[0]=0`), () => { WRITTEN[w] = true; })); } }));
+}
+let LASTDV = [0, 0, 0, 0];
+function statusSeg(msg, fn) {
+  return seg({ dur: 1.2, chip: OPR.chips.length - 1, label: B('70h reads status register: ' + trFor(msg, 'en'), '70h 读状态寄存器：' + trFor(msg, 'zh')), dev: 'SR[6]=1 Ready',
+    enter() { idleBias(); fn && fn(); busCycles([{ t: 'cmd', v: '70h' }, { t: 'dout', v: 'SR=E0h' }]); OPR.result = { msg }; }, tick(u) { PKT.active = u < .9; PKT.u = fract(u * 2); PKT.txt = u < .5 ? '70h' : 'SR'; PKT.dir = u < .5 ? 1 : -1; PKT.col = '#22d3ee'; }, exit() { PKT.active = false; PKT.dir = 1; } });
+}
+// ---------- ERASE ----------
+const ERS = { loop: 0, V: 17, tau: 40e-6, pass: false };
+function buildErase() {
+  setChips(['60h', 'ADDR×3', 'D0h', 'tBERS', '70h']);
+  ERS.loop = 0; ERS.V = SEL.vers; TR.erase = []; TR.eraseLoops = [];
+  const cyc = [{ t: 'cmd', v: '60h' }, ...addrCycles(3), { t: 'cmd', v: 'D0h' }];
+  OPR.q.push(cmdSeg(0, cyc, B("60h + 3 row-address cycles (block address only) + D0h confirmation", '60h + 3 个行地址周期 (只需 block 地址) + D0h 确认'), [0, 1, 4]));
+  pushErase();
+}
+function blockStats() { let mx = -9, sum = 0, n = 0, fail = 0; for (const p of POPS) for (const c of p) { if (c.vt > mx) mx = c.vt; sum += c.vt; n++; if (c.vt > EV) fail++; } for (const r of CELLS) for (const c of r) { if (c.vt > mx) mx = c.vt; } return { mx, mean: sum / n, fail, n }; }
+function pushErase() {
+  const V = ERS.V, j = ERS.loop, slow = j === 0;
+  OPR.q.push(seg({ dur: slow ? 2.4 : 1.5, chip: 3, label: B(`Erase pulse ${j + 1}: BL and SL ← Verase = ${V.toFixed(1)} V; SGD/SGS ≈ V−7 V → band-to-band tunneling (GIDL) generates holes at select-gate edges; all block WLs = 0 V`, `擦除脉冲 ${j + 1}：BL 与 SL ← Verase = ${V.toFixed(1)} V；SGD/SGS ≈ V−7 V → 选择栅边缘带间隧穿 (GIDL) 产生空穴；整块 WL = 0 V`), dev: `t_ers ≈ ${(PHY.tpe * 1e3).toFixed(1)} ms`,
+    enter() { NT.op = 'ERASE'; NT.WL.fill(0); NT.DWL = 0; NT.BL.fill(V); NT.SL = V; NT.SGD = NT.SGS = V - 7; NT.unselWL = V * 0.85; TR.erase.push({ V, pts: [] }); this.tr = TR.erase[TR.erase.length - 1]; },
+    tick(u) { const td = u * PHY.tpe; const vch = vchErase(td, V, ERS.tau); for (let k = 0; k < 4; k++) NODES.Vch[k] = NT.Vch[k] = vch; this.tr.pts.push([td, vch]); SL.pump.glow = 1; dieGlow('pump', 1); },
+    exit() { for (const r of CELLS) for (const c of r) c.vt = erasePulse(c.vt, V, c.eotf, ERS.tau) + 0.04 * gauss(); for (const p of POPS) for (const c of p) c.vt = erasePulse(c.vt, V, c.eotf, ERS.tau) + 0.04 * gauss(); } }));
+  OPR.q.push(seg({ dur: slow ? 1.0 : 0.6, chip: 3, label: B(`Erase-verify: all block WLs receive EV together (≈ ${EV} V equivalent, negative level implemented by source bias); every string must conduct`, `Erase-verify：整块所有 WL 同时加 EV (≈ ${EV} V 等效，用 source 偏置实现负电平)，每条 string 都必须导通`), dev: 'verify ~10 µs',
+    enter() { NT.WL.fill(0); NT.DWL = 0; NT.SL = 1.0; NT.BL.fill(PHY.Vpre + 1.0); NT.SGD = NT.SGS = 4.5; NT.Vch.fill(1.0); NT.unselWL = 0; const s = blockStats(); TR.eraseLoops.push({ V, ...s }); this.s = s; },
+    exit() { const ok = this.s.fail / this.s.n < 5e-4 && this.s.mx < EV + 0.6; if (!ok && ERS.loop < 6) { ERS.loop++; ERS.V += 1.0; pushErase(); } else OPR.q.push(statusSeg(ok ? B(`PASS · ${ERS.loop + 1} erase loops (ISPE)`, `PASS · ${ERS.loop + 1} 个擦除 loop (ISPE)`) : B("FAIL (maximum loops exceeded)", 'FAIL (超出最大 loop)'), () => { for (let w = 0; w < 8; w++) { WRITTEN[w] = false; CELLS[w].forEach(c => { c.tgt = 0; c.lock = false; }); POPS[w].forEach(c => { c.tgt = 0; c.lock = false; }); } })); } }));
+}
+// ---------- node damping ----------
+function dampNodes(dt) {
+  const L = 14;
+  for (let i = 0; i < 8; i++) NODES.WL[i] = damp(NODES.WL[i], NT.WL[i], L, dt);
+  for (let k = 0; k < 4; k++) { NODES.BL[k] = damp(NODES.BL[k], NT.BL[k], L, dt); NODES.Vch[k] = damp(NODES.Vch[k], NT.Vch[k], L, dt); }
+  for (const p of ['SGD', 'SGS', 'SL', 'DWL', 'unselWL']) NODES[p] = damp(NODES[p], NT[p], L, dt);
+  NODES.op = NT.op; NODES.WLmax = Math.max(...NODES.WL, NODES.SL, NODES.BL[0]);
+}
+// ---------- page statistics (population) ----------
+function popReadStats(w, shift, transform) {
+  const refs = refsFor(), R = LEVELS[BLOCKMODE].R; let err = 0; const pop = POPS[w];
+  for (let i = 0; i < pop.length; i++) { const c = pop[i]; const vt = transform ? transform(c, i) : c.vt; let cnt = 0; for (const ri of refs) if (vt > R[ri] + shift) cnt++; if (bitFromCount(cnt) !== trueBit(c.tgt)) err++; }
+  return err / pop.length;
+}
+// reliability: illustrative retention + P/E model (NOT a fitted model)
+function hash01(i) { return fract(Math.sin(i * 127.1 + 311.7) * 43758.5453); }
+function relTransform(c, i) {
+  const yrs = SEL.ret, pe = SEL.pe; const wear = 1 + pe / 3000;
+  const loss = 0.0025 * (c.vt + 1.6) * Math.log(1 + yrs * 8760) * wear;
+  const g = (hash01(i) + hash01(i + 7) + hash01(i + 13) - 1.5) * 2; // ~N(0, 1)
+  const sig = 0.008 * Math.sqrt(Math.log(1 + yrs * 8760)) * wear + 0.02 * pe / 1000;
+  return c.vt - loss + g * sig;
+}
+
+// ================= LESSON CONTENT (data) =================
+const SRC = {
+  onfi: B("ONFI 4.2/5.x specifications & JEDEC JESD230 (NAND Flash Interface Interoperability) — commands 00h/30h, 80h/10h, 60h/D0h, 70h and pins CLE/ALE/WE#/RE#/DQ.", 'ONFI 4.2/5.x 规范 & JEDEC JESD230 (NAND Flash Interface Interoperability) — 命令集 00h/30h, 80h/10h, 60h/D0h, 70h 与引脚 CLE/ALE/WE#/RE#/DQ。'),
+  mich: B("R. Micheloni, L. Crippa, A. Marelli, <i>Inside NAND Flash Memories</i>, Springer, 2010 — page buffers, sense amplifiers, charge pumps, and ISPP algorithms.", 'R. Micheloni, L. Crippa, A. Marelli, <i>Inside NAND Flash Memories</i>, Springer, 2010 — page buffer、sense amplifier、charge pump、ISPP 算法。'),
+  mich3d: B("R. Micheloni (ed.), <i>3D Flash Memories</i>, Springer, 2016 — BiCS/TCAT/CuA, GIDL erase, and 3D peripheral circuits.", 'R. Micheloni (ed.), <i>3D Flash Memories</i>, Springer, 2016 — BiCS/TCAT/CuA、GIDL 擦除、3D 外围电路。'),
+  comp: B('C. M. Compagnoni et al., "Reviewing the evolution of the NAND flash technology," <i>Proc. IEEE</i> 105(9), 2017, doi:10.1109/JPROC.2017.2665781.', 'C. M. Compagnoni et al., "Reviewing the evolution of the NAND flash technology," <i>Proc. IEEE</i> 105(9), 2017, doi:10.1109/JPROC.2017.2665781。'),
+  bics: B('H. Tanaka et al., "Bit Cost Scalable technology with punch and plug process for ultra high density flash memory," <i>VLSI Tech.</i> 2007 (BiCS).', 'H. Tanaka et al., "Bit Cost Scalable technology with punch and plug process for ultra high density flash memory," <i>VLSI Tech.</i> 2007 (BiCS)。'),
+  tcat: B("J. Jang et al., \"Vertical cell array using TCAT technology for ultra high density NAND flash memory,\" <i>VLSI Tech.</i> 2009 — gate replacement and W word lines.", 'J. Jang et al., "Vertical cell array using TCAT technology for ultra high density NAND flash memory," <i>VLSI Tech.</i> 2009 — gate-replacement、W 字线。'),
+  ispp: B('K.-D. Suh et al., "A 3.3 V 32 Mb NAND flash memory with incremental step pulse programming scheme," <i>IEEE JSSC</i> 30(11), 1995.', 'K.-D. Suh et al., "A 3.3 V 32 Mb NAND flash memory with incremental step pulse programming scheme," <i>IEEE JSSC</i> 30(11), 1995。'),
+  fn: B('M. Lenzlinger, E. H. Snow, "Fowler-Nordheim tunneling into thermally grown SiO₂," <i>J. Appl. Phys.</i> 40, 278, 1969.', 'M. Lenzlinger, E. H. Snow, "Fowler-Nordheim tunneling into thermally grown SiO₂," <i>J. Appl. Phys.</i> 40, 278, 1969。'),
+  lee: B('J.-D. Lee, S.-H. Hur, J.-D. Choi, "Effects of floating-gate interference on NAND flash memory cell operation," <i>IEEE EDL</i> 23(5), 2002.', 'J.-D. Lee, S.-H. Hur, J.-D. Choi, "Effects of floating-gate interference on NAND flash memory cell operation," <i>IEEE EDL</i> 23(5), 2002。'),
+  gidl: B('G. Malavena et al., "Investigation and compact modeling of the time dynamics of the GIDL-assisted increase of the string potential in 3-D NAND flash arrays," <i>IEEE TED</i> 65(7), 2018, doi:10.1109/TED.2018.2831902.', 'G. Malavena et al., "Investigation and compact modeling of the time dynamics of the GIDL-assisted increase of the string potential in 3-D NAND flash arrays," <i>IEEE TED</i> 65(7), 2018, doi:10.1109/TED.2018.2831902。'),
+  cai: B('Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, O. Mutlu, "Error characterization, mitigation, and recovery in flash-memory-based SSDs," <i>Proc. IEEE</i> 105(9), 2017.', 'Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, O. Mutlu, "Error characterization, mitigation, and recovery in flash-memory-based SSDs," <i>Proc. IEEE</i> 105(9), 2017。'),
+  dick: B('J. F. Dickson, "On-chip high-voltage generation in MNOS integrated circuits using an improved voltage multiplier technique," <i>IEEE JSSC</i> 11(3), 1976.', 'J. F. Dickson, "On-chip high-voltage generation in MNOS integrated circuits using an improved voltage multiplier technique," <i>IEEE JSSC</i> 11(3), 1976。'),
+  wiki: B("Wikipedia, \"Flash memory\" & \"Charge trap flash\" (concept overview and cross-check).", 'Wikipedia, "Flash memory" & "Charge trap flash" (概念总览，交叉核对)。'),
+  mdpi: B("MDPI <i>Micromachines</i> 15(12):1516, 2024 — temperature dependence of GIDL erase in 3D NAND (public open-access paper).", 'MDPI <i>Micromachines</i> 15(12):1516, 2024 — 3D NAND GIDL 擦除的温度依赖 (公开开放获取论文)。'),
+  vend: B("Structural terms in public vendor presentations/white papers: CuA (CMOS under Array), PUC (Periphery Under Cell), COP (Cell On Periphery), Xtacking (separate array/periphery wafers bonded together); this lesson uses only generic public concepts.", '各厂商公开发布会/白皮书中的结构命名：CuA (CMOS under Array)、PUC (Periphery Under Cell)、COP (Cell On Periphery)、Xtacking (阵列/外围分片键合)；本课只使用通用、公开的概念。'),
+};
+const STEPS = [
+  { id: 'sys', title: B("System overview: controller command → die", '系统总览：一条命令从控制器到 die'), sub: B("The controller says “read page X”; the NAND die’s FSM handles everything else", '控制器只说 "读第 X 页"，NAND die 内部的 FSM 负责其余一切'),
+    view: 'die', rows: ['r-op', 'r-mode'], scope: 'bus', run: true,
+    why: B(`<p>The SSD/UFS controller communicates with each NAND die over an <b>ONFI / Toggle</b> parallel interface: when <b>CLE</b>=1, WE# rising edges latch a <b>command</b>; when <b>ALE</b>=1 they latch an <b>address</b>; with both low, DQ[7:0] carries <b>data</b>. R/B# tells the controller whether the die is busy.</p><p>READ = <b>00h</b> + 5 address cycles (2 column + 3 row) + <b>30h</b>; PROGRAM = <b>80h</b> + address + data + <b>10h</b>; ERASE = <b>60h</b> + 3 row-address cycles + <b>D0h</b>; <b>70h</b> reads the status register (bit6 = Ready, bit0 = Fail). <span class="ce">Counterintuitive:</span> the controller never applies 20 V directly—all high voltages, timing, and ISPP loops are generated by the die’s own state machine.</p>`, `<p>SSD/UFS 主控通过 <b>ONFI / Toggle</b> 并行接口和每颗 NAND die 对话：<b>CLE</b>=1 时 WE# 上升沿锁存的是<b>命令</b>，<b>ALE</b>=1 时锁存的是<b>地址</b>，两者都为 0 时 DQ[7:0] 上是<b>数据</b>。R/B# 告诉主控 die 是否忙。</p>
+<p>READ = <b>00h</b> + 5 个地址周期 (2 列 + 3 行) + <b>30h</b>；PROGRAM = <b>80h</b> + 地址 + 数据 + <b>10h</b>；ERASE = <b>60h</b> + 3 个行地址 + <b>D0h</b>；<b>70h</b> 读状态寄存器 (bit6 = Ready, bit0 = Fail)。<span class="ce">反直觉：</span>主控从来不直接施加 20 V——所有高压、时序、ISPP 循环都由 die 自己的状态机完成。</p>`),
+    math: B(`<p>Interface transfer is only a small part of total latency:</p>$$t_{\\text{xfer}}=\\frac{\\text{page size}}{\\text{bus rate}}=\\frac{16\\,\\text{KiB}}{1600\\,\\text{MT/s}\\times 1\\,\\text{B}}\\approx 10\\,\\mu\\text{s}\\quad\\ll\\quad t_R\\approx 25\\text{–}80\\,\\mu\\text{s},\\; t_{PROG}\\approx 0.3\\text{–}1\\,\\text{ms}$$<p class="note">Typical TLC ranges from public sources.</p>`, `<p>接口吞吐只是总延迟的一小部分：</p>$$t_{\\text{xfer}}=\\frac{\\text{page size}}{\\text{bus rate}}=\\frac{16\\,\\text{KiB}}{1600\\,\\text{MT/s}\\times 1\\,\\text{B}}\\approx 10\\,\\mu\\text{s}\\quad\\ll\\quad t_R\\approx 25\\text{–}80\\,\\mu\\text{s},\\; t_{PROG}\\approx 0.3\\text{–}1\\,\\text{ms}$$<p class="note">数值为公开资料中的典型范围 (TLC)。</p>`),
+    try: B(`<p>Select READ / PROGRAM / ERASE and press <b>▶ Run</b>. Watch <b>command (cyan)</b>, <b>address (yellow)</b>, and <b>data (purple/green)</b> packets on the bus; the Scope shows the corresponding CLE/ALE/WE#/RE#/R/B# timing.</p>`, `<p>选 READ / PROGRAM / ERASE 后点 <b>▶ 运行</b>，看总线上飞过的 <b>命令 (青)</b>、<b>地址 (黄)</b>、<b>数据 (紫/绿)</b> 包，右侧 Scope 画出对应的 CLE/ALE/WE#/RE#/R/B# 时序。</p>`),
+    quiz: { q: B("Why does ERASE need only 3 address cycles, while READ needs 5?", 'ERASE 命令为什么只需要 3 个地址周期，而 READ 需要 5 个？'), opts: [B("Erase acts on a block and needs only a row (block) address, without a column address", '擦除以 block 为单位，只需要行 (block) 地址，不需要列地址'), B("Higher erase voltage requires a shorter address", '擦除电压更高，地址必须更短'), B("The DQ bus is occupied during erase", '擦除时 DQ 总线被占用')], a: 0, fb: B("Correct: column addresses select bytes within a page. Erase affects the entire block, so only a row address is needed.", '对：列地址选择的是 page 内的字节，擦除作用于整个 block，所以只需行地址。') },
+    src: ['onfi', 'mich', 'wiki'] },
+  { id: 'cua', title: B("CMOS periphery: who controls each structure", 'CMOS 外围：谁在控制哪一个结构'), sub: B("CuA: peripheral circuits in silicon beneath the stacked array", 'CuA：外围电路做在阵列正下方的硅上，阵列叠在上面'),
+    view: 'cua', rows: ['r-op', 'r-wl'], scope: 'bias', run: true,
+    why: B(`<p>A command enters <b>I/O</b> → <b>FSM/control logic</b> decodes it → <b>charge pumps</b> raise Vcc to Vpass/Vpgm/Verase → <b>regulators</b> (bandgap reference) set each voltage precisely → the <b>row decoder</b> uses HV <b>pass transistors</b> to deliver these levels to the selected block’s WLs → array → <b>page buffer / S/A</b> senses or drives each BL → <b>column decoder/data path</b> → I/O.</p><p>In 3D NAND, these circuits sit <b>beneath</b> the array (CuA / PUC / COP), or on a separate bonded wafer (Xtacking-type schemes). <span class="ce">Counterintuitive:</span> with CMOS below the array rather than a p-well, the array source is an n+ poly-Si layer—this is why the later erase operation requires GIDL.</p>`, `<p>命令进入 <b>I/O</b> → <b>FSM/控制逻辑</b> 解析 → 指挥 <b>电荷泵</b> 把 Vcc 抬到 Vpass/Vpgm/Verase → <b>稳压器</b> (带隙基准) 精确设定每一步电平 → <b>行译码器</b> 用高压 <b>pass transistor</b> 把这些电平送到被选 block 的 WL → 阵列 → <b>page buffer / S/A</b> 感测或驱动每条 BL → <b>列译码器/数据通路</b> → I/O。</p>
+<p>在 3D NAND 中这些电路被放到阵列<b>下方</b> (CuA / PUC / COP)，或者做在另一片晶圆上再键合 (Xtacking 一类方案)。<span class="ce">反直觉：</span>因为阵列下面是 CMOS 而不是 p-阱，阵列的 source 只能是一层 n+ 多晶硅 —— 这直接决定了后面擦除必须用 GIDL。</p>`),
+    math: B(`<p>Dickson charge pump (N stages, clock f, capacitance C per stage, load current I):</p>$$V_{out}=(N+1)V_{DD}-N\\,V_{th}-\\frac{N\\,I}{f\\,C}$$<p>Example: V<sub>DD</sub>=2.5 V, V<sub>th</sub>≈0.6 V (or diode-connected low-Vt devices), N≈12 → ~20 V unloaded; the load term sets WL charging speed.</p>`, `<p>Dickson 电荷泵 (N 级, 时钟 f, 每级电容 C, 负载电流 I)：</p>$$V_{out}=(N+1)V_{DD}-N\\,V_{th}-\\frac{N\\,I}{f\\,C}$$<p>例：V<sub>DD</sub>=2.5 V, V<sub>th</sub>≈0.6 V(或用二极管连接的低 Vt 器件)，N≈12 → ~20 V 空载；负载项决定 WL 充电速度。</p>`),
+    try: B(`<p>Press <b>▶ Run</b> and watch CuA blocks light up along the signal path. Scope → Bias shows each node’s live voltage. Click a block for its function and typical voltage.</p>`, `<p>点 <b>▶ 运行</b>，看 CuA 方块按信号路径依次发光；在 Scope「偏压」里看每个节点的实时电压。点任意方块看它的功能和典型电压。</p>`),
+    quiz: { q: B("Why must a row-decoder pass transistor’s gate exceed Vpgm?", '行译码器中 pass transistor 的栅极为什么要比 Vpgm 还高？'), opts: [B("To pass Vpgm to the WL without threshold loss: V_gate ≥ Vpgm + Vth", '要无阈值损失地把 Vpgm 传到 WL：V_gate ≥ Vpgm + Vth'), B("To reduce power consumption", '为了降低功耗'), B("To precharge the BL", '为了给 BL 预充')], a: 0, fb: B("Correct: an NMOS passing a high level loses one Vth (including body effect). BLKSEL gate bias ≈ Vpgm + Vth, reaching ~22–25 V; these are dedicated HV transistors.", '对：NMOS 传高电平会损失一个 Vth (含体效应)，所以 BLKSEL 栅压 ≈ Vpgm + Vth，可达 ~22–25 V，这些都是专门的 HV 晶体管。') },
+    src: ['mich', 'mich3d', 'dick', 'vend'] },
+  { id: 'arr', title: B("Array structure: block / string / page", '阵列结构：block / string / page'), sub: B("W/SiO₂ stack + vertical channel holes + staircase + slit", 'W/SiO₂ 叠层 + 垂直沟道孔 + 阶梯 + slit'),
+    view: 'array', rows: ['r-wl'], scope: 'bias', run: false, explode: 'tier',
+    why: B(`<p>Alternate SiO₂/SiN deposition forms tens to over two hundred layers. Deep <b>channel holes</b> are etched through them, then lined with blocking oxide / SiN / tunnel oxide / poly-Si channel, with an oxide-filled core (macaroni). A <b>slit</b> is etched; wet removal of sacrificial SiN through the slit and W refill form the <b>W word lines</b> (gate replacement, TCAT-type processing).</p><p>One pillar = one <b>NAND string</b> (SGS + N cells + SGD). Cells on the same WL in the same selected string group (via SGD) form a <b>page</b>; strings sharing WLs between slits form a <b>block</b>. The <b>staircase</b> exposes a landing on each layer for a contact via.</p>`, `<p>交替沉积几十到两百多层 SiO₂/SiN，一次刻蚀出深孔 (<b>channel hole</b>)，孔壁依次沉积 blocking oxide / SiN / tunnel oxide / poly-Si 沟道，中心填氧化物 (macaroni)。再刻 <b>slit</b>，经 slit 把 SiN 牺牲层湿法掏空、回填钨 → 就得到 <b>W word line</b> (gate-replacement, TCAT 类工艺)。</p>
+<p>一根 pillar = 一个 <b>NAND string</b> (SGS + N 个单元 + SGD)。同一层 WL、同一 string 组 (SGD 选中) 的所有单元 = 一个 <b>page</b>；slit 之间共享 WL 的所有 string = 一个 <b>block</b>。<b>Staircase</b> 让每一层都有一块露出来的台阶落接触孔。</p>`),
+    math: B(`$$\\text{block}=N_{WL}\\times N_{\\text{SGD groups}}\\times S_{\\text{page}}\\times b_{\\text{/cell}}$$<p>Illustrative example: 176 WL × 4 SGD groups × 16 KiB × 3 bit (three TLC logical pages) ≈ 33 MiB/block.</p>`, `$$\\text{block}=N_{WL}\\times N_{\\text{SGD 组}}\\times S_{\\text{page}}\\times b_{\\text{/cell}}$$<p>例 (示意)：176 WL × 4 个 SGD 组 × 16 KiB × 3 bit (TLC 三个逻辑页) ≈ 33 MiB/block。</p>`),
+    try: B(`<p>Press <b>⇱ Explode</b> to separate the layers; drag “Selected WL” to highlight each layer. Click pillars, slits, staircase contacts, and BLs for details.</p>`, `<p>点 <b>⇱ 爆炸视图</b> 看各层分开；拖动「选中 WL」看哪一层被高亮。点 pillar、slit、staircase 接触、BL 看说明。</p>`),
+    quiz: { q: B("Why does each WL layer need a staircase landing?", '为什么每一层 WL 都需要一个台阶 (staircase)？'), opts: [B("Each W plate needs a top-down contact to the row decoder; the staircase exposes lower layers", '每层 W 板都需要从上方落一个接触孔连到行译码器，台阶让下层露出来'), B("For heat dissipation", '为了散热'), B("To make pillars easier to etch", '为了让 pillar 更容易刻蚀')], a: 0, fb: B("Correct: each layer is a continuous plate. A top-down contact can reach it only on its exposed staircase landing.", '对：每一层是一整块平板，只能在它露出来的那一段台阶上从顶部打接触孔。') },
+    src: ['bics', 'tcat', 'mich3d', 'comp'] },
+  { id: 'cell', title: B("Cell cross-section: GAA charge-trap cell", '单元剖面：GAA 电荷陷阱单元'), sub: B("Core / channel / tunnel / SiN / blocking / W gate—the cylindrical geometry concentrates the tunnel field", 'core / 沟道 / tunnel / SiN / blocking / W 栅 —— 圆柱几何让隧穿层场强最高'),
+    view: 'cell', rows: ['r-vg'], scope: 'field', run: true, explode: 'cell',
+    why: B(`<p>A cell is the segment where a pillar passes through a W plate. From inside out: <b>core SiO₂ → poly-Si channel → tunnel oxide → SiN trap layer → blocking oxide → W gate</b>. Electrons trapped in SiN screen the gate voltage, so <b>Vt rises</b>.</p><p><span class="ce">Counterintuitive:</span> with the same voltage and film thicknesses, a cylindrical gate-all-around structure gives the <b>inner tunnel oxide about ${(CR.blk[1] / CR.tun[0]).toFixed(2)}× the field at the outer blocking oxide</b>. Electric displacement D crosses a growing circumference (D ∝ 1/r). This favors tunnel injection and suppresses reverse injection from the gate—a key reason 3D CT cells work.</p>`, `<p>一个单元就是 pillar 穿过一层 W 板的那一段：从内到外 <b>core SiO₂ → poly-Si 沟道 → tunnel oxide → SiN 陷阱层 → blocking oxide → W 栅</b>。电子被 SiN 中的陷阱俘获，屏蔽栅压，使阈值 <b>Vt 升高</b>。</p>
+<p><span class="ce">反直觉：</span>同样的电压、同样的膜厚，圆柱 (gate-all-around) 结构里<b>内层的 tunnel oxide 场强比外层 blocking oxide 高约 ${(CR.blk[1] / CR.tun[0]).toFixed(2)}×</b>——因为电位移 D 穿过越来越大的圆周面积 (D ∝ 1/r)。这让隧穿注入容易、从栅极反向注入难，是 3D CT 单元能工作的关键之一。</p>`),
+    math: B(`<p>Field at radius r in layer i of a cylindrical capacitor:</p>$$E(r)=\\frac{V}{\\varepsilon_i\\, r\\;\\sum_k \\ln(r_{k+1}/r_k)/\\varepsilon_k}$$<p>For these typical dimensions, equivalent \\(\\;\\text{EOT}_{\\text{tun}}=\\varepsilon_{ox} r_1 \\Sigma\\approx ${(3.9 * CR.tun[0] * SIGMA).toFixed(1)}\\,\\text{nm}\\), versus planar EOT ≈ ${PLANAR_EOT.toFixed(1)} nm for the same stack. Trapped charge → \\(\\Delta V_t\\approx -\\Delta Q/C_{b}\\).</p>`, `<p>圆柱电容器中第 i 层在半径 r 处的场：</p>$$E(r)=\\frac{V}{\\varepsilon_i\\, r\\;\\sum_k \\ln(r_{k+1}/r_k)/\\varepsilon_k}$$<p>本例 (典型尺寸) 等效 \\(\\;\\text{EOT}_{\\text{tun}}=\\varepsilon_{ox} r_1 \\Sigma\\approx ${(3.9 * CR.tun[0] * SIGMA).toFixed(1)}\\,\\text{nm}\\), 平板同叠层 EOT ≈ ${PLANAR_EOT.toFixed(1)} nm。俘获电荷 → \\(\\Delta V_t\\approx -\\Delta Q/C_{b}\\)。</p>`),
+    try: B(`<p>Adjust <b>Gate Vg</b> to see E(r) in Scope, then press <b>▶ Apply 15 µs pulse</b>: electrons (blue) cross the tunnel oxide from the channel into SiN, raising Vt. The field falls as ΔVt grows—this self-limiting response underlies ISPP. ⏭ resets the cell.</p>`, `<p>拖动 <b>栅压 Vg</b> 看 Scope 中 E(r)，再点 <b>▶ 施加 15 µs 脉冲</b>：电子 (蓝) 从沟道穿过 tunnel oxide 进入 SiN，Vt 上升；场强随 ΔVt 自限 → 这就是 ISPP 的物理基础。⏭ = 重置单元。</p>`),
+    quiz: { q: B("Why is the tunnel-oxide field higher than the blocking-oxide field in a GAA cell?", '为什么 GAA 单元中 tunnel oxide 的场强高于 blocking oxide？'), opts: [B("D ∝ 1/r, and the tunnel oxide has the smallest radius", 'D 场 ∝ 1/r，tunnel oxide 半径最小'), B("The tunnel oxide has a higher permittivity", 'tunnel oxide 介电常数更高'), B("Because SiN is charged", '因为 SiN 带电')], a: 0, fb: B("Correct: cylindrical geometry gives E ∝ 1/(εr); the small inner radius produces the strongest tunnel-oxide field.", '对：圆柱几何下 E ∝ 1/(εr)，内半径小的 tunnel oxide 场最强。') },
+    src: ['comp', 'mich3d', 'fn', 'wiki'] },
+  { id: 'read', title: B("READ: precharge → bias → discharge → strobe → output", 'READ：预充 → 偏置 → 放电 → strobe → 输出'), sub: B("Each sense asks one question: “Is this cell’s Vt below R_k?”", '一次只问一个问题："这个单元的 Vt 是否低于 R_k？"'),
+    view: 'slice', rows: ['r-mode', 'r-page', 'r-wl', 'r-vread', 'r-shift'], scope: 'bl', run: true, op: 'READ',
+    why: B(`<p>The selected WL receives read reference <b>R<sub>k</sub></b>; other WLs receive <b>Vread_pass (~6 V)</b> to force them on regardless of stored state. SGD/SGS turn on. The page buffer <b>precharges</b> BL to ~0.7 V, then releases it. If selected-cell Vt &lt; R<sub>k</sub>, the string conducts and its current discharges the BL capacitance. At a fixed <b>strobe</b>, the S/A compares BL with the trip point and latches the result.</p><p>TLC maps 8 Vt states (Er, A…G) to LP/MP/UP logical pages with a Gray code: <b>LP needs R3/R7, MP needs R2/R4/R6, UP needs R1/R5</b> (a common public 2-3-2 scheme). <span class="ce">Counterintuitive:</span> reading performs a series of above/below comparisons rather than measuring Vt directly.</p>`, `<p>选中 WL 加读参考电平 <b>R<sub>k</sub></b>，其余 WL 加 <b>Vread_pass (~6 V)</b> 让它们无论存什么都强制导通，SGD/SGS 打开。page buffer 先把 BL <b>预充</b>到 ~0.7 V，再放手：如果选中单元 Vt &lt; R<sub>k</sub>，string 导通，电流把 BL 电容放电；在固定的 <b>strobe</b> 时刻 S/A 比较 BL 与 trip 点并锁存结果。</p>
+<p>TLC 每单元 8 个 Vt 态 (Er, A…G) 用 Gray 码映射成 LP/MP/UP 三个逻辑页：<b>LP 只需 R3、R7 两次感测，MP 需 R2/R4/R6，UP 需 R1/R5</b> (2-3-2 编码，一种常见公开方案)。<span class="ce">反直觉：</span>读不是测量 Vt，而是做一系列"高于/低于"的二值比较。</p>`),
+    math: B(`$$\\Delta V_{BL}=\\frac{I_{cell}\\,t_{strobe}}{C_{BL}}\\qquad I_{string}=I_{on}\\,\\sigma\\!\\left(\\tfrac{R_k-V_{t,sel}}{s}\\right)\\prod_{i\\neq sel}\\sigma\\!\\left(\\tfrac{V_{pass}-V_{t,i}}{s}\\right)$$<p>Example: I=80 nA, t=2.5 µs, C<sub>BL</sub>=0.35 pF → ΔV≈0.57 V, enough to cross the trip point. The page bit follows the parity of the number of above-reference results.</p>`, `$$\\Delta V_{BL}=\\frac{I_{cell}\\,t_{strobe}}{C_{BL}}\\qquad I_{string}=I_{on}\\,\\sigma\\!\\left(\\tfrac{R_k-V_{t,sel}}{s}\\right)\\prod_{i\\neq sel}\\sigma\\!\\left(\\tfrac{V_{pass}-V_{t,i}}{s}\\right)$$<p>例：I=80 nA, t=2.5 µs, C<sub>BL</sub>=0.35 pF → ΔV≈0.57 V，足以越过 trip 点。page bit = (高于参考电平的次数) 的奇偶性。</p>`),
+    try: B(`<p>Switch LP/MP/UP to change the sense count. Set <b>Read offset</b> to ±0.3 V to raise RBER (read-retry adjusts this reference). Lower <b>Vpass(read)</b> to 4 V: high-state cells cut off the entire string.</p>`, `<p>换 LP/MP/UP 看感测次数变化；把 <b>读参考偏移</b> 拉到 ±0.3 V 看 RBER 上升 (read-retry 就是在调它)；把 <b>Vpass(读)</b> 降到 4 V 看高态单元把整个 string 关断。</p>`),
+    quiz: { q: B("How many sense operations does TLC MP (middle page) need?", 'TLC 读 MP (middle page) 需要几次感测？'), opts: [B("3 (R2, R4, R6)", '3 次 (R2, R4, R6)'), B("1", '1 次'), B("7", '7 次')], a: 0, fb: B("Correct: with 2-3-2 Gray coding, LP=2, MP=3, UP=2. Reading all 3 pages takes 7 senses = 2³−1.", '对：2-3-2 Gray 编码下 LP=2、MP=3、UP=2 次。读完全部 3 页总共 7 次 = 2³−1。') },
+    src: ['mich', 'comp', 'cai', 'onfi'] },
+  { id: 'pgm', title: B("PROGRAM: ISPP + verify + self-boost inhibit", 'PROGRAM：ISPP + verify + 自升压禁止'), sub: B("Vpgm rises by ΔV per step; verified cells lock, while inhibited strings boost their channels", 'Vpgm 每步 +ΔV，验证通过的单元立即锁定；不写的 string 靠沟道升压躲过高压'),
+    view: 'slice', rows: ['r-mode', 'r-wl', 'r-bl', 'r-step', 'r-vpass'], scope: 'ispp', run: true, op: 'PROGRAM',
+    why: B(`<p>The selected WL receives <b>Vpgm (~15–20 V+)</b>; other WLs receive <b>Vpass (~8–10 V)</b>. A programmed string has BL=0 V and SGD≈Vcc, pulling its channel to 0 V. A ~10+ MV/cm tunnel-oxide field drives electrons into SiN by <b>FN tunneling</b>, raising Vt. For an inhibited string, BL=Vcc; after the channel charges to Vcc−Vth, SGD cuts off. The <b>floating</b> channel rises to ~8 V by WL capacitive coupling (<b>self-boosting</b>), weakening the field.</p><p><b>ISPP</b>: every pulse is followed by <b>program-verify</b>; cells reaching their target PV switch BL to Vcc and lock. <span class="ce">Counterintuitive:</span> in steady operation, ΔVt per pulse ≈ ΔVpgm regardless of cell speed. The step size therefore trades distribution width against programming time. Real TLC often uses multiple passes (such as coarse/fine) to reduce WL interference; this model uses one pass.</p>`, `<p>选中 WL 加 <b>Vpgm (~15–20 V+)</b>，其余 WL 加 <b>Vpass (~8–10 V)</b>。要编程的 string：BL=0 V、SGD≈Vcc → 沟道被拉到 0 V，tunnel oxide 上 ~10+ MV/cm 的场使电子 <b>FN 隧穿</b>进入 SiN，Vt 上升。不编程的 string：BL=Vcc，沟道充到 Vcc−Vth 后 SGD 截止，沟道<b>浮空</b>并被 WL 电容耦合升压到 ~8 V (<b>self-boosting</b>)，场被削弱。</p>
+<p><b>ISPP</b>：每个脉冲后做 <b>program-verify</b>，达到目标 PV 的单元把 BL 切到 Vcc 锁定。<span class="ce">反直觉：</span>稳态下每个脉冲的 ΔVt ≈ ΔVpgm，与单元快慢无关——所以步长直接决定分布宽度和编程时间的折中。真实 TLC 常用多遍 (如 coarse/fine) 编程来抑制 WL 间干扰，这里简化为单遍。</p>`),
+    math: B(`$$J_{FN}=A\\,E_{ox}^2\\exp\\!\\left(-\\frac{B}{E_{ox}}\\right),\\quad E_{ox}=\\frac{V_{pgm}-V_{ch}-\\Delta V_t}{\\text{EOT}},\\quad \\frac{d\\,\\Delta V_t}{dt}=\\frac{J_{FN}}{C_b}$$ $$V_{ch,inh}\\approx (V_{cc}-V_{th,SG})+C_r\\,(\\bar V_{WL}-V_{cc}+V_{th,SG}),\\qquad C_r=\\frac{C_{ins}}{C_{ins}+C_{ch}}\\approx 0.8\\text{–}0.9$$<p class="note">A=1.15×10⁻⁶ A/V², B=2.53×10⁸ V/cm (Lenzlinger & Snow); EOT comes from the previous section’s cylindrical geometry.</p>`, `$$J_{FN}=A\\,E_{ox}^2\\exp\\!\\left(-\\frac{B}{E_{ox}}\\right),\\quad E_{ox}=\\frac{V_{pgm}-V_{ch}-\\Delta V_t}{\\text{EOT}},\\quad \\frac{d\\,\\Delta V_t}{dt}=\\frac{J_{FN}}{C_b}$$
+$$V_{ch,inh}\\approx (V_{cc}-V_{th,SG})+C_r\\,(\\bar V_{WL}-V_{cc}+V_{th,SG}),\\qquad C_r=\\frac{C_{ins}}{C_{ins}+C_{ch}}\\approx 0.8\\text{–}0.9$$<p class="note">A=1.15×10⁻⁶ A/V², B=2.53×10⁸ V/cm (Lenzlinger & Snow)，EOT 由上一节的圆柱几何得到。</p>`),
+    try: B(`<p>Click BL buttons to change target states. Adjust <b>ISPP ΔV</b> (0.1 → 1.0 V) to explore loop count versus distribution width/RBER. Adjust <b>Vpass</b>: too low → inhibited cells are programmed (program disturb); too high → other WLs on the same string are programmed (pass disturb). Both disturbances appear in the readouts.</p>`, `<p>点 BL 按钮改写目标态；拖 <b>ISPP ΔV</b> (0.1 → 1.0 V) 看 loop 数和分布宽度/RBER 的折中；拖 <b>Vpass</b>：太低 → 禁止单元被误写 (program disturb)，太高 → 同 string 其他 WL 被误写 (pass disturb)。读出栏实时显示两个 disturb。</p>`),
+    quiz: { q: B("Why does Vpgm leave an inhibited string unprogrammed?", '禁止编程的 string 为什么不会被 Vpgm 写入？'), opts: [B("BL=Vcc cuts off SGD; WL coupling boosts the floating channel to ~8 V and weakens the tunnel field", 'BL=Vcc 使 SGD 截止，浮空沟道被 WL 耦合升压到 ~8 V，削弱 tunnel 场'), B("Its WL is at 0 V", '因为它的 WL 是 0 V'), B("SGS opens and drains charge into SL", '因为 SGS 打开把电荷泄放到 SL')], a: 0, fb: B("Correct: self-boosting raises the channel to ≈ Vinit + Cr·ΔV_WL.", '对：self-boosting，沟道电位 ≈ Vinit + Cr·ΔV_WL。') },
+    src: ['ispp', 'fn', 'mich', 'comp', 'lee'] },
+  { id: 'ers', title: B("ERASE: block GIDL erase + erase-verify", 'ERASE：整块 GIDL 擦除 + erase-verify'), sub: B("BL/SL ← ~18–20 V, WL ← 0 V; select-gate edges generate holes that neutralize SiN electrons", 'BL/SL ← ~18–20 V，WL ← 0 V；空穴从选择栅边缘产生，注入 SiN 中和电子'),
+    view: 'slice', rows: ['r-vers'], scope: 'erase', run: true, op: 'ERASE',
+    why: B(`<p>Planar NAND erases by raising its p-well to ~20 V. In 3D CT NAND, the channel is undoped poly-Si and the source is an n+ layer above CuA—<b>no p-type body supplies holes</b>. BL and SL rise to <b>Verase</b>, with SGD/SGS ~6–8 V lower. Strong fields at select-gate edges cause <b>band-to-band tunneling (GIDL)</b>, generating electron–hole pairs. Electrons escape; <b>holes</b> fill the channel, raising the whole pillar to ~Verase−1 V. All WLs=0 V: the reverse field drives hole tunneling into SiN (and electron detrapping), lowering Vt.</p><p>Each pulse is followed by <b>erase-verify</b>: all WLs receive EV together and every string must conduct. Failure raises Verase by +1 V for another pulse (<b>ISPE</b>). <span class="ce">Why erase a block but program a page?</span> Erase biases the whole channel through shared BL/SL potentials while all block WLs are at 0 V. Programming instead selects a WL and individual strings through BL=0 V/Vcc. Unselected blocks have floating WLs that rise with channel coupling, avoiding erase.</p>`, `<p>平面 NAND 擦除时把 p-阱抬到 ~20 V。3D CT NAND 的沟道是未掺杂多晶硅、source 是 CuA 上的 n+ 层 —— <b>没有 p 型体区可以提供空穴</b>。于是把 BL 和 SL 加到 <b>Verase</b>，同时让 SGD/SGS 比它低 ~6–8 V：选择栅边缘的强场造成 <b>带间隧穿 (GIDL)</b>，产生电子-空穴对，电子流走，<b>空穴</b>灌进沟道把整根 pillar 抬到 ~Verase−1 V。此时所有 WL=0 V → 反向的高场让空穴隧穿进 SiN (以及电子退陷)，Vt 下降。</p>
+<p>一次脉冲后做 <b>erase-verify</b>：所有 WL 同时加 EV，每条 string 都要导通；不过则 Verase +1 V 再来 (<b>ISPE</b>)。<span class="ce">为什么擦除按 block 而编程按 page？</span>擦除电压加在整根沟道 (共享的 BL/SL/沟道电位) 上，block 内所有 WL 同时为 0 V；而编程能通过 BL 的 0 V/Vcc 和 WL 选择精确地只对一个 page 中想写的单元施加高场。未选 block 的 WL 浮空，被沟道耦合跟着升高，所以不被擦除。</p>`),
+    math: B(`$$J_{GIDL}\\propto E^2\\exp\\!\\left(-\\frac{B_{btbt}}{E}\\right),\\qquad V_{ch}(t)\\approx (V_{ers}-V_{\\text{loss}})\\left(1-e^{-t/\\tau}\\right)$$<p>τ reflects GIDL current charging the channel+BL capacitance (compact-model principle in Malavena 2018). Subsequent hole tunneling: \\(\\;dV_t/dt=-J_h/C_b,\\;J_h=A E^2 e^{-B_h/E}\\).</p>`, `$$J_{GIDL}\\propto E^2\\exp\\!\\left(-\\frac{B_{btbt}}{E}\\right),\\qquad V_{ch}(t)\\approx (V_{ers}-V_{\\text{loss}})\\left(1-e^{-t/\\tau}\\right)$$<p>τ 由 GIDL 电流对沟道+BL 电容充电决定 (Malavena 2018 的紧凑模型思想)。随后空穴隧穿：\\(\\;dV_t/dt=-J_h/C_b,\\;J_h=A E^2 e^{-B_h/E}\\)。</p>`),
+    try: B(`<p>Adjust <b>Start Verase</b>: too low → multiple ISPE loops; too high → one pulse may pass, but over-erase deepens Vt and accelerates oxide damage. After erase, return to PROGRAM to write any WL again.</p>`, `<p>拖 <b>Verase 起始</b>：太低 → 需要多个 ISPE loop；太高 → 一次就过，但擦得过深 (over-erase) 并加速氧化层损伤。擦完后回到 PROGRAM 就可以重新写任何 WL。</p>`),
+    quiz: { q: B("Why does CuA 3D NAND use GIDL erase instead of raising the substrate as planar NAND does?", '3D NAND (CuA) 为什么用 GIDL 擦除，而不是像平面 NAND 那样抬高衬底？'), opts: [B("An n+ source plate and CMOS lie below the channel; there is no biasable p-well to supply holes", '沟道下方是 n+ source plate 和 CMOS，没有可加压并提供空穴的 p-阱'), B("GIDL uses less power", 'GIDL 更省电'), B("The substrate is too thick", '衬底太厚')], a: 0, fb: B("Correct: holes must be generated locally by band-to-band tunneling at select-gate edges.", '对：空穴必须现场"制造"——在选择栅边缘通过带间隧穿产生。') },
+    src: ['gidl', 'mdpi', 'mich3d', 'comp'] },
+  { id: 'rel', title: B("Reliability & recap", '可靠性与总结'), sub: B("Retention, P/E wear, and disturb → broader Vt distributions → RBER → controller ECC / read-retry", '保持、P/E 磨损、干扰 → Vt 分布展宽 → RBER → 主控 ECC / read-retry'),
+    view: 'slice', rows: ['r-mode', 'r-wl', 'r-ret', 'r-pe', 'r-shift'], scope: 'vt', run: false,
+    why: B(`<p><b>Retention</b>: electrons slowly leave SiN (thermal emission, lateral migration), shifting high states down and broadening distributions. <b>P/E wear</b>: each program/erase cycle creates tunnel-oxide traps, accelerating charge loss and adding noise. <b>Disturb</b>: program disturb, pass disturb, read disturb (prolonged Vread_pass), and capacitive coupling from neighboring WLs (interference).</p><p>These effects produce <b>overlapping Vt distributions → RBER</b>. Controllers respond with <b>LDPC ECC</b>, <b>read-retry</b> (adjusting R<sub>k</sub>), refresh, and wear leveling. <b>Full signal path:</b> controller command → I/O → FSM → pumps/regulators → row-decoder HV switches → W word lines → SiN charge in GAA cells ↔ BL → page buffer/S/A → column decoder → I/O.</p>`, `<p><b>保持 (retention)</b>：SiN 中的电子缓慢流失 (热激发、横向迁移)，高态下移、分布变宽。<b>P/E 磨损</b>：每次编程/擦除在 tunnel oxide 中产生陷阱 → 加速流失、增加噪声。<b>干扰</b>：program disturb、pass disturb、read disturb (Vread_pass 长期作用)、相邻 WL 的电容耦合 (interference)。</p>
+<p>结果都体现为 <b>Vt 分布的重叠 → RBER</b>。主控用 <b>LDPC ECC</b>、<b>read-retry</b> (调整 R<sub>k</sub>)、刷新、磨损均衡应对。<b>总结链路：</b>主控命令 → I/O → FSM → 泵/稳压器 → 行译码器 HV 开关 → W 字线 → GAA 单元 SiN 中的电荷 ↔ BL → page buffer/S/A → 列译码 → I/O。</p>`),
+    math: B(`$$t_{ret}\\propto \\exp\\!\\left(\\frac{E_a}{k_B T}\\right)\\quad(\\text{Arrhenius accelerated bake}),\\qquad \\text{RBER}=\\frac{\\#\\text{error bits}}{\\#\\text{bits}}$$<p class="note">The retention/wear model is <b>illustrative</b> (ΔVt ∝ (Vt−Ver)·ln(1+t)·(1+PE/2500)), showing trends rather than fitting a specific device.</p>`, `$$t_{ret}\\propto \\exp\\!\\left(\\frac{E_a}{k_B T}\\right)\\quad(\\text{Arrhenius 加速烘烤}),\\qquad \\text{RBER}=\\frac{\\#\\text{错误比特}}{\\#\\text{比特}}$$<p class="note">本步的保持/磨损模型是<b>示意性的</b> (ΔVt ∝ (Vt−Ver)·ln(1+t)·(1+PE/2500))，仅用于展示趋势，不是任何器件的拟合模型。</p>`),
+    try: B(`<p>Set retention to 10 years and P/E to 3000: high states shift down and RBER crosses the ECC line. Then make the <b>Read offset</b> negative (read-retry) and watch RBER fall.</p>`, `<p>把保持时间拉到 10 年、P/E 拉到 3000：看高态下移、RBER 越过 ECC 线；再把 <b>读参考偏移</b> 往负方向调 (read-retry)，看 RBER 回落。</p>`),
+    quiz: { q: B("After retention loss, what most effectively lowers RBER without rewriting data?", '保持一段时间后，最有效的"不改数据就降 RBER"的手段是？'), opts: [B("Read-retry: lower read references to follow the shifted distributions", 'read-retry：把读参考电平向下移以跟随下移的分布'), B("Raise Vpgm", '提高 Vpgm'), B("Erase several more times", '多擦除几次')], a: 0, fb: B("Correct: the controller adjusts R_k using a lookup table or an adaptive algorithm—this is read-retry.", '对：主控按查表或自适应算法调整 R_k，就是 read-retry。') },
+    src: ['cai', 'comp', 'lee', 'mich', 'vend', 'wiki'] },
+];
+const SHOTS = {
+  die: { tx: 0.2, ty: 0.9, tz: 2.2, az: 0.62, el: 0.52, size: 13.2 },
+  dieX: { tx: 0.2, ty: 4.4, tz: 2.0, az: 0.62, el: 0.42, size: 23 },
+  cua: { tx: 0.6, ty: 0.8, tz: 2.0, az: 0.5, el: 0.92, size: 15.5 },
+  array: { tx: 0.2, ty: 2.4, tz: 1.8, az: 0.72, el: 0.4, size: 11.5 },
+  arrayX: { tx: -1.0, ty: 5.6, tz: 1.4, az: 0.72, el: 0.3, size: 15.5 },
+  cell: { tx: 60, ty: -0.1, tz: 0, az: 0.6, el: 0.42, size: 9.8 },
+  cellX: { tx: 60, ty: 0, tz: 0, az: 0.6, el: 0.3, size: 12.5 },
+  slice: { tx: 28.7, ty: 4.5, tz: -0.6, az: 0.3, el: 0.2, size: 13.8 },
+};
+
+// ================= UI: trail, controls, why box, scope, readouts, tooltip =================
+let CUR = 0, SCOPE = 'bus', WHYTAB = 'why';
+const QUIZANS = {};
+const ICON = {
+  play: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3v10l8-5z"/></svg>',
+  pause: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="2.6" height="10" rx=".6"/><rect x="9.4" y="3" width="2.6" height="10" rx=".6"/></svg>',
+  check: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>',
+  pulse: '<svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 11h3V4.5h7V11h3"/></svg>',
+};
+function setBtn(el, html) { if (el._h !== html) { el.innerHTML = html; el._h = html; } }
+function scopePal() {
+  return document.body.classList.contains('light')
+    ? { fg: '#111113', tx2: '#3e3f44', mu: '#66686e', dim: '#b4b4ba', grid: 'rgba(17,17,19,.07)', base: '#c8c8cd', tr: '#111113', tr2: '#55565c', acc: '#2f6fbd', cur: 'rgba(47,111,189,.10)', fill: 'rgba(17,17,19,.09)', warn: '#9a6a10', warnDim: 'rgba(154,106,16,.3)', ok: '#22704f', bad: '#b02a43', ver: '#b4b4ba' }
+    : { fg: '#f2f2f3', tx2: '#bdbdc0', mu: '#8a8c92', dim: '#55555b', grid: 'rgba(255,255,255,.055)', base: '#3a3a3e', tr: '#f2f2f3', tr2: '#a9a9ad', acc: '#4a8ad6', cur: 'rgba(74,138,214,.13)', fill: 'rgba(242,242,243,.13)', warn: '#d9a441', warnDim: 'rgba(217,164,65,.3)', ok: '#5fc39c', bad: '#e5566f', ver: '#55555b' };
+}
+let SC = scopePal();
+const STATE_COL = ['#94a3b8', '#60a5fa', '#22d3ee', '#34d399', '#a3e635', '#facc15', '#fb923c', '#f43f5e'];
+const BLCOL = ['#38bdf8', '#f472b6', '#a3e635', '#fbbf24'];
+function toast(msg, ms = 3800) { toast.msg = msg; const t = $('toast'); t.textContent = tr(typeof msg === 'function' ? msg() : msg); t.style.opacity = 1; toast.until = SIM.t + ms / 1000 * Math.max(1, SIM.speed); }
+function tickToast() { if (toast.until && SIM.t > toast.until) { $('toast').style.opacity = 0; toast.until = 0; } }
+function renderTrail() {
+  $('steps').innerHTML = STEPS.map((s, i) => { const title = tr(s.title), parts = title.split(/[:：]/); return `<div class="st ${i === CUR ? 'cur' : i < CUR ? 'done' : ''}" data-i="${i}" role="button" tabindex="0" aria-label="${t('step')} ${i + 1}: ${title}"><div class="nd">${i < CUR ? ICON.check : String(i + 1).padStart(2, '0')}</div><div><div class="tt">${parts[0]}</div><div class="sb">${(LANG === 'en' && s.id === 'rel') ? 'Retention · wear · read-retry' : (parts.slice(1).join(':').trim() || tr(s.sub))}</div></div></div>`; }).join('');
+}
+function renderStepTitle() { const s = STEPS[CUR]; $('steptitle').innerHTML = `<span class="ix">${String(CUR + 1).padStart(2, '0')} / 08</span>${tr(s.title)}<small>${tr(s.sub)}</small>`; }
+$('steps').addEventListener('click', e => { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } });
+$('steps').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } } });
+function renderChips() { $('cmdseq').innerHTML = OPR.chips.map((c, i) => `<span class="${i === OPR.chip ? 'on' : i < OPR.chip ? 'done' : ''}">${c}</span>`).join(''); }
+// ---------- why box ----------
+function renderWhy() {
+  const s = STEPS[CUR]; const b = $('whybody');
+  document.querySelectorAll('#whytabs button').forEach(x => x.classList.toggle('on', x.dataset.t === WHYTAB));
+  if (WHYTAB === 'why') b.innerHTML = tr(s.why);
+  else if (WHYTAB === 'math') b.innerHTML = tr(s.math);
+  else if (WHYTAB === 'ex') b.innerHTML = tr(s.try);
+  else if (WHYTAB === 'quiz') { const q = s.quiz; b.innerHTML = `<div class="quiz"><div class="q">${tr(q.q)}</div><div class="opts">${q.opts.map((o, i) => `<button data-i="${i}">${String.fromCharCode(65 + i)}. ${tr(o)}</button>`).join('')}</div><div class="fb" id="qfb"></div></div>`; }
+  else if (WHYTAB === 'src') b.innerHTML = tr(B(`<p class="note">Sources for this step (public references; numerical values are typical):</p><ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.55">${s.src.map(k => `<li>${tr(SRC[k])}</li>`).join('')}</ol>`, `<p class="note">本步引用 (全部为公开文献；数值标注为典型值)：</p><ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.55">${s.src.map(k => `<li>${tr(SRC[k])}</li>`).join('')}</ol>`)) + (CUR === STEPS.length - 1 ? tr(B(`<p class="note" style="margin-top:6px"><b>Simplifications and variations:</b> geometry is scaled down and uses far fewer layers than real devices (100–300+); FN/GIDL use compact analytical models; sensing uses ideal RC discharge; TLC uses a single full-sequence program pass (real devices often use multiple passes); retention/wear is illustrative. Vendors differ in FG vs CT, CuA/PUC/COP/Xtacking, coding, and voltage. This lesson does not represent a specific product.</p>`, `<p class="note" style="margin-top:6px"><b>简化与差异说明：</b>几何按比例缩小、层数远少于真实器件 (真实 100–300+ 层)；FN/GIDL 为紧凑解析模型；感测用理想 RC 放电；TLC 采用单遍全序列编程 (真实器件常用多遍)；保持/磨损模型为示意。各厂商在 FG vs CT、CuA/PUC/COP/Xtacking、编码、电压上各不相同——本课不代表任何具体产品。</p>`)) : '');
+  if (WHYTAB === 'quiz' && QUIZANS[CUR] != null) renderQuizFeedback();
+  if (window.renderMathInElement) try { renderMathInElement(b, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { }
+}
+$('whytabs').addEventListener('click', e => { const t = e.target.closest('button'); if (!t) return; userTook(); WHYTAB = t.dataset.t; renderWhy(); });
+function renderQuizFeedback() {
+  const q = STEPS[CUR].quiz, i = QUIZANS[CUR];
+  document.querySelectorAll('.quiz button').forEach((x, j) => { x.classList.toggle('right', j === q.a && i === q.a); x.classList.toggle('wrong', j === i && i !== q.a); });
+  $('qfb').innerHTML = i === q.a ? `<span class="ok">${t('correct')}</span> ${tr(q.fb)}` : tr(B('<span class="no">Incorrect</span> Try again. Hint: see the “Why” tab.', '<span class="no">不对</span>　再想想。提示：看「原理」标签页。'));
+}
+$('whybody').addEventListener('click', e => { const b = e.target.closest('.quiz button'); if (!b) return; userTook(); QUIZANS[CUR] = +b.dataset.i; renderQuizFeedback(); });
+// ---------- controls ----------
+function segBind(id, key, after) {
+  $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); SEL[key] = b.dataset.v; syncControls(); after && after(b.dataset.v); });
+}
+segBind('op', 'op', () => { });
+segBind('mode', 'mode', v => { if (OPR.running) abortOp(); resetBlock(v); toast(() => (tr(B(`Switched to ${v}: block reset (WL0–3 preprogrammed with random data; WL4–7 erased)`, `切换为 ${v}：block 已重置 (WL0–3 预写入随机数据，WL4–7 为擦除态)`)))); });
+segBind('page', 'page');
+const rng = (id, key, f, after) => $(id).addEventListener('input', e => { userTook(); SEL[key] = +e.target.value; syncControls(); after && after(); });
+rng('wl', 'wl'); rng('ispp', 'ispp', null, () => calcDisturb()); rng('vpass', 'vpass', null, () => calcDisturb()); rng('vread', 'vread'); rng('rshift', 'rshift'); rng('vers', 'vers'); rng('ret', 'ret'); rng('pe', 'pe');
+$('vg').addEventListener('input', e => { userTook(); CELLSTEP.vg = +e.target.value; syncControls(); });
+$('bls').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); const k = +b.dataset.k; if (BLOCKMODE === 'TLC') SEL.data[k] = (SEL.data[k] + 1) % 8; else SEL.slc[k] ^= 1; syncControls(); });
+$('btnRun').addEventListener('click', () => { userTook(); runCurrent(); });
+$('btnStepOp').addEventListener('click', () => { userTook(); if (STEPS[CUR].id === 'cell') { CELLSTEP.vt = -1.6; CELLSTEP.pulses = 0; } else if (OPR.running) nextSeg(); });
+$('btnPause').addEventListener('click', () => { userTook(); SIM.paused = !SIM.paused; setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause); });
+$('speed').addEventListener('change', e => { userTook(); SIM.speed = +e.target.value; });
+$('btnExplode').addEventListener('click', () => { userTook(); toggleExplode(); });
+$('btnReset').addEventListener('click', () => { userTook(); user.daz = user.del = 0; user.zoom = 1; });
+$('btnTheme').addEventListener('click', () => { document.body.classList.toggle('light'); });
+$('btnAuto').addEventListener('click', () => { restartAutoplay(); });
+document.querySelectorAll('#scopetabs button').forEach(b => b.addEventListener('click', () => { userTook(); SCOPE = b.dataset.s; syncControls(); }));
+function runCurrent() {
+  const s = STEPS[CUR];
+  if (s.id === 'cell') { applyCellPulse(); return; }
+  const op = s.op || SEL.op; SEL.op = op;
+  if (startOp(op)) { if (op === 'READ' && SCOPE !== 'vt' && (s.id === 'read')) SCOPE = 'bl'; if (op === 'PROGRAM' && s.id === 'pgm' && SCOPE !== 'vt') SCOPE = 'ispp'; if (op === 'ERASE' && s.id === 'ers' && SCOPE !== 'vt') SCOPE = 'erase'; }
+  syncControls();
+}
+function applyCellPulse() {
+  const c = { vt: CELLSTEP.vt }; const E0 = fieldAt(1, CR.tun[0]); // V/cm per volt
+  // integrate FN using the cylinder tunnel field
+  let vt = CELLSTEP.vt, t = 0; const tp = PHY.tp;
+  while (t < tp) { const E = (CELLSTEP.vg - (vt + 1.6)) * E0; const r = fnJ(E) / PHY.Cb; if (r < 1e-3) break; let dv = r * (tp - t); if (dv > 0.03) { dv = 0.03; t += dv / r; } else t = tp; vt += dv; }
+  CELLSTEP.vt = vt; CELLSTEP.pulses++; CELLSTEP.flash = SIM.t;
+}
+function rangeFill(r) { r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100).toFixed(1) + '%'); }
+$('ctl').addEventListener('input', e => { if (e.target.type === 'range') rangeFill(e.target); });
+function syncControls() {
+  const s = STEPS[CUR];
+  ['r-op', 'r-mode', 'r-page', 'r-wl', 'r-bl', 'r-step', 'r-vpass', 'r-vread', 'r-shift', 'r-vers', 'r-vg', 'r-ret', 'r-pe'].forEach(id => $(id).style.display = s.rows.includes(id) ? '' : 'none');
+  if (s.id === 'read' && BLOCKMODE === 'SLC') $('r-page').style.display = 'none';
+  const on = (id, v) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  on('op', s.op || SEL.op); on('mode', BLOCKMODE); on('page', SEL.page);
+  $('wl').value = SEL.wl; $('wlv').textContent = 'WL' + SEL.wl + (WRITTEN[SEL.wl] ? tr(B(" Pgm", ' 已写')) : tr(B(" Er", ' 空')));
+  $('ispp').value = SEL.ispp; $('isppv').textContent = SEL.ispp.toFixed(2) + ' V';
+  $('vpass').value = SEL.vpass; $('vpassv').textContent = SEL.vpass.toFixed(1) + ' V';
+  $('vread').value = SEL.vread; $('vreadv').textContent = SEL.vread.toFixed(1) + ' V';
+  $('rshift').value = SEL.rshift; $('rshiftv').textContent = (SEL.rshift >= 0 ? '+' : '−') + Math.abs(SEL.rshift).toFixed(2) + ' V';
+  $('vers').value = SEL.vers; $('versv').textContent = SEL.vers.toFixed(1) + ' V';
+  $('vg').value = CELLSTEP.vg; $('vgv').textContent = CELLSTEP.vg.toFixed(1) + ' V';
+  $('ret').value = SEL.ret; $('retv').textContent = SEL.ret + tr(B(" yr", ' 年'));
+  $('pe').value = SEL.pe; $('pev').textContent = SEL.pe;
+  $('bls').innerHTML = [0, 1, 2, 3].map(k => { if (BLOCKMODE === 'TLC') { const st = SEL.data[k]; return tr(B(`<button data-k="${k}" title="BL${k}: click to change target state"><span><i class="sw" style="--c:${STATE_COL[st]}"></i>${STATES[st]}</span><small>BL${k}·${TLC_BITS[st].join('')}</small></button>`, `<button data-k="${k}" title="BL${k}：点击切换目标态"><span><i class="sw" style="--c:${STATE_COL[st]}"></i>${STATES[st]}</span><small>BL${k}·${TLC_BITS[st].join('')}</small></button>`)); } const b = SEL.slc[k]; return tr(B(`<button data-k="${k}" title="BL${k}: click to toggle"><span><i class="sw" style="--c:${b ? '#94a3b8' : '#f472b6'}"></i>${b ? 'Er' : 'P'}</span><small>BL${k}·${b}</small></button>`, `<button data-k="${k}" title="BL${k}：点击切换"><span><i class="sw" style="--c:${b ? '#94a3b8' : '#f472b6'}"></i>${b ? 'Er' : 'P'}</span><small>BL${k}·${b}</small></button>`)); }).join('');
+  const op = s.op || SEL.op;
+  setBtn($('btnRun'), s.id === 'cell' ? ICON.pulse + tr(B("Apply 15 µs gate pulse", '施加 15 µs 栅脉冲')) : OPR.running ? tr(B("<span class=\"spin\"></span>Running…", '<span class="spin"></span>运行中…')) : ICON.play + tr(B(`Run ${op}`, `运行 ${op}`)));
+  setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause);
+  document.querySelectorAll('#ctl input[type=range]').forEach(rangeFill);
+  $('btnRun').disabled = s.id !== 'cell' && OPR.running; $('btnRun').parentElement.style.display = s.run ? '' : 'none';
+  $('btnStepOp').title = s.id === 'cell' ? tr(B("Reset cell", '重置单元')) : tr(B("Skip to next phase", '跳到下一阶段'));
+  $('btnStepOp').setAttribute('aria-label', $('btnStepOp').title);
+  document.querySelectorAll('#scopetabs button').forEach(b => b.classList.toggle('on', b.dataset.s === SCOPE));
+}
+// ---------- disturb estimates ----------
+const DIST = { inh: 0, pass: 0, loops: 0, rd: 0 };
+function calcDisturb() {
+  const Vs = BLOCKMODE === 'SLC' ? 15.0 : 14.6, top = Vs + (BLOCKMODE === 'SLC' ? 2.0 : 5.4); let inh = -1.6, ps = -1.6, n = 0;
+  for (let V = Vs; V <= top + 1e-6; V += SEL.ispp) { inh = pgmPulse(inh, V, boostV(SEL.vpass, V), 1); ps = pgmPulse(ps, SEL.vpass, 0, 1); n++; }
+  DIST.inh = inh + 1.6; DIST.pass = ps + 1.6; DIST.loops = n;
+}
+function readDisturb(vp, nreads = 1e5) { const E = (vp + 1.6) / PHY.EOT; return fnJ(E) / PHY.Cb * 20e-6 * nreads; }
+// ---------- readouts ----------
+const roW = (t, a) => [...String(t).replace(/<[^>]+>/g, '')].reduce((w, c) => w + (c.charCodeAt(0) > 0x2e80 ? 12 : a), 0);
+function ro(pairs) { const h = pairs.map(([k, v]) => `<div${roW(k, 6.4) + roW(v, 7.3) > 142 ? ' class="w"' : ''}><span>${k}</span><b>${v}</b></div>`).join(''); if (h !== ro.last) { $('readouts').innerHTML = h; ro.last = h; } }
+function sci(x) { if (x <= 0) return '0'; const e = Math.floor(Math.log10(x)); return (x / 10 ** e).toFixed(1) + 'e' + e; }
+let RBERC = { key: '', v: 0 };
+function cachedRber(w, shift, tr) { const k = [w, shift, tr ? SEL.ret + ':' + SEL.pe : '', BLOCKMODE, SEL.page, WRITTEN[w], OPR.running ? OPCLK.toFixed(0) : 'idle'].join('|'); if (k !== RBERC.key) { RBERC.key = k; RBERC.v = popReadStats(w, shift, tr ? relTransform : null); } return RBERC.v; }
+function updateReadouts() {
+  const s = STEPS[CUR].id, w = SEL.wl, cells = CELLS[w];
+  if (s === 'sys') ro([['Page size (typ.)', '16 KiB + spare'], [tr(B("Interface (typ.)", '接口 (typ.)')), '1600 MT/s ×8'], [tr(B("t_xfer / page", 't_xfer 一页')), '≈ 10 µs'], ['tR / tPROG / tBERS', '50µs / 0.5ms / 3ms'], [tr(B("Command", '当前命令')), OPR.kind || '—'], ['R/B#', OPR.running && OPR.chip >= 3 ? '0 (Busy)' : '1 (Ready)']]);
+  else if (s === 'cua') ro([[tr(B("Peak WL voltage", 'WL 最高电压')), fmt(NODES.WLmax) + ' V'], [tr(B("BLKSEL gate", 'BLKSEL 栅压')), fmt(Math.max(NODES.WLmax + 3, 0)) + ' V'], ['SGD / SGS', fmt(NODES.SGD) + ' / ' + fmt(NODES.SGS) + ' V'], ['SL', fmt(NODES.SL) + ' V'], [tr(B("Pump stages (example)", '泵级数 (Dickson 示意)')), '~10–14'], [tr(B("Operation", '操作')), OPR.kind || '—']]);
+  else if (s === 'arr') ro([[tr(B("Model layers", '本模型层数')), '12 (SGS+DWL+8WL+DWL+SGD)'], [tr(B("Real devices (public)", '真实器件 (公开)')), tr(B("100 – 300+ layers", '100 – 300+ 层'))], [tr(B("Hole diameter (typ.)", '孔径 (typ.)')), '~100 nm'], [tr(B("WL thickness (typ.)", 'WL 层厚 (typ.)')), '~20–35 nm'], [tr(B("Selected page", '选中 page')), `Block1 · WL${w}`], ['block = ', tr(B("all strings between slits", 'slit 之间所有 string'))]]);
+  else if (s === 'cell') { const Et = fieldAt(CELLSTEP.vg - (CELLSTEP.vt + 1.6), CR.tun[0]), Eb = fieldAt(CELLSTEP.vg - (CELLSTEP.vt + 1.6), CR.blk[1]); ro([[tr(B("E_tunnel (inner)", 'E_tunnel (内)')), (Et / 1e6).toFixed(2) + ' MV/cm'], [tr(B("E_blocking (outer)", 'E_blocking (外)')), (Eb / 1e6).toFixed(2) + ' MV/cm'], [tr(B("Ratio (GAA)", '比值 (GAA)')), (Et / Math.max(Eb, 1)).toFixed(2) + '×'], ['J_FN', sci(fnJ(Et)) + ' A/cm²'], ['Vt', fmt(CELLSTEP.vt, 2) + ' V'], [tr(B("Pulses", '脉冲数')), CELLSTEP.pulses]]); }
+  else if (s === 'read') { const r = TR.lastRead; const bits = r && r.bits ? r.bits.join(' ') : '— — — —'; ro([[tr(B("Page / references", '页 / 参考电平')), (BLOCKMODE === 'SLC' ? 'SLC' : SEL.page) + ' · ' + refsFor().map(i => (BLOCKMODE === 'SLC' ? 'Vref' : 'R' + (i + 1))).join(',')], [tr(B("BL0..3 output", 'BL0..3 读出')), bits], [tr(B("Target bits", '真值 (目标)')), cells.map(c => trueBit(c.tgt)).join(' ')], [tr(B("WL state", 'WL 状态')), WRITTEN[w] ? tr(B("Programmed", '已编程')) : tr(B("Erased (all 1)", '擦除态 (全 1)'))], [tr(B("Page RBER (3072 cells)", '页 RBER (3072 cell)')), sci(cachedRber(w, SEL.rshift))], [tr(B("Read disturb /1e5 reads", 'Read disturb /1e5 次')), fmt(readDisturb(SEL.vread) * 1000, 2) + ' mV']]); }
+  else if (s === 'pgm') { const st = ISPP && OPR.kind === 'PROGRAM' ? ISPP : null; const h = st && st.history.length ? st.history[st.history.length - 1] : null; ro([['ISPP loop', h ? h.k + 1 : '—'], ['Vpgm', h ? h.Vpgm.toFixed(2) + ' V' : '—'], [tr(B("Verify pending", '未通过 verify')), h ? h.remaining + ' / ' + POPS[w].filter(c => c.tgt > 0).length : '—'], [tr(B("Inhibit V_boost", '禁止沟道 V_boost')), fmt(boostV(SEL.vpass, h ? h.Vpgm : 18)) + ' V'], ['Program disturb ΔVt', fmt(DIST.inh * 1000, 0) + ' mV'], ['Pass disturb ΔVt', fmt(DIST.pass * 1000, 0) + ' mV'], [tr(B("Page RBER", '页 RBER')), WRITTEN[w] || (st && st.done) ? sci(cachedRber(w, 0)) : '—'], [tr(B("tPROG estimate", 'tPROG 估计')), ((h ? h.k + 1 : DIST.loops) * (15 + (BLOCKMODE === 'TLC' ? 7 : 1) * 4) / 1000).toFixed(2) + ' ms']]); }
+  else if (s === 'ers') { const L = TR.eraseLoops[TR.eraseLoops.length - 1]; ro([['ISPE loop', OPR.kind === 'ERASE' ? ERS.loop + 1 : '—'], ['Verase', OPR.kind === 'ERASE' ? ERS.V.toFixed(1) + ' V' : '—'], [tr(B("Channel Vch", '沟道电位 Vch')), fmt(NODES.Vch[0]) + ' V'], [tr(B("Block peak Vt", 'block 最高 Vt')), L ? fmt(L.mx, 2) + ' V' : '—'], [tr(B("EV failures", 'EV 未通过')), L ? L.fail + ' cells' : '—'], [tr(B("Result", '结果')), OPR.result && OPR.kind === 'ERASE' ? tr(OPR.result.msg) || '' : '—']]); }
+  else if (s === 'rel') { const rb = cachedRber(w, SEL.rshift, true); ro([[tr(B("RBER (illustrative)", 'RBER (示意)')), sci(rb)], [tr(B("LDPC range (typ.)", 'LDPC 可纠 (typ.)')), '~1e-3 – 1e-2'], [tr(B("Status", '状态')), rb < 3e-3 ? tr(B("<span class=\"pos\">ECC correctable</span>", '<span class="pos">ECC 可纠</span>')) : tr(B("<span class=\"neg\">Exceeded → read-retry</span>", '<span class="neg">超出 → read-retry</span>'))], [tr(B("Retention / P/E", '保持 / P/E')), SEL.ret + tr(B(" yr / ", ' 年 / ')) + SEL.pe], ['Read disturb /1e5', fmt(readDisturb(SEL.vread) * 1000, 2) + ' mV'], [tr(B("Read offset", '读参考偏移')), fmt(SEL.rshift, 2) + ' V']]); }
+}
+// ---------- scope ----------
+const sc = $('scope'); let sg = sc.getContext('2d'), SW = 0, SH = 0;
+function sizeScope() { const r = sc.getBoundingClientRect(); const dpr = Math.min(2, devicePixelRatio || 1); SW = sc.clientWidth; SH = sc.clientHeight; sc.width = Math.round(r.width * dpr); sc.height = Math.round(r.height * dpr); sg.setTransform(sc.width / SW, 0, 0, sc.height / SH, 0, 0); }
+const CAP = {
+  bus: B("ONFI timing (illustrative): CLE/ALE select command/address latching on WE# rising edges; R/B# low = die busy (tR/tPROG/tBERS).", 'ONFI 时序 (示意)：CLE/ALE 决定 WE# 上升沿锁存的是命令还是地址；R/B# 低 = die 内部忙 (tR/tPROG/tBERS)。'),
+  bias: B("Live node voltages (color = voltage scale). PROGRAM boosts inhibited-string Vch; ERASE raises the channel with GIDL holes.", '各节点实时电压 (颜色 = 电压色标)。注意 PROGRAM 时禁止 string 的沟道 Vch 被升压，ERASE 时沟道被 GIDL 空穴抬高。'),
+  field: B("Radial E(r) in the cylindrical GAA stack: highest at inner tunnel oxide, lowest at outer blocking oxide. Dashed: planar field for the same stack (illustrative).", '圆柱 GAA 叠层中的径向场 E(r)：tunnel 内侧最高、blocking 外侧最低；虚线 = 同叠层平板结构的场 (示意)。'),
+  vt: B("Vt distribution of 3072 cells on the selected WL (log count). Solid: verify levels PV; dashed: read references R_k; dots: the 4 visible cross-section cells.", '选中 WL 上 3072 个单元的 Vt 分布 (对数计数)。实线 = verify 电平 PV，虚线 = 读参考 R_k；圆点 = 剖面中 4 个可见单元。'),
+  bl: B("BL voltage vs device time: a conducting cell discharges BL below trip → sensed as “Vt < R_k”.", 'BL 电压 vs 时间 (device time)：导通单元的 BL 放电越过 trip 点 → 读为 "Vt < R_k"。'),
+  ispp: B("ISPP staircase: each Vpgm pulse (bar) is followed by verify; curve = cells still below verify (log count).", 'ISPP 阶梯：每个 Vpgm 脉冲 (柱) 后接 verify；曲线 = 尚未通过 verify 的单元数 (对数)。'),
+  erase: B("Erase: GIDL raises channel potential Vch(t), one trace per ISPE loop. Diamonds: block peak Vt after verify; dashed: EV.", '擦除：沟道电位 Vch(t) 被 GIDL 抬升 (每个 ISPE loop 一条)；菱形 = 每次 verify 后的 block 最高 Vt，虚线 = EV。'),
+};
+function axes(g, x0, y0, x1, y1) { g.strokeStyle = SC.base; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, Math.round(y1) + .5); g.lineTo(x1, Math.round(y1) + .5); g.stroke(); }
+function ytk(g, s, y, x0, x1) { g.strokeStyle = SC.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, Math.round(y) + .5); g.lineTo(x1, Math.round(y) + .5); g.stroke(); txt(g, s, x0 - 6, y + 4, SC.mu, 'right'); }
+function swatch(g, items, x, y) { g.font = '12px "Public Sans","Noto Sans SC",sans-serif'; g.textAlign = 'left'; let w = 0; items.forEach(([c, t, kind]) => w += 14 + g.measureText(t).width + 12); let cx = x - w; items.forEach(([c, t, kind]) => { g.fillStyle = c; g.strokeStyle = c; if (kind === 'line') { g.lineWidth = 1.5; g.beginPath(); g.moveTo(cx, y - 4); g.lineTo(cx + 10, y - 4); g.stroke(); } else g.fillRect(cx + 2, y - 8, 6, 8); g.fillStyle = SC.mu; g.fillText(t, cx + 14, y); cx += 14 + g.measureText(t).width + 12; }); }
+function txt(g, s, x, y, col = SC.mu, al = 'left', f = '11px "JetBrains Mono","Noto Sans SC",monospace') { g.fillStyle = col; g.font = f; g.textAlign = al; g.fillText(s, x, y); }
+function drawScope() {
+  const g = sg, W = SW, H = SH; g.clearRect(0, 0, W, H);
+  SC = scopePal(); const fg = SC.fg;
+  $('scopecap').textContent = tr(CAP[SCOPE]);
+  const L = 36, Rm = 4, T = 16, bottom = H - 22;
+  if (SCOPE === 'bus') {
+    const rows = ['CLE', 'ALE', 'WE#', 'RE#', 'DQ', 'R/B#'], cyc = TR.bus.length ? TR.bus : [{ t: 'cmd', v: '—' }]; const n = cyc.length + 2, cw = (W - L - Rm) / n, rh = (bottom - T) / rows.length;
+    rows.forEach((r, i) => txt(g, r, 0, T + rh * (i + .62), SC.tx2));
+    const busy = OPR.running && /^t/.test(OPR.chips[OPR.chip] || '');
+    for (let i = 0; i < rows.length; i++) {
+      const y0 = T + rh * i + rh * .2, y1 = T + rh * i + rh * .8; g.strokeStyle = i === 4 ? SC.tr2 : SC.tr; g.lineWidth = 1.25; g.beginPath();
+      for (let j = 0; j < n; j++) {
+        const c = cyc[j - 1], x = L + j * cw, act = c && j - 1 <= TR.busIdx; let hi = 0;
+        if (!c) hi = i === 2 || i === 3 || i === 5 ? 1 : 0;
+        else if (i === 0) hi = c.t === 'cmd' ? 1 : 0; else if (i === 1) hi = c.t === 'addr' ? 1 : 0; else if (i === 2) hi = c.t === 'dout' ? 1 : 0.5; else if (i === 3) hi = c.t === 'dout' ? 0.5 : 1; else if (i === 5) hi = busy ? 0 : 1;
+        if (i === 4) { if (c) { g.moveTo(x + 3, (y0 + y1) / 2); g.lineTo(x + 7, y0); g.lineTo(x + cw - 7, y0); g.lineTo(x + cw - 3, (y0 + y1) / 2); g.lineTo(x + cw - 7, y1); g.lineTo(x + 7, y1); g.closePath(); } continue; }
+        if (hi === 0.5) { const xm = x + cw * .5; g.lineTo(x, y0); g.lineTo(x + cw * .2, y0); g.lineTo(x + cw * .2, y1); g.lineTo(xm, y1); g.lineTo(xm, y0); g.lineTo(x + cw, y0); }
+        else { const y = hi ? y0 : y1; if (j === 0) g.moveTo(x, y); else g.lineTo(x, y); g.lineTo(x + cw, y); }
+      }
+      g.globalAlpha = 1; g.stroke();
+    }
+    cyc.forEach((c, j) => { const x = L + (j + 1) * cw; txt(g, c.v, x + cw / 2, T + rh * 4.6, j <= TR.busIdx ? fg : SC.dim, 'center', `500 ${Math.max(9, Math.min(11, cw / 4))}px "JetBrains Mono"`); });
+    if (TR.bus.length) { const x = L + (TR.busIdx + 1.5) * cw; g.fillStyle = SC.cur; g.fillRect(x - cw / 2, T, cw, bottom - T); g.fillStyle = SC.acc; g.fillRect(x - cw / 2, T - 3, cw, 1); }
+    txt(g, OPR.kind ? OPR.kind + ' · ' + (OPR.chips[OPR.chip] || '') : tr(B("Press Run for bus timing", '点「运行」生成时序')), W - 4, H - 4, SC.mu, 'right');
+  } else if (SCOPE === 'bias') {
+    const w = SEL.wl, items = [['WL' + w + ' sel', NODES.WL[w]], ['WL unsel', NODES.WL[(w + 1) % 8]], ['SGD', NODES.SGD], ['SGS', NODES.SGS], ['SL', NODES.SL], ...[0, 1, 2, 3].map(k => ['BL' + k, NODES.BL[k]]), ...[0, 1, 2, 3].map(k => ['Vch' + k, NODES.Vch[k]])];
+    const bh = (bottom - T) / items.length, x0 = 62, x1 = W - 44;
+    for (let v = 0; v <= 20; v += 5) { const x = x0 + (x1 - x0) * v / 22; g.strokeStyle = SC.grid; g.beginPath(); g.moveTo(Math.round(x) + .5, T); g.lineTo(Math.round(x) + .5, bottom); g.stroke(); txt(g, v + ' V', x, H - 6, SC.mu, 'center'); }
+    items.forEach(([n, v], i) => { const y = T + i * bh; txt(g, n, 0, y + bh * .7, SC.tx2); g.fillStyle = vCss(v); g.fillRect(x0, y + bh * .18, Math.max(1, (x1 - x0) * clamp(v / 22)), bh * .64); txt(g, fmt(v, 1), x0 + (x1 - x0) * clamp(v / 22) + 4, y + bh * .7, fg); });
+  } else if (SCOPE === 'field') {
+    const V = CELLSTEP.vg - (CELLSTEP.vt + 1.6), r0 = CR.tun[0], r1 = CR.blk[1], Emax = 14e6;
+    const X = r => L + (W - L - Rm) * (r - r0 + 2) / (r1 - r0 + 4), Y = E => bottom - (bottom - T) * clamp(E / Emax);
+    [['tun', SC.tx2], ['sin', '#3fbf8f'], ['blk', SC.mu]].forEach(([id, c]) => { g.fillStyle = c; g.globalAlpha = .07; g.fillRect(X(CR[id][0]), T, X(CR[id][1]) - X(CR[id][0]), bottom - T); g.globalAlpha = 1; txt(g, id === 'tun' ? 'tunnel' : id === 'sin' ? 'SiN' : 'block', (X(CR[id][0]) + X(CR[id][1])) / 2, T + 10, id === 'sin' ? '#3fbf8f' : SC.mu, 'center'); });
+    axes(g, L, T, W - Rm, bottom);
+    for (let e = 0; e <= 12; e += 4) { ytk(g, e, Y(e * 1e6), L, W - Rm); }
+    txt(g, 'MV/cm', 0, T - 4, SC.mu); txt(g, 'r (nm)', W - Rm, H - 2, SC.mu, 'right');
+    g.strokeStyle = SC.tr; g.lineWidth = 1.6; g.beginPath(); for (let r = r0; r <= r1; r += .25) { const E = fieldAt(V, r); r === r0 ? g.moveTo(X(r), Y(E)) : g.lineTo(X(r), Y(E)); } g.stroke();
+    // planar comparison
+    g.setLineDash([4, 4]); g.strokeStyle = SC.warn; g.lineWidth = 1.2; g.beginPath();
+    const Ep = V / (PLANAR_EOT * 1e-7); for (let r = r0; r <= r1; r += .25) { const E = r < CR.tun[1] || r >= CR.blk[0] ? Ep : Ep * 3.9 / 7.5; r === r0 ? g.moveTo(X(r), Y(E)) : g.lineTo(X(r), Y(E)); } g.stroke(); g.setLineDash([]);
+    [r0, CR.tun[1], CR.sin[1], r1].forEach(r => txt(g, r, X(r), bottom + 13, SC.mu, 'center'));
+    txt(g, `E_tun=${(fieldAt(V, r0) / 1e6).toFixed(1)}  E_blk=${(fieldAt(V, r1) / 1e6).toFixed(1)} MV/cm`, W - Rm, T + 26, fg, 'right'); swatch(g, [[SC.tr, tr(B("GAA cylinder", 'GAA 圆柱')), 'line'], [SC.warn, tr(B("Planar (dashed)", '平板 (虚线)')), 'line']], W - Rm, T + 42);
+  } else if (SCOPE === 'vt') {
+    const w = SEL.wl, rel = STEPS[CUR].id === 'rel', pop = POPS[w], vmin = -3.5, vmax = 6, NB = 120; const hist = new Float32Array(NB);
+    for (let i = 0; i < pop.length; i++) { const v = rel ? relTransform(pop[i], i) : pop[i].vt; const b = Math.floor((v - vmin) / (vmax - vmin) * NB); if (b >= 0 && b < NB) hist[b]++; }
+    const X = v => L + (W - L - Rm) * (v - vmin) / (vmax - vmin), Y = c => bottom - (bottom - T) * clamp(Math.log10(1 + c) / Math.log10(1 + pop.length / 6));
+    axes(g, L, T, W - Rm, bottom);
+    for (let v = -3; v <= 6; v++) txt(g, v, X(v), bottom + 13, SC.mu, 'center'); txt(g, 'Vt (V)', W - Rm, H - 0, SC.mu, 'right'); txt(g, 'log N', 0, T - 4, SC.mu);
+    const Lv = LEVELS[BLOCKMODE];
+    g.fillStyle = SC.fill; g.strokeStyle = SC.tr; g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(vmin), bottom); for (let i = 0; i < NB; i++) { const v = vmin + (i + .5) * (vmax - vmin) / NB; g.lineTo(X(v), Y(hist[i])); } g.lineTo(X(vmax), bottom); g.closePath(); g.fill(); g.stroke();
+    Lv.PV.forEach((p, i) => { if (p == null) return; g.strokeStyle = STATE_COL[i]; g.globalAlpha = .7; g.lineWidth = 1; g.beginPath(); g.moveTo(X(p), T); g.lineTo(X(p), bottom); g.stroke(); g.globalAlpha = 1; txt(g, BLOCKMODE === 'TLC' ? STATES[i] : 'P', X(p) + 2, T + 8, STATE_COL[i]); });
+    const refs = refsFor(); Lv.R.forEach((r, i) => { const used = refs.includes(i); g.setLineDash([3, 3]); g.strokeStyle = used ? SC.warn : SC.warnDim; g.lineWidth = used ? 1.4 : 1; g.beginPath(); g.moveTo(X(r + SEL.rshift), T + 12); g.lineTo(X(r + SEL.rshift), bottom); g.stroke(); g.setLineDash([]); });
+    g.strokeStyle = SC.mu; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(X(EV), T); g.lineTo(X(EV), bottom); g.stroke(); g.setLineDash([]); txt(g, 'EV', X(EV) - 3, T + 8, SC.mu, 'right');
+    CELLS[w].forEach((c, k) => { g.fillStyle = BLCOL[k]; g.beginPath(); g.arc(X(c.vt), bottom - 6 - k * 6, 3, 0, 7); g.fill(); g.strokeStyle = SC.bg || 'rgba(0,0,0,.6)'; g.lineWidth = 1; g.stroke(); });
+    if (rel || STEPS[CUR].id === 'read') { const rb = cachedRber(w, SEL.rshift, rel); txt(g, 'RBER ' + sci(rb), W - Rm, T + 22, rb > 3e-3 ? SC.bad : SC.ok, 'right', '500 12px "JetBrains Mono"'); }
+    if (!WRITTEN[w] && !OPR.running) txt(g, tr(B(`WL${w}: erased`, `WL${w}: 擦除态`)), W - Rm, T + 38, SC.mu, 'right');
+  } else if (SCOPE === 'bl') {
+    const tmax = PHY.tStrobe * 1.25, X = t => L + (W - L - Rm) * t / tmax, Y = v => bottom - (bottom - T) * clamp(v / 0.8);
+    axes(g, L, T, W - Rm, bottom); for (let v = 0; v <= .8; v += .2) ytk(g, v.toFixed(1), Y(v), L, W - Rm); txt(g, 'V_BL', 0, T - 4, SC.mu); txt(g, 't (µs)', W - Rm, H - 0, SC.mu, 'right');
+    for (let t = 0; t <= 3; t += 1) txt(g, t, X(t * 1e-6), bottom + 13, SC.mu, 'center');
+    g.strokeStyle = SC.mu; g.lineWidth = 1; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(L, Y(PHY.trip)); g.lineTo(W - Rm, Y(PHY.trip)); g.stroke(); g.beginPath(); g.moveTo(X(PHY.tStrobe), T); g.lineTo(X(PHY.tStrobe), bottom); g.stroke(); g.setLineDash([]); txt(g, 'trip', W - Rm, Y(PHY.trip) - 4, SC.mu, 'right'); txt(g, 'strobe', X(PHY.tStrobe) + 4, bottom - 6, SC.mu);
+    TR.bl.forEach((trace, n) => { const last = n === TR.bl.length - 1; trace.pts.forEach((pts, k) => { g.strokeStyle = BLCOL[k]; g.globalAlpha = last ? 1 : .25; g.lineWidth = last ? 1.6 : 1; g.beginPath(); pts.forEach(([t, v], i) => i ? g.lineTo(X(t), Y(v)) : g.moveTo(X(t), Y(v))); g.stroke(); }); g.globalAlpha = 1; if (last) txt(g, tr(B("Reference ", '参考 ')) + trace.ref, L + 6, T + 8, fg); });
+    [0, 1, 2, 3].forEach(k => txt(g, 'BL' + k, W - Rm - (3 - k) * 30, T + 24, BLCOL[k], 'right'));
+    if (!TR.bl.length) txt(g, tr(B("Press Run for BL discharge", '点「运行」查看 BL 放电曲线')), (L + W) / 2, (T + bottom) / 2, SC.mu, 'center', '12px "Public Sans","Noto Sans SC"');
+  } else if (SCOPE === 'ispp') {
+    const h = TR.ispp || [], n = Math.max(12, h.length + 1), Vlo = 13, Vhi = 22, X = i => L + (W - L - Rm) * i / n, Y = v => bottom - (bottom - T) * clamp((v - Vlo) / (Vhi - Vlo));
+    axes(g, L, T, W - Rm, bottom); for (let v = 14; v <= 22; v += 2) ytk(g, v, Y(v), L, W - Rm); txt(g, 'Vpgm', 0, T - 4, SC.mu); txt(g, 'loop', W - Rm, H - 0, SC.mu, 'right');
+    h.forEach((p, i) => { const x = X(i), w = (W - L - Rm) / n; g.fillStyle = vCss(p.Vpgm); g.fillRect(x + w * .1, Y(p.Vpgm), w * .45, bottom - Y(p.Vpgm)); g.fillStyle = SC.ver; g.fillRect(x + w * .6, Y(Vlo + 1.6), w * .25, bottom - Y(Vlo + 1.6)); });
+    const tot = POPS[SEL.wl].length; const Yc = c => bottom - (bottom - T) * clamp(Math.log10(1 + c) / Math.log10(1 + tot));
+    g.strokeStyle = SC.tr; g.lineWidth = 1.5; g.beginPath(); h.forEach((p, i) => { const x = X(i + .8); i ? g.lineTo(x, Yc(p.remaining)) : g.moveTo(x, Yc(p.remaining)); }); g.stroke();
+    if (h.length) { const p = h[h.length - 1]; txt(g, tr(B(`loop ${p.k + 1} · Vpgm ${p.Vpgm.toFixed(2)} V · pending ${p.remaining}`, `loop ${p.k + 1} · Vpgm ${p.Vpgm.toFixed(2)} V · 未过 ${p.remaining}`)), W - Rm, T + 8, fg, 'right'); }
+    swatch(g, [[vCss(18), 'Vpgm'], [SC.ver, 'verify'], [SC.tr, tr(B("Pending", '未通过数')), 'line']], W - Rm, T + 24);
+    if (!h.length) txt(g, tr(B("Press Run for ISPP staircase", '点「运行」生成 ISPP 阶梯')), (L + W) / 2, (T + bottom) / 2, SC.mu, 'center', '12px "Public Sans","Noto Sans SC"');
+  } else if (SCOPE === 'erase') {
+    const tmax = PHY.tpe, X = t => L + (W - L - Rm) * t / tmax, Y = v => bottom - (bottom - T) * clamp((v + 4) / 26);
+    axes(g, L, T, W - Rm, bottom); for (let v = 0; v <= 20; v += 5) ytk(g, v, Y(v), L, W - Rm); txt(g, 'V', 0, T - 4, SC.mu); txt(g, 't (ms)', W - Rm, H - 0, SC.mu, 'right');
+    TR.erase.forEach((tr, n) => { g.strokeStyle = vCss(tr.V); g.lineWidth = 1.5; g.beginPath(); tr.pts.forEach(([t, v], i) => i ? g.lineTo(X(t), Y(v)) : g.moveTo(X(t), Y(v))); g.stroke(); txt(g, 'Vers ' + tr.V.toFixed(0) + ' V', X(tmax) - 4, Y(tr.V - 1) - 4, vCss(tr.V), 'right'); });
+    g.strokeStyle = SC.mu; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(L, Y(EV)); g.lineTo(W - Rm, Y(EV)); g.stroke(); g.setLineDash([]); txt(g, 'EV ' + EV + ' V', L + 4, Y(EV) - 4, SC.mu);
+    TR.eraseLoops.forEach((l, i) => { const x = L + 30 + i * 26, y = Y(l.mx); g.fillStyle = l.mx < EV + 0.6 && l.fail / l.n < 5e-4 ? SC.ok : SC.bad; g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 5, y); g.lineTo(x, y + 5); g.lineTo(x - 5, y); g.fill(); txt(g, 'L' + (i + 1), x, y + 15, fg, 'center'); });
+    if (!TR.erase.length) txt(g, tr(B("Press Run to erase", '点「运行」开始擦除')), (L + W) / 2, (T + bottom) / 2, SC.mu, 'center', '12px "Public Sans","Noto Sans SC"');
+  }
+}
+// ---------- tooltip ----------
+let TIP = null;
+function showTip(info, x, y) { TIP = { info, x, y }; const t = $('tip'); t.style.left = clamp(x + 14, 0, 1440 - 300) + 'px'; t.style.top = clamp(y + 10, 60, 810 - 160) + 'px'; t.style.opacity = 1; updateTip(); }
+function updateTip() { if (!TIP) return; const i = TIP.info; const v = i.v ? tr(i.v()) : ''; const h = tr(B(`<h5>${tr(i.name)}</h5><div class="tf">${tr(i.fn)}</div>${v ? `<div class="tv"><span>Current value</span>${v}</div>` : ''}`, `<h5>${tr(i.name)}</h5><div class="tf">${tr(i.fn)}</div>${v ? `<div class="tv"><span>当前值</span>${v}</div>` : ''}`)); if (h !== updateTip.last) { $('tip').innerHTML = h; updateTip.last = h; } }
+function hideTip() { TIP = null; $('tip').style.opacity = 0; }
+
+// ================= DIRECTOR, AUTOPLAY, LOOP =================
+let AUTOPLAY = !INTERACTIVE_START, LT = 0, EVI = 0, EVLAST = 0, VIEW = '', HIDEAT = -1;
+const GROUPS = { die: DIE.g, cua: DIE.g, array: DIE.g, slice: SL.g, cell: CELL.g };
+let DIEFADE = 1;
+function userTook() { if (AUTOPLAY) { AUTOPLAY = false; $('btnAuto').classList.remove('on'); setBtn($('btnAuto'), ICON.play + tr(B("Autoplay", '自动演示'))); } }
+// selected-WL highlight (UI layer): array view = bbox outline, slice view = solid accent frame on the cut face
+const SELBOX = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0x4a8ad6, transparent: true, opacity: .95 }));
+SELBOX.visible = false; SELBOX.renderOrder = 5; scene.add(SELBOX);
+const SELFRAME = new THREE.Group(); SELFRAME.visible = false; scene.add(SELFRAME);
+const _sfm = new THREE.MeshBasicMaterial({ color: 0x4a8ad6, transparent: true, opacity: 1, depthTest: false });
+SELFRAME.renderOrder = 6;
+for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), _sfm); m.renderOrder = 6; SELFRAME.add(m); }
+const _sb = new THREE.Box3(), _sv = new THREE.Vector3(), _sc = new THREE.Vector3(), _selLift = new THREE.Color();
+function selColor() { return document.body.classList.contains('light') ? '#2f6fbd' : '#5b9cf0'; }
+function placeSelBox(mesh) {
+  mesh.updateWorldMatrix(true, false); _sb.setFromObject(mesh); _sb.getCenter(SELBOX.position); _sb.getSize(_sv);
+  SELBOX.scale.set(_sv.x + .08, _sv.y + .08, _sv.z + .08); SELBOX.visible = true;
+  SELBOX.material.color.set(selColor()); SELBOX.material.opacity = .8 + .2 * Math.sin(SIM.t * 3);
+}
+function placeSelFrame(mesh) {
+  mesh.updateWorldMatrix(true, false); _sb.setFromObject(mesh); _sb.getCenter(_sc); _sb.getSize(_sv);
+  const t = .06, z = _sb.max.z + .02, [top, bot, lft, rgt] = SELFRAME.children;
+  top.position.set(_sc.x, _sb.max.y + t / 2, z); top.scale.set(_sv.x + 2 * t, t, t);
+  bot.position.set(_sc.x, _sb.min.y - t / 2, z); bot.scale.set(_sv.x + 2 * t, t, t);
+  lft.position.set(_sb.min.x - t / 2, _sc.y, z); lft.scale.set(t, _sv.y, t);
+  rgt.position.set(_sb.max.x + t / 2, _sc.y, z); rgt.scale.set(t, _sv.y, t);
+  _sfm.color.set(selColor()); _sfm.opacity = .9 + .1 * Math.sin(SIM.t * 3); SELFRAME.visible = true;
+}
+function goStep(i, dur = 1.7) {
+  i = clamp(i, 0, STEPS.length - 1); if (OPR.running && i !== CUR) abortOp();
+  CUR = i; const s = STEPS[i];
+  SCOPE = s.scope; WHYTAB = 'why'; hideTip();
+  if (s.op) SEL.op = s.op;
+  if (s.id === 'pgm' && WRITTEN[SEL.wl]) { const f = WRITTEN.indexOf(false); if (f >= 0) SEL.wl = f; }
+  if (s.id === 'rel' && !WRITTEN.some(x => x)) { resetBlock(BLOCKMODE); calcDisturb(); toast(() => (tr(B("The reliability lesson needs programmed data: WL0–3 have been reprogrammed instantly.", '可靠性演示需要已写入的数据：已瞬时重新写入 WL0–3。'))), 4000); }
+  if ((s.id === 'read' || s.id === 'rel') && !WRITTEN[SEL.wl]) { const f = WRITTEN.indexOf(true); if (f >= 0) SEL.wl = f; }
+  for (const ch in EXV) if (EXT[ch]) setExplode(ch, 0, 0.9);
+  const v = s.view; const g = GROUPS[v]; g.visible = true;
+  if (VIEW && GROUPS[VIEW] !== g) HIDEAT = SIM.t + dur + 0.05;
+  VIEW = v; shot(SHOTS[v], dur);
+  DIEFADE = v === 'cua' ? 0.0 : 1;
+  renderStepTitle();
+  renderTrail(); renderWhy(); syncControls(); updateReadouts(); sizeScope();
+  if (!OPR.running) { OPR.chips = []; renderChips(); OPR.phase = ''; OPR.dev = ''; }
+  if (s.id === 'cell') { CELLSTEP.vt = -1.6; CELLSTEP.pulses = 0; }
+}
+function toggleExplode() {
+  const ch = VIEW === 'cell' ? 'cell' : VIEW === 'array' ? 'tier' : (VIEW === 'die' || VIEW === 'cua') ? 'die' : null;
+  if (!ch) { toast(() => (tr(B("This cross-section is already cut open. Use steps 1, 3, or 4 for an exploded view.", '剖面视图本身已经是"切开"的结构；去第 1、3、4 步看爆炸视图。')))); return; }
+  const on = !EXT[ch]; setExplode(ch, on ? 1 : 0, on ? 2.0 : 1.2);
+  const xs = { die: 'dieX', cua: 'dieX', array: 'arrayX', cell: 'cellX' }[VIEW];
+  shot(SHOTS[on ? xs : VIEW], on ? 2.0 : 1.4); $('btnExplode').classList.toggle('on', on);
+}
+function onOpDone() {
+  const r = OPR.result; syncControls();
+  if (OPR.kind === 'READ' && r && r.bits) { const tb = CELLS[SEL.wl].map(c => trueBit(c.tgt)); const ok = r.bits.every((b, k) => b === tb[k]); toast(() => (tr(B(`READ complete: BL0..3 = ${r.bits.join(' ')} ${ok ? '✓ matches written data' : '✗ bit errors (try read-reference offset / Vpass)'}`, `READ 完成：BL0..3 = ${r.bits.join(' ')} ${ok ? '✓ 与写入数据一致' : '✗ 有位错误 (试试读参考偏移/Vpass)'}`)))); }
+  else if (OPR.kind === 'PROGRAM' && ISPP) toast(() => (tr(B(`PROGRAM complete: ${ISPP.k} ISPP loops, final Vpgm ${ISPP.Vpgm.toFixed(2)} V; WL${SEL.wl} programmed`, `PROGRAM 完成：${ISPP.k} 个 ISPP loop，最终 Vpgm ${ISPP.Vpgm.toFixed(2)} V，WL${SEL.wl} 已写入`))));
+  else if (OPR.kind === 'ERASE') toast(() => (tr(B("ERASE complete: ", 'ERASE 完成：')) + (r ? tr(r.msg) : '') + tr(B(" — entire block erased; any WL can be programmed again", ' — 整个 block 回到擦除态，可以重新编程任何 WL'))));
+}
+// ---------- autoplay timeline: [delay after previous event (s), fn]; fn may return false to wait ----------
+const idle = () => !OPR.running;
+const TL = [
+  [0.0, () => goStep(0, 0)],
+  [0.8, () => { SEL.op = 'READ'; startOp('READ'); syncControls(); }],
+  [2.4, () => { setExplode('die', 1, 2.2); shot(SHOTS.dieX, 2.2); }],
+  [3.4, () => { setExplode('die', 0, 1.4); shot(SHOTS.die, 1.6); }],
+  [0.2, idle], [0.6, () => goStep(1)],
+  [1.0, () => startOp('READ')], [0.2, idle],
+  [0.6, () => goStep(2)], [1.2, () => { setExplode('tier', 1, 2.0); shot(SHOTS.arrayX, 2.0); }],
+  [2.0, () => { SEL.wl = 4; syncControls(); }], [1.4, () => { SEL.wl = 2; syncControls(); }],
+  [0.6, () => { setExplode('tier', 0, 1.2); shot(SHOTS.array, 1.4); }],
+  [1.8, () => goStep(3)], [1.6, () => { setExplode('cell', 1, 2.0); shot(SHOTS.cellX, 2.0); }],
+  [2.8, () => { setExplode('cell', 0, 1.2); shot(SHOTS.cell, 1.4); }],
+  [1.6, () => { WHYTAB = 'math'; renderWhy(); applyCellPulse(); }], [0.7, applyCellPulse], [0.7, applyCellPulse], [0.7, applyCellPulse],
+  [1.2, () => goStep(4)], [1.0, () => startOp('READ')], [0.2, idle],
+  [0.8, () => { SCOPE = 'vt'; syncControls(); }],
+  [1.4, () => goStep(5)], [0.9, () => startOp('PROGRAM')], [5.0, () => { SCOPE = 'ispp'; syncControls(); }], [0.2, idle],
+  [0.6, () => { SCOPE = 'vt'; syncControls(); }],
+  [1.6, () => goStep(6)], [0.9, () => startOp('ERASE')], [0.2, idle],
+  [0.6, () => { SCOPE = 'vt'; syncControls(); }],
+  [1.4, () => { goStep(7); }],
+  [0.6, () => { RAMP = { key: 'ret', from: 0, to: 10, t0: LT, dur: 3 }; }],
+  [3.4, () => { RAMP = { key: 'pe', from: 0, to: 3000, t0: LT, dur: 2.5 }; }],
+  [3.0, () => { RAMP = { key: 'rshift', from: 0, to: -0.25, t0: LT, dur: 1.5 }; }],
+  [2.6, () => { WHYTAB = 'src'; renderWhy(); }],
+  [3.0, () => { userTook(); toast(() => (tr(B("Autoplay complete — explore freely: choose steps, adjust sliders, or click any structure.", '自动演示结束 —— 现在可以自由操作：点步骤、拖动滑块、点任意结构。'))), 6000); }],
+];
+let RAMP = null;
+function tickAuto(dt) {
+  LT += dt;
+  if (RAMP) { const k = smooth((LT - RAMP.t0) / RAMP.dur); SEL[RAMP.key] = RAMP.key === 'pe' ? Math.round(lerp(RAMP.from, RAMP.to, k) / 100) * 100 : RAMP.key === 'ret' ? Math.round(lerp(RAMP.from, RAMP.to, k) * 2) / 2 : Math.round(lerp(RAMP.from, RAMP.to, k) * 20) / 20; syncControls(); if (k >= 1) RAMP = null; }
+  while (EVI < TL.length && LT - EVLAST >= TL[EVI][0]) { const r = TL[EVI][1](); if (r === false) break; EVLAST = LT; EVI++; }
+}
+function restartAutoplay() {
+  abortOp(); resetBlock('TLC'); Object.assign(SEL, { op: 'READ', mode: 'TLC', page: 'LP', wl: 2, data: [0, 4, 7, 1], ispp: 0.3, vpass: 9.5, vread: 6, rshift: 0, vers: 17, ret: 0, pe: 0 });
+  TR.bl = []; TR.ispp = []; TR.erase = []; TR.eraseLoops = []; TR.bus = []; calcDisturb();
+  AUTOPLAY = true; LT = 0; EVI = 0; EVLAST = 0; RAMP = null; user.daz = user.del = 0; user.zoom = 1;
+  $('btnAuto').classList.add('on'); setBtn($('btnAuto'), tr(B("<span class=\"live\"></span>Playing", '<span class="live"></span>演示中')));
+}
+// ---------- per-frame scene updates ----------
+const DIELAB = { die: ['ctrl', 'pads', 'stack', 'stair', 'bl', 'cua'], cua: ['ctrl', 'rowdec', 'pb', 'cold', 'pump', 'reg', 'fsm', 'sp'], array: ['stack', 'stair', 'bl', 'sp'] };
+function setLab(L, html, c) { L.set(html); if (c) L.el.style.setProperty('--c', c); }
+function sceneUpdate(dt) {
+  const s = STEPS[CUR]; SELBOX.visible = false; SELFRAME.visible = false;
+  // die
+  if (DIE.g.visible) {
+    updateDie(dt, NODES);
+    for (const m of DIE.arrayMats) { if (!m.transparent) { m.transparent = true; m.needsUpdate = true; } m.opacity = damp(m.opacity, DIEFADE, 5, dt); m.depthWrite = m.opacity > .6; m.visible = m.opacity > .03; }
+    const fadeOn = DIE.arrayMats[0].opacity > .5; if (DIE.pil) DIE.pil.visible = fadeOn; if (DIE.metal) DIE.metal.visible = fadeOn;
+    let selMesh = null, selOn = false;
+    if (VIEW === 'array') { const T = DIE.tiers[DIE.selBlock][SEL.wl + 2]; T.mat.emissive.set('#7fb6f0').multiplyScalar(.7 + .2 * Math.sin(SIM.t * 4)); selMesh = T.m; selOn = fadeOn; }
+    if (selOn) placeSelBox(selMesh);
+    const show = DIELAB[VIEW] || [];
+    for (const k in DIE.lab) DIE.lab[k].show = show.includes(k) && EXV.die < .05 ? 1 : 0;
+    // bus packets
+    const act = PKT.active && (VIEW === 'die' || VIEW === 'cua');
+    DIE.packets.forEach((p, i) => { p.visible = act && i < 8; if (!p.visible) return; const u = PKT.dir > 0 ? PKT.u : 1 - PKT.u; const c = DIE.busCurves[i === 0 ? (PKT.col === '#22d3ee' ? 1 : PKT.col === '#fbbf24' ? 2 : 6) : 6 + (i % 8)]; c.getPointAt(clamp(u), p.position); p.position.add(DIE.ctrl.position); p.material.color.set(PKT.col); });
+    DIE.pkLabel.show = act ? 1 : 0; DIE.pkLabel.set(`<span style="color:${PKT.col}">${PKT.txt}</span>`);
+  }
+  // slice
+  if (SL.g.visible) {
+    updateSliceStatic();
+    { const T = SL.tiers[SEL.wl + 1]; T.mat.emissive.add(_selLift.set('#4a8ad6').multiplyScalar(.18)); if (VIEW === 'slice') placeSelFrame(T.m); }
+    const w = SEL.wl, ph = OPR.running && OPR.cur ? (OPR.cur.label.zh || OPR.cur.label) : '';
+    for (let i = 0; i < 10; i++) { const v = tierV(i); setLab(SL.wlLab[i], `${tierName(i)} <span class="v">${fmt(v)} V</span>`, vCss(v)); SL.wlLab[i].show = (i === w + 1 || i === 0 || i === 9 || NODES.op || s.id === 'read') ? 1 : 0.55; SL.wlLab[i].el.classList.toggle('sel', i === w + 1); }
+    for (let k = 0; k < 4; k++) {
+      setLab(SL.blLab[k], `BL${k} <span class="v">${fmt(NODES.BL[k], NODES.BL[k] >= 10 ? 1 : 2)} V</span>`, vCss(NODES.BL[k])); SL.blLab[k].show = 1;
+      setLab(SL.vchLab[k], `V<sub>ch</sub> ${fmt(NODES.Vch[k])} V`); SL.vchLab[k].show = (NODES.op === 'PROGRAM' || NODES.op === 'ERASE') && Math.abs(NODES.Vch[k]) > 0.3 ? 1 : 0;
+      const c = CELLS[w][k], st = decodeState(c.vt, BLOCKMODE);
+      setLab(SL.vtLab[k], B(`V<sub>t</sub> ${fmt(c.vt, 2)} · <b style="color:${STATE_COL[BLOCKMODE === 'TLC' ? st : st * 3]}">${LEVELS[BLOCKMODE].names[st].split(' ')[0]}</b>${c.lock && s.id === 'pgm' ? ' <span class="s">· locked</span>' : ''}`, `V<sub>t</sub> ${fmt(c.vt, 2)} · <b style="color:${STATE_COL[BLOCKMODE === 'TLC' ? st : st * 3]}">${LEVELS[BLOCKMODE].names[st].split(' ')[0]}</b>${c.lock && s.id === 'pgm' ? ' <span class="s">· 锁定</span>' : ''}`)); SL.vtLab[k].show = (s.id === 'read' || s.id === 'pgm' || s.id === 'rel') ? 1 : 0;
+      let pbt = '';
+      if (OPR.kind === 'READ' && TR.lastRead) { const r = TR.lastRead; pbt = r.bits ? `bit=${r.bits[k]}` : `>${r.above[k]}`; }
+      else if (OPR.kind === 'PROGRAM' && ISPP) pbt = c.tgt === 0 ? B("Inhibit Vcc", '禁止 Vcc') : c.lock ? B("Locked", '已锁定') : B("Program 0 V", '编程 0 V');
+      setLab(SL.pbLab[k], pbt); SL.pbLab[k].show = pbt && (s.id === 'read' || s.id === 'pgm') ? 1 : 0;
+    }
+    setLab(SL.slLab, `SL <span class="v">${fmt(NODES.SL)} V</span>`, vCss(NODES.SL)); SL.slLab.show = 1;
+    SL.lab.rowdec.show = 1; SL.lab.pump.show = 1; SL.lab.cua.show = 1; SL.lab.pb.show = 0;
+    // particles
+    const em = []; const cx = [-0.17, 0.17], sx = [-0.285, 0.285];
+    if (ph.startsWith('BL 放电') && OPR.cur.I) OPR.cur.I.forEach((I, k) => { const n = Math.round(26 * I / PHY.Ion); if (n > 0) cx.forEach((d, j) => em.push({ n, a: [SL.PX[k] + d, -0.25, 0.06], b: [SL.PX[k] + d, 6.55, 0.06], period: 1.4, col: '#60a5fa', jy: 0.2, seed: k * 2 + j })); });
+    if (ph.startsWith('ISPP')) for (let k = 0; k < 4; k++) { const c = CELLS[w][k]; if (c.tgt === 0 || c.lock) continue; cx.forEach((d, j) => { em.push({ n: 14, a: [SL.PX[k] + d, yc(w + 1), 0.07], b: [SL.PX[k] + sx[j], yc(w + 1), 0.07], period: 0.55, col: '#60a5fa', jy: 0.26, seed: 10 + k * 2 + j, size: 1.1 }); em.push({ n: 6, a: [SL.PX[k] + d, 6.4, 0.06], b: [SL.PX[k] + d, yc(w + 1), 0.06], period: 1.5, col: '#60a5fa', jy: 0.05, seed: 30 + k * 2 + j }); }); }
+    if (ph.startsWith('擦除脉冲')) for (let k = 0; k < 4; k++) cx.forEach((d, j) => {
+      em.push({ n: 14, a: [SL.PX[k] + d, yc(0) + 0.12, 0.07], b: [SL.PX[k] + d, yc(5), 0.07], period: 1.3, col: '#fb7185', jy: 0.1, seed: 50 + k * 2 + j });
+      em.push({ n: 14, a: [SL.PX[k] + d, yc(9) - 0.12, 0.07], b: [SL.PX[k] + d, yc(4), 0.07], period: 1.3, col: '#fb7185', jy: 0.1, seed: 70 + k * 2 + j });
+      em.push({ n: 4, a: [SL.PX[k] + d, yc(9) - 0.1, 0.07], b: [SL.PX[k] + d, 6.6, 0.07], period: 0.9, col: '#60a5fa', jy: 0.05, seed: 90 + k * 2 + j });
+      em.push({ n: 4, a: [SL.PX[k] + d, yc(0) + 0.1, 0.07], b: [SL.PX[k] + d, -0.3, 0.07], period: 0.9, col: '#60a5fa', jy: 0.05, seed: 110 + k * 2 + j });
+      for (let i = 1; i <= 8; i++) em.push({ n: 3, a: [SL.PX[k] + d, yc(i), 0.08], b: [SL.PX[k] + sx[j], yc(i), 0.08], period: 0.8, col: '#fb7185', jy: 0.24, seed: 130 + i * 9 + k * 2 + j });
+    });
+    updateParticles(em, SIM.t);
+  }
+  // cell
+  if (CELL.g.visible) {
+    updateCell(SIM.t);
+    const lab = EXV.cell < .05 || EXV.cell > .95; for (const k in CELL.lab) CELL.lab[k].show = lab ? 1 : 0;
+    const E = fieldAt(CELLSTEP.vg - (CELLSTEP.vt + 1.6), CR.tun[0]);
+    CELL.fieldLab.set(`V<sub>g</sub> ${fmt(CELLSTEP.vg)} V · E<sub>tun</sub> ${(E / 1e6).toFixed(1)} MV/cm · J<sub>FN</sub> ${sci(fnJ(E))} A/cm² · V<sub>t</sub> ${fmt(CELLSTEP.vt, 2)} V`); CELL.fieldLab.show = 1;
+  }
+  renderTicker();
+}
+function renderTicker() {
+  const s = STEPS[CUR];
+  const tk = OPR.phase ? `${OPR.dev ? `<b>${tr(OPR.dev)}</b> · ` : ''}${tr(OPR.phase)}` : (s.id === 'cell' ? tr(B("<b>Cell experiment</b> · adjust Vg, apply a pulse", '<b>单元实验</b> · 调 Vg，施加脉冲')) : tr(B("<b>Ready</b> · press Run to start", '<b>就绪</b> · 点「运行」开始')));
+  if (tk !== sceneUpdate.tk) { $('tkphase').innerHTML = tk; sceneUpdate.tk = tk; }
+}
+// ---------- simulation step ----------
+function simStep(dt) {
+  SIM.t += dt;
+  if (AUTOPLAY) tickAuto(dt);
+  tickOp(dt); dampNodes(dt); tickExplode(); updateExplode(dt); updateRig();
+  if (HIDEAT > 0 && SIM.t >= HIDEAT) { for (const k in GROUPS) GROUPS[k].visible = GROUPS[k] === GROUPS[VIEW]; HIDEAT = -1; }
+  sceneUpdate(dt); tickToast();
+}
+let FR = 0;
+function render() {
+  placeCamera(); camera.updateMatrixWorld(); updateLabels(); renderer.render(scene, camera);
+  if (CAPTURE || FR % 2 === 0) drawScope(); if (CAPTURE || FR % 6 === 0) updateReadouts(); updateTip(); FR++;
+}
+// ---------- input ----------
+const ray = new THREE.Raycaster(); let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY; if (drag.moved > 4) { userTook(); user.daz -= dx * 0.006; user.del = clamp(user.del + dy * 0.004, -0.6, 0.9); } });
+canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (!d || d.moved > 4) return; pickAt(e.clientX, e.clientY); });
+canvas.addEventListener('wheel', e => { e.preventDefault(); userTook(); user.zoom = clamp(user.zoom * Math.exp(e.deltaY * 0.0012), 0.35, 2.5); }, { passive: false });
+function visibleObj(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+function pickAt(cx, cy) {
+  ray.setFromCamera(new THREE.Vector2(cx / VW * 2 - 1, -(cy / VH) * 2 + 1), camera);
+  const hits = ray.intersectObjects(PICK.filter(visibleObj), false).filter(h => !(h.object.material && h.object.material.opacity < 0.3));
+  if (!hits.length) { hideTip(); return; }
+  userTook(); const x = (cx - stageOX) / stageScale, y = (cy - stageOY) / stageScale; showTip(hits[0].object.userData.info, x, y);
+}
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return; if (e.key === 'ArrowRight') { userTook(); goStep(CUR + 1); } else if (e.key === 'ArrowLeft') { userTook(); goStep(CUR - 1); } else if (e.key === 'Escape') hideTip(); });
+addEventListener('resize', () => { layout(); sizeScope(); });
+new ResizeObserver(() => { sizeScope(); drawScope(); }).observe(sc);
+LANGHOOKS.push(() => {
+  renderTrail(); renderStepTitle(); renderWhy(); syncControls(); updateReadouts(); renderChips(); updateTip();
+  if (toast.until) $('toast').textContent = tr(typeof toast.msg === 'function' ? toast.msg() : toast.msg);
+  setBtn($('btnAuto'), AUTOPLAY ? tr(B('<span class="live"></span>Playing', '<span class="live"></span>演示中')) : ICON.play + t('autoplay'));
+  renderTicker(); updateLabels(); drawScope();
+});
+// ---------- boot ----------
+if (CAPTURE) document.body.classList.add('capture');
+layout(); sizeScope(); resetBlock('TLC'); calcDisturb();
+for (const k in GROUPS) GROUPS[k].visible = false;
+goStep(0, 0); for (const k in GROUPS) GROUPS[k].visible = GROUPS[k] === GROUPS[VIEW];
+if (AUTOPLAY) { $('btnAuto').classList.add('on'); setBtn($('btnAuto'), tr(B("<span class=\"live\"></span>Playing", '<span class="live"></span>演示中'))); } else setBtn($('btnAuto'), ICON.play + tr(B("Autoplay", '自动演示')));
+let last = performance.now(), acc = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (CAPTURE) return;
+  const el = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!SIM.paused) { acc += el * SIM.speed; let n = 0; while (acc >= SIM.dt && n < 8) { simStep(SIM.dt); acc -= SIM.dt; n++; } if (n === 8) acc = 0; }
+  render();
+}
+requestAnimationFrame(frame);
+window.__setTime = t => { let n = 0; while (SIM.t + SIM.dt / 2 < t && n < 100000) { simStep(SIM.dt); n++; } render(); return SIM.t; };
+
+window.__state = () => ({ lang: LANG, step: CUR, view: VIEW, op: OPR.kind, running: OPR.running, phase: tr(OPR.phase), auto: AUTOPLAY, ev: EVI, LT, wl: SEL.wl, written: WRITTEN.slice() });
+window.__goStep = i => goStep(i);
+window.__dbg = { DIE, SL, CELL, LABELS, STAGE, get CELLS() { return CELLS; }, get TR() { return TR; } };
+applyLang();
+{ const m = QS.match(/[?&]step=(\d+)/); if (m) goStep(Math.min(STEPS.length - 1, +m[1]), 0); }
+window.__ready = true;
+
+</script>
+</body></html>

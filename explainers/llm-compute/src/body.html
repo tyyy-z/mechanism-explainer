@@ -1,0 +1,40 @@
+<canvas aria-label="CPU / GPU 3D view" data-i18n-title="view3d" id="gl" title="CPU / GPU 3D view"></canvas>
+<div id="stage">
+<header id="hdr">
+<div class="brand"><div aria-hidden="true" class="logo"><svg fill="none" stroke-width="1.2" viewBox="0 0 18 18"><rect height="12" rx="1.5" stroke="currentColor" stroke-opacity=".6" width="12" x="3" y="3"></rect><rect height="6" stroke="#4a8ad6" stroke-width="1.5" width="6" x="6" y="6"></rect><path d="M6 1v2M9 1v2M12 1v2M6 15v2M9 15v2M12 15v2M1 6h2M1 9h2M1 12h2M15 6h2M15 9h2M15 12h2" stroke="currentColor" stroke-opacity=".5"></path></svg></div><div><h1>CPU · GPU · LLM token <span class="op">PREFILL · DECODE · KV CACHE</span></h1><p data-i18n="intro">Enter → CPU tokenization &amp; scheduling → PCIe → GPU SMs &amp; Tensor Cores → HBM: trace the next token</p></div></div>
+<div class="hdr-r"><div class="seg" id="lang"><button data-v="en">EN</button><button data-v="zh">中文</button></div><span class="badge" data-i18n="level">Intermediate · Architecture</span><span class="badge ghost" data-i18n="duration">15–20 min</span><button class="hbtn" data-i18n="autoplay" id="btnAuto">Autoplay</button><button aria-label="Toggle theme" class="hbtn icon" data-i18n-title="theme" id="btnTheme" title="Toggle theme"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"></path></svg></button></div>
+</header>
+<nav aria-label="Lesson steps" data-i18n-title="trailTitle" id="trail" title="Lesson steps"><h3 data-i18n="trail">Lesson <span>9 steps · Trail</span></h3><div id="steps"></div>
+<div data-i18n="hints" id="trailfoot">Keys <kbd>←</kbd><kbd>→</kbd> change steps · Drag to orbit · Scroll to zoom · Click structures for names, functions and typical values.<br/>Public sources only (NVIDIA white papers / papers / textbooks). Values are <b>typical public specifications</b> or <b>illustrative</b>, rather than exact product measurements.</div></nav>
+<div id="stageui">
+<div id="steptitle"></div>
+<div id="ticker"><div class="cmdseq" id="cmdseq"></div></div><div class="tk" id="tkphase"></div>
+<div id="legend"><!-- taste-skill-ignore: swatch colours must match the 3D kernel colours --><span class="q" data-i18n="gemm"><i style="background:#4a8ad6"></i>GEMM</span><span class="q" data-i18n="memory"><i style="background:#d9a441"></i>Memory-bound</span><span class="q" data-i18n="attention"><i style="background:#5fc39c"></i>Attention</span><span class="q" data-i18n="communication"><i style="background:#c77dba"></i>KV / Comm.</span></div>
+<div id="toast"></div>
+</div>
+<div id="labels"></div>
+<div id="viewbtns"><button aria-label="Explode" class="hbtn" data-i18n="explode" data-i18n-title="explodeTitle" id="btnExplode" title="Explode"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"></path><path d="M8 1v2M8 13v2"></path></svg>Explode</button><button aria-label="Reset view" class="hbtn" data-i18n="reset" data-i18n-title="resetTitle" id="btnReset" title="Reset view"><svg class="i" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.5-3.6"></path><path d="M3 2.5V5h2.5"></path></svg>Reset view</button></div>
+<section id="why"><div id="whytabs"><button class="on" data-i18n="why" data-t="why">Why</button><button data-i18n="math" data-t="math">Math</button><button data-i18n="ex" data-t="ex">Try</button><button data-i18n="quiz" data-t="quiz">Quiz</button><button data-i18n="src" data-t="src">Sources</button></div><div id="whybody"></div></section>
+<aside id="panel">
+<div class="card" id="ctl"><h4><span data-i18n="controls">Controls<span class="sub"></span></span><span id="speedw"><button aria-label="Pause / Resume" class="sbtn icon" data-i18n-title="pause" id="btnPause" title="Pause / Resume"></button><select aria-label="Playback speed" data-i18n-title="speed" id="speed" title="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option selected="" value="1">1×</option><option value="2">2×</option></select></span></h4>
+<div class="row" id="r-gpu"><label>GPU</label><div class="seg" id="gpu"><button data-v="A100">A100</button><button data-v="H100">H100</button><button data-v="B200">B200</button></div></div>
+<div class="row" id="r-model"><label data-i18n="modelLabel">Model</label><div class="seg sm" id="model"><button data-v="0">1B</button><button data-v="1">7B</button><button data-v="2">8B</button><button data-v="3">13B</button><button data-v="4">70B</button><button data-v="5">405B</button></div></div>
+<div class="row" id="r-prec"><label data-i18n="precLabel">Weight format</label><div class="seg" id="prec"><button data-v="FP16">FP16</button><button data-v="FP8">FP8</button><button data-v="INT4">INT4</button></div></div>
+<div class="row" id="r-batch"><label data-i18n="batchLabel">Batch</label><input aria-label="batch" data-i18n-title="batchLabel" id="batch" max="8" min="0" step="1" type="range" value="0"/><span class="rv" id="batchv">1</span></div>
+<div class="row" id="r-ctx"><label data-i18n="ctxLabel">Context</label><input aria-label="context" data-i18n-title="ctxLabel" id="ctx" max="8" min="0" step="1" type="range" value="3"/><span class="rv" id="ctxv">4K</span></div>
+<div class="row" id="r-prompt"><label data-i18n="promptLabel">Prompt tokens</label><input aria-label="prompt" data-i18n-title="promptLabel" id="prompt" max="8192" min="128" step="128" type="range" value="2048"/><span class="rv" id="promptv">2048</span></div>
+<div class="row" id="r-bw"><label data-i18n="bwLabel">HBM bandwidth</label><input aria-label="bandwidth" data-i18n-title="bwLabel" id="bw" max="10" min="0.5" step="0.05" type="range" value="3.35"/><span class="rv" id="bwv">3.35 TB/s</span></div>
+<div class="row" id="r-peak"><label data-i18n="peakLabel">Peak compute</label><input aria-label="peak" data-i18n-title="peakLabel" id="peak" max="4000" min="100" step="10" type="range" value="989"/><span class="rv" id="peakv">989 TF</span></div>
+<div class="row" id="r-tp"><label data-i18n="tpLabel">Tensor parallel</label><div class="seg" id="tp"><button data-v="1">1</button><button data-v="2">2</button><button data-v="4">4</button><button data-v="8">8</button></div></div>
+<div class="row" id="r-graphs"><label>CUDA Graphs</label><div class="seg" id="graphs"><button data-i18n="on" data-v="1">On</button><button data-i18n="off" data-v="0">Off (eager)</button></div></div>
+<div class="row" id="r-simd"><label data-i18n="simdLabel">CPU vector</label><div class="seg" id="simd"><button data-i18n="scalar" data-v="scalar">Scalar</button><button data-v="AVX2">AVX2</button><button data-v="AVX512">AVX-512</button></div></div>
+<div class="row" id="r-mp"><label data-i18n="mpLabel">Branch miss</label><div class="seg" id="mp"><button data-i18n="inject" data-v="1">Inject 1</button><button data-i18n="none" data-v="0">None</button></div></div>
+<div class="runrow"><button class="run" data-i18n="run" id="btnRun">Run</button><button aria-label="Next phase" class="sbtn icon" data-i18n-title="next" id="btnStepOp" title="Next phase"><svg class="i" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 3v10l7-5z"></path><rect height="10" width="1.4" x="11.5" y="3"></rect></svg></button></div>
+<div id="readouts"></div>
+</div>
+<div class="card" id="scopecard"><h4><span data-i18n="scope">Scope<span class="sub"></span></span></h4><div class="tabs" id="scopetabs"><button data-s="roof">Roofline</button><button data-i18n="scopehbm" data-s="hbm">HBM traffic</button><button data-i18n="scopekern" data-s="kern">Kernels</button><button data-i18n="scopeocc" data-s="occ">SM use</button></div>
+<canvas id="scope"></canvas><div id="scopecap"></div></div>
+</aside>
+<div id="tip"></div>
+</div>
+
