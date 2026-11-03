@@ -5,5 +5,5 @@ Trail (7 steps): 1 system: battery DC → inverter → motor → 9.04:1 gearbox 
 Sim (e_sim.js): dq model T = 1.5 p [λm iq + (Ld−Lq) id iq], λm from 42 Vpk/krpm, Rs 4.75 mΩ, Vdc 350 V, Imax ~1000 A_rms; Ld/Lq illustrative (state so).
 Scopes: phase currents + PWM, dq vector diagram, torque–speed envelope with operating point, efficiency/regen power.
 
-Done: REFS.md data table, 2 Commons refs.
+Done: REFS.md data table, 2 Commons refs, src/e_sim.js (dq torque, MTPA/field-weakening envelope with 200 kW cap, SVPWM duty, regen); node check: stall 441 N·m, base ~4,000–4,500 rpm, 200 kW to 18k rpm, regen −181 N·m @ 6k rpm half current.
 Next: more refs (rotor lamination, power module, film cap) → a_core (copy watch-movement a_core) → b_motor.js geometry (stator teeth extrude, instanced hairpins, rotor lamination extrude with pockets) → c_inverter.js → e_sim → lessons → itest/fid/hub.
