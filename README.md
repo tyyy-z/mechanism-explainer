@@ -24,6 +24,7 @@
 |---|---|---|
 | <img src="docs/turbofan.gif" width="300" alt="turbofan lesson"> | **[How a turbofan works](https://tyyy-z.github.io/mechanism-explainer/explainers/turbofan/)**<br>CFM56-7B-class two-spool high-bypass engine, 8 steps | Start the engine, then throttle it, light the combustor and push the compressor into surge. A live Brayton-cycle model drives the spools, temperatures and thrust. |
 | <img src="docs/compute.gif" width="300" alt="LLM compute lesson"> | **[One LLM token on CPU + GPU](https://tyyy-z.github.io/mechanism-explainer/explainers/llm-compute/)**<br>From the CPU core to HBM stacks and the KV cache, 9 steps | Run prefill and decode, and see where the roofline caps you. Watch KV-cache pages fill the HBM stacks. |
+| <img src="docs/watch.gif" width="300" alt="watch movement lesson"> | **[How a mechanical watch works](https://tyyy-z.github.io/mechanism-explainer/explainers/watch-movement/)**<br>ETA 2824 / NH35-class automatic movement, 7 steps | Wind the mainspring, follow the gear train to the Swiss lever escapement, change the beat rate and watch the timegrapher trace drift as the power reserve runs down. |
 
 Every lesson:
 - is **one self-contained `index.html`**, with three.js and fonts from a CDN and no build tools;

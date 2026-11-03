@@ -1,0 +1,1534 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How a Mechanical Watch Works · ETA 2824-2 / NH35-class interactive movement</title>
+<meta name="description" content="Interactive 3D automatic watch movement (ETA 2824-2 / Seiko NH35 class) with a live balance-wheel and escapement model. English / 中文.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<style>
+/* ===== Data-terminal instrument theme (tasteskill app sheet: data-terminal, dark) ===== */
+:root{
+  --ground:#171719;--surface:#131217;--raised:#212023;--hover:#1c1b1f;--border:#222224;--rule:#1b1a1f;--control:#3a3a3e;--control2:#4c4c50;
+  --tx:#ffffff;--tx2:#bdbdc0;--mu:#8a8c92;--ac:#4a8ad6;--ok:#44a282;--bad:#e5566f;--warn:#d9a441;
+  --pos-bg:#1b2828;--pos-ink:#5fc39c;--neg-bg:#2c1a20;--neg-ink:#e5566f;--warn-bg:#2a2416;--warn-ink:#d9a441;--neu-bg:#212023;--neu-ink:#bdbdc0;
+  --callout:rgba(19,18,23,.9);--callout-bd:#2e2d32;
+  --shadow:0 12px 28px rgba(0,0,0,.28);
+  --r-card:6px;--r-ctl:999px;--r-chip:4px;--ctl-h:34px;
+  --mono:"JetBrains Mono",ui-monospace,monospace;--sans:"Inter","Noto Sans SC",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* legacy aliases used by inline content */
+  --bg:var(--ground);--panel:var(--surface);--panel2:var(--raised);--bd:var(--border);
+}
+body.light{
+  --ground:#f2f2f3;--surface:#fbfbfb;--raised:#ececee;--hover:#f4f4f5;--border:#e1e1e4;--rule:#ebebed;--control:#c8c8cd;--control2:#a9a9b0;
+  --tx:#111113;--tx2:#3e3f44;--mu:#66686e;--ac:#2f6fbd;--ok:#2e8467;--bad:#c8364f;--warn:#9a6a10;
+  --pos-bg:#e3f2ec;--pos-ink:#22704f;--neg-bg:#f8e4e8;--neg-ink:#b02a43;--warn-bg:#f6eedc;--warn-ink:#80570c;--neu-bg:#ececee;--neu-ink:#3e3f44;
+  --callout:rgba(251,251,251,.94);--callout-bd:#d9d9dd;--shadow:0 10px 24px rgba(17,17,19,.12);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ground);color:var(--tx);font-family:var(--sans);font-size:13px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:0}
+#stage{position:fixed;left:0;top:0;width:1440px;height:810px;transform-origin:0 0;z-index:1;pointer-events:none}
+#stage>*{pointer-events:auto}
+#labels,#stageui{pointer-events:none!important}
+button{font-family:var(--sans);cursor:pointer;color:inherit}
+svg.i{width:14px;height:14px;flex:0 0 auto;display:block}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+#hdr{position:absolute;left:16px;top:10px;width:1408px;height:46px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:32px;height:32px;border-radius:var(--r-card);border:1px solid var(--control);display:grid;place-items:center;color:var(--tx)}
+.logo svg{width:18px;height:18px}
+.brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:0;line-height:20px}
+.brand h1 .op{color:var(--mu);font-weight:400}
+.brand p{margin:2px 0 0;font-size:12px;line-height:16px;color:var(--mu)}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.badge{font:500 12px/24px var(--sans);height:24px;padding:0 10px;border-radius:var(--r-ctl);background:var(--neu-bg);color:var(--neu-ink)}
+.badge.ghost{background:transparent;color:var(--mu);box-shadow:inset 0 0 0 1px var(--border)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.hbtn,.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 12px var(--sans);height:30px;padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s var(--ease),border-color .15s var(--ease),color .15s,transform .08s}
+.hbtn:hover,.sbtn:hover{background:var(--raised);border-color:var(--control2)}
+.hbtn:active,.sbtn:active,.run:active{transform:translateY(.5px) scale(.985)}
+.hbtn.on{border-color:var(--control2);background:var(--raised)}
+.hbtn.on .live{width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 1.6s var(--ease) infinite}
+@keyframes pulse{50%{opacity:.35}}
+.hbtn.icon,.sbtn.icon{width:30px;padding:0}
+
+/* ---------- trail ---------- */
+#trail{position:absolute;left:16px;top:66px;width:250px;height:730px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:14px 10px;overflow:hidden}
+#trail h3{margin:0 8px 12px;font:600 16px/20px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:baseline}
+#trail h3 span{font:400 12px var(--sans);color:var(--mu)}
+.st{position:relative;display:flex;gap:12px;padding:7px 8px;border-radius:var(--r-card);cursor:pointer;margin-bottom:2px;transition:background .15s var(--ease)}
+.st:hover{background:var(--hover)}
+.st .nd{flex:0 0 24px;height:24px;border-radius:50%;border:1px solid var(--control);display:grid;place-items:center;font:500 11px var(--mono);color:var(--mu);background:var(--surface);z-index:1;transition:border-color .25s,color .25s,background .25s}
+.st .nd svg{width:12px;height:12px}
+.st .tt{display:inline-block;position:relative;font:500 14px/20px var(--sans);color:var(--tx2);transition:color .2s}
+.st .tt::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:var(--ac);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
+.st .sb{font:400 12px/16px var(--sans);color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+#steps{max-height:556px;overflow-y:auto;overflow-x:hidden}
+.st>div:last-child{min-width:0}
+.st.cur{background:var(--raised)}
+.st.cur .tt{color:var(--tx);font-weight:600}
+.st.cur .tt::after{transform:scaleX(1)}
+.st.cur .nd{border-color:var(--tx);color:var(--tx)}
+.st.done .nd{border-color:var(--control);color:var(--tx2)}
+.st.done .tt{color:var(--tx2)}
+.st:not(:last-child)::after{content:"";position:absolute;left:19.5px;top:33px;bottom:-7px;width:1px;background:var(--border)}
+.st.done::after{background:var(--control)!important}
+#trailfoot{position:absolute;left:18px;right:18px;bottom:14px;font:400 12px/18px var(--sans);color:var(--mu);border-top:1px solid var(--border);padding-top:10px}
+#trailfoot b{color:var(--tx2);font-weight:500}
+kbd{font:500 11px var(--mono);border:1px solid var(--control);border-radius:var(--r-chip);padding:0 4px;color:var(--tx2)}
+
+/* ---------- 3D stage overlay ---------- */
+#stageui{position:absolute;left:278px;top:66px;width:758px;height:536px;border:1px solid var(--border);border-radius:var(--r-card)}
+#stageui::before{content:"";position:absolute;left:0;right:0;top:0;height:104px;border-radius:var(--r-card) var(--r-card) 0 0;background:linear-gradient(180deg,var(--ground) 0,var(--ground) 40%,transparent)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#steptitle{position:absolute;left:16px;top:10px;max-width:440px;font:600 21px/28px var(--sans);letter-spacing:-.2px;color:var(--tx);white-space:nowrap}
+#steptitle .ix{display:block;font:500 11px/16px var(--mono);letter-spacing:.2px;color:var(--mu);margin:0 0 1px}
+#steptitle small{display:block;font:400 13px/18px var(--sans);color:var(--tx2);margin-top:4px;max-width:430px;white-space:normal}
+#ticker{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.tk{font:400 12px/18px var(--mono);padding:5px 10px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx2);max-width:600px;text-align:right}
+#tkphase{position:absolute;left:12px;bottom:12px;max-width:400px;text-align:left;white-space:normal}
+#tkphase:empty{display:none}
+#ticker{max-width:290px}
+body.capture *{transition:none!important;animation:none!important}
+.tk b{color:var(--tx);font-weight:600}
+.cmdseq{display:flex;gap:0;height:26px;align-items:stretch;border:1px solid var(--callout-bd);border-radius:var(--r-chip);background:var(--callout);overflow:hidden}
+.cmdseq:empty{display:none}
+.cmdseq span{position:relative;font:500 12px/24px var(--mono);padding:0 9px;color:var(--mu);border-left:1px solid var(--callout-bd);transition:color .2s}
+.cmdseq span:first-child{border-left:0}
+.cmdseq span::after{content:"";position:absolute;left:9px;right:9px;bottom:3px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.cmdseq span.on{color:var(--tx)}
+.cmdseq span.on::after{transform:scaleX(1)}
+.cmdseq span.done{color:var(--tx2)}
+#legend{position:absolute;right:12px;bottom:12px;max-width:320px;display:flex;align-items:center;gap:8px;font:400 11px var(--mono);color:var(--mu);background:var(--callout);border:1px solid var(--callout-bd);border-radius:var(--r-chip);padding:5px 10px;height:26px}
+#legend .bar{width:120px;height:4px;border-radius:1px}
+#legend .q{display:flex;align-items:center;gap:5px;font-family:var(--sans);margin-left:6px}
+#legend .q i{width:6px;height:6px;border-radius:50%;display:inline-block}
+#viewbtns{position:absolute;left:836px;top:610px;width:200px;height:41px;display:flex;justify-content:flex-end;align-items:center;gap:4px;padding-right:10px;z-index:2}
+#viewbtns .hbtn{height:28px;padding:0 10px;border-color:transparent;color:var(--tx2)}
+#viewbtns .hbtn:hover{border-color:var(--control);color:var(--tx)}
+#viewbtns .hbtn.on{color:var(--tx);border-color:var(--control)}
+#toast{position:absolute;left:50%;bottom:68px;transform:translate(-50%,4px);font:500 13px/18px var(--sans);padding:9px 14px;border-radius:var(--r-card);background:var(--raised);color:var(--tx);box-shadow:var(--shadow);opacity:0;transition:opacity .25s var(--ease),transform .35s var(--ease);max-width:560px;text-align:center}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#toast[style*="opacity: 1"]{transform:translate(-50%,0)}
+
+/* ---------- 3D callouts ---------- */
+#labels{position:absolute;inset:0}
+.lb{position:absolute;transform:translate(-50%,-50%);font:500 12px/16px var(--sans);white-space:nowrap;padding:2px 7px;border-radius:var(--r-chip);background:var(--callout);border:1px solid var(--callout-bd);color:var(--tx);opacity:0;transition:opacity .25s var(--ease)}
+.lb.l{transform:translate(-100%,-50%)}
+.lb.r{transform:translate(0,-50%)}
+.lb.big{font:500 12px/16px var(--mono);padding:4px 9px}
+.lb .v{font:500 12px var(--mono);color:var(--tx2);margin-left:2px}
+.lb .s{color:var(--mu);font-weight:400}
+.lb b{font-weight:600}
+.lb sub{font-size:9px;line-height:0}
+.lb.dot{padding-left:6px}
+.lb.dot::before{content:"";display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c,#8a8c92);margin-right:6px;vertical-align:-1px}
+.lb.sel{border-color:var(--ac);box-shadow:inset 0 -1px 0 var(--ac)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+.lb.sel .v{color:var(--tx)}
+
+/* ---------- lesson box ---------- */
+#why{position:absolute;left:278px;top:610px;width:758px;height:186px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);display:flex;flex-direction:column;overflow:hidden}
+#whytabs{display:flex;gap:20px;padding:0 16px;border-bottom:1px solid var(--border);height:41px;align-items:stretch;padding-right:210px}
+.tabs button,#whytabs button{position:relative;font:500 13px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.tabs button:hover,#whytabs button:hover{color:var(--tx2)}
+.tabs button::after,#whytabs button::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.tabs button.on,#whytabs button.on{color:var(--tx)}
+.tabs button.on::after,#whytabs button.on::after{transform:scaleX(1)}
+#whybody{padding:12px 16px;flex:1;overflow:auto;font-size:13px;line-height:22px;color:var(--tx2)}
+#whybody p{margin:0 0 6px}
+#whybody b{color:var(--tx);font-weight:600}
+#whybody .ce{color:var(--warn)}
+#whybody::-webkit-scrollbar,#readouts::-webkit-scrollbar{width:8px}
+#whybody::-webkit-scrollbar-thumb{background:var(--control);border-radius:4px;border:2px solid var(--surface)}
+.katex{font-size:1.04em!important;color:var(--tx)}
+.mrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:2px 0 6px}
+.mrow .k{padding:4px 10px;background:var(--raised);border-radius:var(--r-chip)}
+.note{font-size:12px;color:var(--mu)}
+.quiz .q{font-weight:600;color:var(--tx);margin-bottom:8px}
+.quiz .opts{display:flex;flex-wrap:wrap;gap:6px}
+.quiz button{font:400 13px var(--sans);min-height:32px;padding:6px 12px;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx2);text-align:left;transition:background .15s,border-color .15s}
+.quiz button:hover{background:var(--raised);border-color:var(--control2);color:var(--tx)}
+.quiz button.right{border-color:var(--pos-ink);background:var(--pos-bg);color:var(--pos-ink)}
+.quiz button.wrong{border-color:var(--neg-ink);background:var(--neg-bg);color:var(--neg-ink)}
+.quiz .fb{margin-top:8px;font-size:13px}
+.quiz .fb .ok{color:var(--pos-ink);font-weight:600}.quiz .fb .no{color:var(--neg-ink);font-weight:600}
+
+/* ---------- right panel ---------- */
+#panel{position:absolute;left:1048px;top:66px;width:376px;height:730px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:12px 16px}
+.card h4{margin:0 0 8px;font:600 16px/30px var(--sans);color:var(--tx);display:flex;justify-content:space-between;align-items:center}
+.card h4 .sub{font:400 12px var(--sans);color:var(--mu);margin-left:8px}
+#ctl{flex:0 1 auto;min-height:0;overflow-y:auto}
+#speedw{display:flex;gap:6px;align-items:center}
+#speed{appearance:none;-webkit-appearance:none;height:30px;padding:0 26px 0 12px;font:500 12px var(--mono);background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8c92' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--tx);border:1px solid var(--control);border-radius:var(--r-ctl)}
+#speed option{background:var(--surface);color:var(--tx)}
+.row{display:flex;align-items:center;gap:10px;min-height:32px;margin:0}
+.row+.row{border-top:1px solid var(--rule)}
+.row>label{flex:0 0 96px;font:400 12px var(--sans);color:var(--mu)}
+.row>label sub{font-size:11px}
+.seg{display:flex;flex:1;gap:16px;height:32px;align-items:stretch}
+.seg button{position:relative;font:500 12px var(--sans);padding:0;border:none;background:none;color:var(--mu);transition:color .15s}
+.seg button:hover{color:var(--tx2)}
+.seg.sm{gap:10px}
+.seg button.dis{opacity:.35;pointer-events:none}
+.seg button::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:1px;background:var(--ac);transform:scaleX(0);transition:transform .25s var(--ease)}
+.seg button.on{color:var(--tx)}
+.seg button.on::after{transform:scaleX(1)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:22px;background:transparent;margin:0;cursor:pointer;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:1px;background:linear-gradient(90deg,var(--tx2) var(--p),var(--control) var(--p))}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;border-radius:50%;background:var(--tx);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--control2);transition:transform .12s var(--ease)}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.3)}
+input[type=range]::-moz-range-track{height:2px;background:var(--control)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--tx2)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--tx);border:2px solid var(--surface)}
+.rv{flex:0 0 62px;text-align:right;font:500 12px var(--mono);color:var(--tx)}
+.bls{display:flex;gap:6px;flex:1;padding:6px 0}
+.bls button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:0;font:500 12px/16px var(--mono);padding:3px 7px;white-space:nowrap;border-radius:var(--r-card);border:1px solid var(--control);background:transparent;color:var(--tx);transition:background .15s,border-color .15s}
+.bls button:hover{background:var(--raised);border-color:var(--control2)}
+.bls button .sw{display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--c);margin-right:5px;vertical-align:-1px}
+.bls button small{display:block;font:400 11px var(--mono);color:var(--mu)}
+.runrow{display:flex;gap:8px;margin-top:10px}
+.run{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 13px var(--sans);height:var(--ctl-h);border-radius:var(--r-ctl);border:none;background:var(--tx);color:var(--ground);transition:opacity .15s,transform .08s,background .15s}
+.run:hover{background:var(--tx2)}
+.run:disabled{opacity:.5;cursor:default}
+.run:disabled:hover{background:var(--tx)}
+.runrow .sbtn{height:var(--ctl-h);width:var(--ctl-h);padding:0}
+#readouts{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:10px;border-top:1px solid var(--border)}
+#readouts div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--rule);min-width:0}
+#readouts span{font:400 12px/16px var(--sans);color:var(--mu);white-space:normal;min-width:3em;flex:0 1 auto}
+#readouts b{font:500 12px/16px var(--mono);color:var(--tx);text-align:right;flex:0 0 auto;white-space:nowrap}
+#readouts div.w{grid-column:1/-1;order:-1}
+#readouts b span{min-width:0;font:inherit}
+#readouts b .pos{color:var(--pos-ink)}#readouts b .neg{color:var(--neg-ink)}
+#scopecard{flex:1 0 286px;display:flex;flex-direction:column;min-height:0;padding-bottom:12px}
+#scopecard h4{margin-bottom:0}
+#scopetabs{display:flex;gap:14px;height:34px;align-items:stretch;border-bottom:1px solid var(--border);margin:0 -16px 10px;padding:0 16px}
+#scopetabs button{font-size:12px;white-space:nowrap}
+#scope{flex:1;width:100%;min-height:0;display:block}
+#scopecap{font:400 12px/17px var(--sans);color:var(--mu);margin-top:8px}
+#tip{position:absolute;max-width:300px;padding:10px 12px;border-radius:var(--r-card);background:var(--raised);box-shadow:var(--shadow);font-size:12px;line-height:18px;color:var(--tx2);opacity:0;transform:translateY(3px);pointer-events:none;transition:opacity .15s var(--ease),transform .2s var(--ease);z-index:5}/* taste-skill-ignore: functional scrim / slider fill / 1px inset rule / overlay */
+#tip[style*="opacity: 1"]{transform:none}
+#tip h5{margin:0 0 4px;font:600 13px/18px var(--sans);color:var(--tx)}
+#tip .tv{display:flex;justify-content:space-between;gap:12px;font:500 12px var(--mono);color:var(--tx);margin-top:8px;padding-top:6px;border-top:1px solid var(--control)}
+#tip .tv span{font-family:var(--sans);font-weight:400;color:var(--mu)}
+#tip .tf{color:var(--tx2)}
+body.capture #trailfoot{display:none}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.seg button:focus-visible,#whytabs button:focus-visible,#scopetabs button:focus-visible{outline-offset:-2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+#rothint{position:fixed;left:16px;right:16px;display:none;font:400 13px/20px var(--sans);color:var(--mu);text-align:center;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-card);background:var(--surface)}
+#rothint b{color:var(--tx);font-weight:600}
+#rothint span{display:block;font-size:12px}
+.spin{width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+*{font-variant-numeric:tabular-nums}
+/* ---------- engine additions ---------- */
+#viewbtns{left:560px;width:476px}
+.seg.lang{flex:0 0 auto;gap:0;height:30px;border:1px solid var(--control);border-radius:var(--r-ctl);padding:2px;align-items:stretch}
+.seg.lang button{padding:0 10px;border-radius:var(--r-ctl);font:500 12px var(--sans);color:var(--mu)}
+.seg.lang button::after{display:none}
+.seg.lang button.on{background:var(--raised);color:var(--tx)}
+html[lang="zh-CN"] .st .sb{max-width:180px}
+.lab .v{font-family:var(--mono)}
+
+body.fid #steptitle,body.fid #ticker,body.fid #legend,body.fid #toast,body.fid #tip,body.fid #tkphase{visibility:hidden!important}
+
+</style></head><body>
+<canvas id="gl" data-i18n-title="a_gl"></canvas>
+<div id="stage">
+  <header id="hdr">
+    <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.2"><circle cx="9" cy="9" r="7.2" stroke="currentColor" stroke-opacity=".6"/><circle cx="9" cy="9" r="1.6" stroke="#4a8ad6" stroke-width="1.4"/><path d="M9 7.4C8 4.6 9.6 2.6 11.4 2.4M10.6 9.6c2.8-.4 4.6 1.4 4.6 3.2M7.6 10c-1.4 2.6-3.8 2.8-5.2 1.8" stroke="#4a8ad6" stroke-width="1.3"/></svg></div><div><h1><span data-i18n="h1"></span> <span class="op">ETA 2824-2 / NH35-CLASS · 28,800 A/h</span></h1><p data-i18n="h1sub"></p></div></div>
+    <div class="hdr-r"><span class="badge" data-i18n="badge1"></span><span class="badge ghost" data-i18n="badge2"></span><div class="seg lang" id="lang" role="group" aria-label="Language"><button data-v="en">EN</button><button data-v="zh">中文</button></div><button class="hbtn" id="btnAuto"></button><button class="hbtn icon" id="btnTheme" data-i18n-title="a_theme"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"/></svg></button></div>
+  </header>
+  <nav id="trail" data-i18n-title="a_trail"><h3><span data-i18n="trail"></span> <span data-i18n="trailn"></span></h3><div id="steps"></div>
+    <div id="trailfoot" data-i18n="trailfoot"></div></nav>
+  <div id="stageui">
+    <div id="steptitle"></div>
+    <div id="ticker"><div class="cmdseq" id="cmdseq"></div></div><div class="tk" id="tkphase"></div>
+    <div id="legend"><!-- taste-skill-ignore: swatch colours must match the scope colours --><span class="q"><i style="background:#8a8c92"></i><span data-i18n="lg_lock"></span></span><span class="q"><i style="background:#ff8a3d"></i><span data-i18n="lg_imp"></span></span><span class="q"><i style="background:#e5566f"></i><span data-i18n="lg_drop"></span></span><span class="q"><i style="background:#4a8ad6"></i><span data-i18n="lg_free"></span></span></div>
+    <div id="toast"></div>
+  </div>
+  <div id="labels"></div>
+  <div id="viewbtns"><button class="hbtn" id="btnRotor"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 8L2.6 5.2A6 6 0 0 1 13.4 5.2z" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="5.8"/></svg><span data-i18n="b_rotor"></span></button><button class="hbtn" id="btnBridges"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 11c2-5 10-5 12 0"/><circle cx="5" cy="9" r="1"/><circle cx="11" cy="9" r="1"/></svg><span data-i18n="b_bridges"></span></button><button class="hbtn" id="btnDial"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.8"/><path d="M8 4.5V8l2.4 1.6"/></svg><span data-i18n="b_dial"></span></button><button class="hbtn" id="btnExplode"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 8h3M11.5 8h3M6 4v8M10 4v8"/></svg><span data-i18n="b_exp"></span></button><button class="hbtn" id="btnReset"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8a5 5 0 1 0 1.5-3.6"/><path d="M3 2.5V5h2.5"/></svg><span data-i18n="b_reset"></span></button></div>
+  <section id="why"><div id="whytabs"><button data-t="why" data-i18n="w_why"></button><button data-t="math" data-i18n="w_math"></button><button data-t="ex" data-i18n="w_try"></button><button data-t="quiz" data-i18n="w_quiz"></button><button data-t="src" data-i18n="w_src"></button></div><div id="whybody"></div></section>
+  <aside id="panel">
+    <div class="card" id="ctl"><h4><span><span data-i18n="ctl"></span><span class="sub" data-i18n="ctl2"></span></span><span id="speedw"><button class="sbtn icon" id="btnPause" data-i18n-title="a_pause"></button><select id="speed" data-i18n-title="a_speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></span></h4>
+      <div class="row" id="r-bph"><label data-i18n="r_bph"></label><div class="seg sm" id="bph"><button data-v="21600">21.6k</button><button data-v="28800">28.8k</button><button data-v="36000">36k</button></div></div>
+      <div class="row" id="r-wind"><label data-i18n="r_wind"></label><input type="range" id="wind" min="0" max="1" step="0.01" value="0.95" aria-label="mainspring wind"><span class="rv" id="windv"></span></div>
+      <div class="row" id="r-reg"><label data-i18n="r_reg"></label><input type="range" id="reg" min="-60" max="60" step="1" value="0" aria-label="regulator"><span class="rv" id="regv"></span></div>
+      <div class="row" id="r-slow"><label data-i18n="r_slow"></label><div class="seg sm" id="slow"><button data-v="1">1×</button><button data-v="0.125">⅛×</button><button data-v="0.025">1/40×</button></div></div>
+      <div class="row" id="r-wrist"><label data-i18n="r_wrist"></label><div class="seg sm" id="wrist"><button data-v="off" data-i18n="wr_off"></button><button data-v="desk" data-i18n="wr_desk"></button><button data-v="walk" data-i18n="wr_walk"></button></div></div>
+      <div class="runrow"><button class="run" id="btnRun"></button><button class="sbtn icon" id="btnStepOp" data-i18n-title="a_next"><svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 3v10l7-5z"/><rect x="11.5" y="3" width="1.4" height="10"/></svg></button></div>
+      <div id="readouts"></div>
+    </div>
+    <div class="card" id="scopecard"><h4><span><span data-i18n="scope"></span><span class="sub" data-i18n="scope2"></span></span></h4><div id="scopetabs" class="tabs"><button data-s="tg" data-i18n="s_tg"></button><button data-s="phase" data-i18n="s_phase"></button><button data-s="amp" data-i18n="s_amp"></button><button data-s="train" data-i18n="s_train"></button></div>
+      <canvas id="scope"></canvas><div id="scopecap"></div></div>
+  </aside>
+  <div id="tip"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ---------- deterministic helpers ----------
+let _seed = 1234567;
+const rnd = () => { _seed = (_seed * 1664525 + 1013904223) >>> 0; return _seed / 4294967296; };
+const rr = (a, b) => a + (b - a) * rnd();
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const easeOut = t => { t = clamp(t); return 1 - Math.pow(1 - t, 3); };
+const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+const spring = t => { t = clamp(t); return 1 - Math.exp(-6 * t) * Math.cos(9 * t) * (1 - t) - (t >= 1 ? 0 : 0) ; };
+const damp = (cur, target, lambda, dt) => lerp(cur, target, 1 - Math.exp(-lambda * dt));
+const fract = x => x - Math.floor(x);
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 1) => (v >= 0 ? '' : '−') + Math.abs(v).toFixed(d);
+
+const SIM = { t: 0, dt: 1 / 60, speed: 1, paused: false };
+const QS = location.search;
+const CAPTURE = /capture/.test(QS);
+const INTERACTIVE_START = /interactive|[?&]step=/.test(QS);
+if (CAPTURE) document.body.classList.add('capture');
+const QUALITY = { hi: !/quality=low/.test(QS) };
+
+// ---------- i18n (skill §11) ----------
+let LANG = (() => { const m = QS.match(/[?&]lang=(en|zh)/); if (m) return m[1]; try { const s = localStorage.getItem('lang'); if (s === 'en' || s === 'zh') return s; } catch (e) { } return 'en'; })();
+document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+const I18N = { en: {}, zh: {} };
+function t(k) { const v = I18N[LANG][k]; return v == null ? (I18N.en[k] == null ? k : I18N.en[k]) : v; }
+const tr = o => (o && typeof o === 'object' && ('en' in o || 'zh' in o)) ? (o[LANG] != null ? o[LANG] : o.en) : o;
+const B = (en, zh) => ({ en, zh });
+const LANGHOOKS = [];
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(e => { e.innerHTML = t(e.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = t(e.dataset.i18nTitle); e.setAttribute('aria-label', t(e.dataset.i18nTitle)); });
+  for (const f of LANGHOOKS) f();
+}
+function setLang(l) {
+  LANG = l; try { localStorage.setItem('lang', l); } catch (e) { }
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  const u = new URL(location.href); u.searchParams.set('lang', l); try { history.replaceState(null, '', u); } catch (e) { }
+  applyLang();
+}
+
+// ---------- renderer ----------
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setPixelRatio(Math.min(QUALITY.hi ? 2 : 1, window.devicePixelRatio || 1));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .95;
+renderer.setClearColor(0x000000, 0);
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+
+// ---------- lights ----------
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), .04).texture;
+const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x1a2233, .7); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.castShadow = true; key.shadow.mapSize.set(QUALITY.hi ? 2048 : 1024, QUALITY.hi ? 2048 : 1024);
+Object.assign(key.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 120 });
+key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+scene.add(key); scene.add(key.target);
+const rim = new THREE.DirectionalLight(0x88ccff, .55); scene.add(rim);
+
+// ---------- camera rig (spherical, tweened shots) ----------
+const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 500);
+const STAGE = { x: 278, y: 66, w: 758, h: 536 };      // design px region of the 3D stage
+const rig = { tx: 0, ty: 2, tz: 0, az: -0.35, el: 0.95, size: 34, exp: .95 };
+const rigFrom = { ...rig }, rigTo = { ...rig }; let rigT0 = -1, rigDur = 1;
+const user = { daz: 0, del: 0, zoom: 1 };
+function shot(s, dur = 1.6) {
+  Object.assign(rigFrom, rig); Object.assign(rigTo, rig, s);
+  // shortest azimuth
+  rigT0 = SIM.t; rigDur = dur;
+  if (dur <= 0) { Object.assign(rig, rigTo); rigT0 = -1; }
+}
+function updateRig() {
+  if (rigT0 >= 0) {
+    const k = ease((SIM.t - rigT0) / rigDur);
+    for (const p in rigTo) rig[p] = lerp(rigFrom[p], rigTo[p], k);
+    if (k >= 1) rigT0 = -1;
+  }
+}
+let stageScale = 1, stageOX = 0, stageOY = 0, VW = 1, VH = 1;
+function placeCamera() {
+  const t = SIM.t;
+  const az = rig.az + user.daz + 0.012 * Math.sin(t * .31) , el = clamp(rig.el + user.del + 0.008 * Math.sin(t * .23 + 1), -1.45, 1.45);
+  const sh = STAGE.h * stageScale; // stage px height on window
+  const d = rig.size * user.zoom * VH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * sh);
+  const tgt = new THREE.Vector3(rig.tx, rig.ty, rig.tz);
+  camera.position.set(tgt.x + d * Math.cos(el) * Math.sin(az), tgt.y + d * Math.sin(el), tgt.z + d * Math.cos(el) * Math.cos(az));
+  camera.up.set(0, 1, 0); camera.lookAt(tgt);
+  camera.near = Math.max(0.1, d * 0.05); camera.far = d * 6;
+  const px = stageOX + (STAGE.x + STAGE.w / 2) * stageScale, py = stageOY + (STAGE.y + STAGE.h / 2) * stageScale;
+  camera.aspect = VW / VH;
+  camera.setViewOffset(VW, VH, VW / 2 - px, VH / 2 - py, VW, VH);
+  camera.updateProjectionMatrix();
+  renderer.toneMappingExposure = rig.exp; // per-view exposure (close-ups over the bright perlage plate read washed out at .95)
+  // light follows the view
+  const kd = new THREE.Vector3(-0.45 + Math.sin(az) * .5, el < 0 ? -1 : 1, 0.55 + Math.cos(az) * .5).normalize();
+  key.position.copy(tgt).addScaledVector(kd, 40); key.target.position.copy(tgt);
+  const sc = rig.size * 0.9; Object.assign(key.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc }); key.shadow.camera.updateProjectionMatrix();
+  rim.position.copy(tgt).add(new THREE.Vector3(10, el < 0 ? -6 : 6, -12));
+}
+function layout() {
+  VW = window.innerWidth; VH = window.innerHeight;
+  stageScale = Math.min(VW / 1440, VH / 810);
+  stageOX = (VW - 1440 * stageScale) / 2; stageOY = Math.max(0, (VH - 810 * stageScale) / 2);
+  $('stage').style.transform = `translate(${stageOX}px,${stageOY}px) scale(${stageScale})`;
+  renderer.setSize(VW, VH, false);
+  let h = document.getElementById('rothint'); if (!h) { h = document.createElement('div'); h.id = 'rothint'; document.body.appendChild(h); }
+  h.innerHTML = t('rothint');
+  h.style.display = (VH > VW && VH - 810 * stageScale > 120) ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
+}
+
+// ---------- palette (data-terminal UI; physical PBR colours for hardware) ----------
+const COL = { cold: '#8fc4ff', bypass: '#a9d8ff', warm: '#ffd37a', hot: '#ff8a3d', flame: '#ff5a1f', fuel: '#ffe9a8', ac: '#4a8ad6', ok: '#44a282', bad: '#e5566f', warn: '#d9a441', cut: '#c8372d' };
+// ---------- material helpers ----------
+function M(color, o = {}) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .55, metalness: 0.05, envMapIntensity: .7 }, o)); }
+const EDGE = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: .28 });
+function mesh(geo, mat, { x = 0, y = 0, z = 0, parent, shadow = true, edge = true } = {}) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
+  m.castShadow = shadow; m.receiveShadow = true;
+  if (edge) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), EDGE); e.raycast = () => { }; m.add(e); }
+  if (parent) parent.add(m);
+  return m;
+}
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const rbox = (w, h, d, r = .04) => new RoundedBoxGeometry(w, h, d, 2, r);
+// box defined by ranges
+function boxR(x0, x1, y0, y1, z0, z1, mat, parent, o = {}) {
+  return mesh(box(x1 - x0, y1 - y0, z1 - z0), mat, Object.assign({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: (z0 + z1) / 2, parent }, o));
+}
+function tube(points, r, mat, parent, seg = 24) {
+  const c = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.0001);
+  const m = new THREE.Mesh(new THREE.TubeGeometry(c, seg, r, 6, false), mat); m.castShadow = true;
+  if (parent) parent.add(m); return m;
+}
+// polyline tube with sharp corners (manhattan routing)
+function wire(points, r, mat, parent) {
+  const g = new THREE.Group();
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = new THREE.Vector3(...points[i]), b = new THREE.Vector3(...points[i + 1]);
+    const L = a.distanceTo(b); if (L < 1e-4) continue;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L + r * 1.6, 6), mat);
+    m.position.copy(a).add(b).multiplyScalar(.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    m.castShadow = true; g.add(m);
+  }
+  if (parent) parent.add(g); return g;
+}
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+// text plate lying on a top face
+function topText(text, w, d, { color = '#e6edf7', bg = null, size = 64, sub = '' } = {}) {
+  const tex = canvasTex(512, Math.round(512 * d / w), (g, W, H) => {
+    if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+    g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${size}px Inter, "Noto Sans SC", sans-serif`; g.fillText(text, W / 2, H / 2 - (sub ? size * .35 : 0));
+    if (sub) { g.globalAlpha = .75; g.font = `500 ${size * .55}px "JetBrains Mono", monospace`; g.fillText(sub, W / 2, H / 2 + size * .55); }
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2; m.raycast = () => { }; return m;
+}
+
+// ---------- pick registry & labels ----------
+const PICK = []; // {obj, info:{name, fn, v: () => string}}
+function pickable(obj, info) { obj.userData.info = info; PICK.push(obj); return obj; }
+const LABELS = [];
+const labelsEl = $('labels');
+function label(html0, pos, { cls = '', group = null, side = '', pri = 0 } = {}) {
+  const src0 = html0; const html = typeof html0 === 'function' ? html0() : tr(html0);
+  const el = document.createElement('div'); el.className = 'lb ' + cls + ' ' + side; el.innerHTML = html; labelsEl.appendChild(el);
+  const L = { el, pos: typeof pos === 'function' ? pos : () => pos, show: 0, op: 0, group, pri, html, set(h) { if (h !== this.html) { this.html = h; el.innerHTML = h; this.w = 0; this.h = 0; } }, w: 0, h: 0, side };
+  L.src = src0; LABELS.push(L); return L;
+}
+function relabel() { for (const L of LABELS) if (L.src != null) L.set(typeof L.src === 'function' ? L.src() : tr(L.src)); }
+LANGHOOKS.push(relabel);
+const _lv = new THREE.Vector3();
+// stage zones where 3D labels may never appear (design px, relative to STAGE): title band, bottom band, toast slot
+const NOLAB = { top: 104, bottom: 64 };
+let TOASTRECT = null; // set by toast(): {x0,y0,x1,y1} in design px
+function updateLabels() {
+  const placed = [];
+  const cand = [];
+  for (const L of LABELS) {
+    const vis = L.show && (!L.group || visibleUp(L.group));
+    if (!vis) { if (L.op) { L.el.style.opacity = 0; L.op = 0; } L.el.style.visibility = 'hidden'; continue; }
+    cand.push(L);
+  }
+  cand.sort((a, b) => (b.pri || 0) - (a.pri || 0));
+  for (const L of cand) {
+    _lv.copy(L.pos()); _lv.project(camera);
+    const wx = (_lv.x * .5 + .5) * VW, wy = (-_lv.y * .5 + .5) * VH;
+    const x = (wx - stageOX) / stageScale, y = (wy - stageOY) / stageScale;
+    const w = L.w || (L.w = L.el.offsetWidth || 80), h = L.h || (L.h = L.el.offsetHeight || 20);
+    const xl = L.side === 'l' ? x - w : L.side === 'r' ? x : x - w / 2, xr = xl + w, yt = y - h / 2, yb = y + h / 2;
+    let inside = _lv.z < 1 && xl > STAGE.x + 4 && xr < STAGE.x + STAGE.w - 4 && yt > STAGE.y + NOLAB.top && yb < STAGE.y + STAGE.h - NOLAB.bottom;
+    const R = { x0: xl - 3, y0: yt - 2, x1: xr + 3, y1: yb + 2 };
+    if (inside && TOASTRECT && !(R.x1 < TOASTRECT.x0 || R.x0 > TOASTRECT.x1 || R.y1 < TOASTRECT.y0 || R.y0 > TOASTRECT.y1)) inside = false;
+    if (inside) for (const P of placed) if (!(R.x1 < P.x0 || R.x0 > P.x1 || R.y1 < P.y0 || R.y0 > P.y1)) { inside = false; break; }
+    if (inside) placed.push(R);
+    const o = inside ? (typeof L.show === 'number' ? L.show : 1) : 0;
+    L.el.style.left = x.toFixed(1) + 'px'; L.el.style.top = y.toFixed(1) + 'px';
+    L.el.style.visibility = o > 0 ? 'visible' : 'hidden';
+    if (o !== L.op) { L.el.style.opacity = o; L.op = o; }
+  }
+}
+function visibleUp(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+
+// ---------- generic particle stream (instanced) ----------
+const PART = { N: QUALITY.hi ? 1400 : 700 };
+PART.mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ toneMapped: false }), PART.N);
+PART.mesh.frustumCulled = false; PART.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(PART.mesh);
+const _pm = new THREE.Object3D(), _pc = new THREE.Color(), _pv = new THREE.Vector3();
+for (let i = 0; i < PART.N; i++) PART.mesh.setColorAt(i, _pc.set('#fff'));
+// streams: [{curve: THREE.Curve (world), n, period, col, size, rate(0..1)}]
+function updateParticles(streams, t) {
+  let i = 0;
+  for (const s of streams) {
+    if (!s || !s.curve) continue; if (!s.colf) _pc.set(s.col); const n = Math.round(s.n * clamp(s.rate == null ? 1 : s.rate));
+    for (let j = 0; j < n && i < PART.N; j++, i++) {
+      const h = fract(Math.sin((j + 1) * 12.9898 + (s.seed || 0) * 78.233) * 43758.5453);
+      const u = fract(t / s.period + j / Math.max(1, s.n) + h * .21);
+      s.curve.getPointAt(u, _pv); if (s.jit) { _pv.x += (fract(h * 91.7) - .5) * s.jit; _pv.z += (fract(h * 53.3) - .5) * s.jit; }
+      if (s.colf) s.colf(u, _pc); if (s.rev) { }
+      _pm.position.copy(_pv); const fade = Math.min(1, u * 8, (1 - u) * 8); _pm.scale.setScalar((s.size || .05) * fade); _pm.updateMatrix();
+      PART.mesh.setMatrixAt(i, _pm.matrix); PART.mesh.setColorAt(i, _pc);
+    }
+  }
+  for (; i < PART.N; i++) { _pm.position.set(0, -99, 0); _pm.scale.setScalar(0); _pm.updateMatrix(); PART.mesh.setMatrixAt(i, _pm.matrix); }
+  PART.mesh.instanceMatrix.needsUpdate = true; PART.mesh.instanceColor.needsUpdate = true;
+}
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+function path(pts) { const c = new THREE.CurvePath(); for (let i = 0; i < pts.length - 1; i++) c.add(new THREE.LineCurve3(V3(...pts[i]), V3(...pts[i + 1]))); return c; }
+
+// ---------- explode registry ----------
+const EXP = []; // {obj, p0, r0, dir, tilt, delay, ch}
+const EXV = { eng: 0 }; const EXT = { eng: 0 };
+function explodable(obj, ch, dir, tilt = [0, 0, 0], delay = rnd()) {
+  EXP.push({ obj, ch, p0: obj.position.clone(), r0: obj.rotation.clone(), dir: new THREE.Vector3(...dir), tilt: new THREE.Vector3(...tilt), delay }); return obj;
+}
+const springBack = t => { t = clamp(t); return 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2); };
+function updateExplode(dt) {
+  for (const e of EXP) { e.obj.position.copy(e.p0); e.obj.rotation.copy(e.r0); }
+  for (const e of EXP) {
+    const ex = EXV[e.ch]; if (!ex) continue; const k = clamp(ex * 1.45 - e.delay * .45);
+    const s = springBack(k);
+    e.obj.position.addScaledVector(e.dir, s);
+    e.obj.rotation.x += e.tilt.x * s; e.obj.rotation.y += e.tilt.y * s; e.obj.rotation.z += e.tilt.z * s;
+  }
+}
+// explode channel tweens driven by lesson time
+const EXA = {}; // ch -> {from,to,t0,dur}
+function setExplode(ch, to, dur = 1.8) { EXA[ch] = { from: EXV[ch], to, t0: SIM.t, dur }; EXT[ch] = to; }
+function tickExplode() { for (const ch in EXA) { const a = EXA[ch]; const k = clamp((SIM.t - a.t0) / a.dur); EXV[ch] = lerp(a.from, a.to, k); if (k >= 1) delete EXA[ch]; } }
+
+// opacity tween for material sets
+const FADES = [];
+function fadeable(mat) { mat.transparent = true; mat.userData.base = mat.opacity; return mat; }
+
+// ===================== e_sim: mainspring → train → Swiss lever escapement → balance oscillator =====================
+// Public-data model (refs/REFS.md): ETA 2824-2 = 28,800 vph (4 Hz), 38 h reserve, lift angle 50°; Seiko NH35 = 21,600 vph (3 Hz), 41 h.
+// Amplitude ∝ √(mainspring torque) (impulse energy vs. ~quadratic losses); rate error from regulator + isochronism. Illustrative constants.
+const PRM = { bph: 28800, wind: 1, reg: 0, slow: 1, wrist: 'off' };
+const BPH = {
+  21600: { f: 3, res: 41, A0: 295, name: 'NH35-class' },
+  28800: { f: 4, res: 38, A0: 300, name: 'ETA 2824-2-class' },
+  36000: { f: 5, res: 50, A0: 285, name: 'high-beat' },
+};
+const LIFT = 50, LEVER = 7.5, ESC_T = 20;      // lift angle (deg), lever half-swing (deg), escape teeth
+const TRAIN = { barrel: 84, cp: 12, center: 80, tp: 10, third: 75, fp: 10, fourth: 84, ep: 7 }; // teeth (barrel→escape ratio 5040)
+const W = {
+  wind: 1, p: 0, A: 300, run: true, tw: 0, lapse: 0, crown: 0, crownV: 0, rotor: 0, rotorV: 0, wrist: 0, winding: 0,
+  escA: 0, autoGain: 1, beats: 0, lever: 0, theta: 0, phaseState: 'lock', rate: 0, hist: [],
+};
+function cfgB() { return BPH[PRM.bph] || BPH[28800]; }
+// mainspring torque fraction of full-wind torque (flat-ish slip-spring curve, collapses in the last ~10 %)
+function tau(w) { w = clamp(w); return (0.6 + 0.4 * w) * Math.min(1, Math.sqrt(w / 0.1)); }
+const T_FULL = 7.5;                       // N·mm at full wind (illustrative, order of a 2824 mainspring)
+function ampTarget(w) { const c = cfgB(); return c.A0 * Math.sqrt(tau(w)); }
+function rateOf(A) {                      // s/day: regulator + isochronism (amplitude) error
+  let r = PRM.reg + 0.06 * (A - 275);
+  if (A < 220) r -= 0.004 * (220 - A) * (220 - A);
+  return r;
+}
+function escTorque(w) { return T_FULL * tau(w) / 5040 * 0.72 * 1000; } // µN·m at the escape wheel (≈72 % train efficiency)
+function hairK() { const f = cfgB().f, I = 1.0e-9; return I * Math.pow(2 * Math.PI * f, 2) * 1e6; } // µN·m/rad for I = 10 mg·cm²
+// wrist model for the automatic rotor (eccentric mass pendulum)
+const WRIST = { off: { amp: 0, f: 0 }, desk: { amp: .25, f: .3 }, walk: { amp: 1.2, f: 1.0 } };
+function watchStep(dt) {
+  const c = cfgB(), f = c.f;
+  // --- automatic winding: rotor is a damped pendulum driven by wrist tilt; both directions wind (reverser wheels)
+  const wr = WRIST[PRM.wrist] || WRIST.off; W.wrist += dt * wr.f * 2 * Math.PI;
+  const g = wr.amp * Math.sin(W.wrist) + .35 * wr.amp * Math.sin(W.wrist * 2.3 + 1);
+  const acc = -9 * Math.sin(W.rotor - g) - 1.6 * W.rotorV;
+  W.rotorV += acc * dt; W.rotor += W.rotorV * dt;
+  const rw = Math.abs(W.rotorV) * 0.0011 * W.autoGain * (W.wind < 1 ? 1 : 0);   // per rad/s of rotor (time-lapsed for display)
+  // --- crown winding (set by ops/UI)
+  W.crown += W.crownV * dt;
+  const cw = W.crownV > 0 ? W.crownV / (2 * Math.PI) * 0.028 * dt : 0; // ~36 crown turns from empty to full
+  W.winding = damp(W.winding, (rw > 2e-4 || W.crownV > 0) ? 1 : 0, 6, dt);
+  // --- unwinding (hours compressed by lapse factor)
+  const hrs = dt * (1 + W.lapse) / 3600;
+  W.wind = clamp(W.wind + rw * dt + cw - (W.run ? hrs / c.res : 0));
+  PRM.wind = W.wind;
+  // --- oscillator
+  const At = W.wind > 0.004 ? ampTarget(W.wind) : 0;
+  W.A = damp(W.A, At, W.A > At ? .9 : 1.8, dt);
+  if (W.A < 110) { W.run = false; } else if (At > 140) W.run = true;
+  if (!W.run) W.A = damp(W.A, 0, 3, dt);
+  W.rate = rateOf(W.A);
+  const fe = f * (1 + W.rate / 86400);
+  const sl = PRM.slow;
+  if (W.run || W.A > 2) W.p += 2 * Math.PI * fe * dt * sl * (W.run ? 1 : .6);
+  W.tw += (W.run ? dt * sl : 0) + (W.run ? dt * W.lapse : 0);
+  // kinematics from phase
+  const A = Math.max(W.A, 1), th = A * Math.sin(W.p); W.theta = th;
+  const half = LIFT / 2; const a = Math.asin(Math.min(1, half / A));
+  const K = Math.floor((W.p + a) / Math.PI), loc = clamp((W.p - K * Math.PI + a) / (2 * a));
+  // lever follows the impulse pin inside the lift angle, rests on a banking pin outside
+  W.lever = LEVER * clamp(th / half, -1, 1);
+  // escape wheel: one half-tooth (9°) per beat, released during the impulse
+  const step = 360 / ESC_T / 2;
+  W.beats = K; W.escA = (K - 1 + smooth(loc)) * step;
+  const pin = Math.abs(th) < half;
+  W.phaseState = !W.run ? 'stop' : pin ? (loc < .25 ? 'unlock' : loc < .85 ? 'impulse' : 'drop') : (Math.abs(th) > A * .97 ? 'turn' : 'lock');
+  W.lapseHands = W.tw;
+}
+function R() {
+  const c = cfgB(), f = c.f;
+  return { f, bph: PRM.bph, A: W.A, rate: W.rate, res: W.wind * c.res, resMax: c.res, wind: W.wind, T: T_FULL * tau(W.wind), Te: escTorque(W.wind), k: hairK(), escRpm: 60 * 2 * f / ESC_T, run: W.run, state: W.phaseState };
+}
+
+// ===================== b_watch: ETA 2824-2 / NH35-class automatic movement, real sub-parts =====================
+// 1 unit = 1 mm. Movement plane = XZ, +Y = caseback side (what you see through a display back). Crown at −X.
+// Ø 25.6 mm (11½'''), see refs/REFS.md. Gear teeth: barrel 84 → centre pinion 12, centre 80 → 3rd pinion 10,
+// 3rd 75 → 4th pinion 10, 4th 84 → escape pinion 7, escape wheel 20 club teeth (barrel→escape 5040:1).
+const TAU = Math.PI * 2, DEG = Math.PI / 180;
+const SEG = QUALITY.hi ? 1 : .6;
+const MV = new THREE.Group(); scene.add(MV);
+const GRP = {}; for (const k of ['plate', 'barrel', 'train', 'esc', 'balance', 'bridges', 'auto', 'rotor', 'dial', 'keyless']) { GRP[k] = new THREE.Group(); GRP[k].name = k; MV.add(GRP[k]); }
+const ROT = {}; // rotating sub-groups
+// ---------- layout (mm) ----------
+const RPL = 12.8;
+const POS = { C: [0, 0], B: [-5.9, 0], T: [3.55, 4.33], Bl: [2.4, -6.6], crw: [-10.2, 0] };
+{ // escape wheel: |E| = 4th wheel + escape pinion pitch radii, |E−Bl| = lever 3.2 + pallet 2.8
+  const d1 = 4.095, d2 = 6.0, [bx, bz] = POS.Bl; let best = null;
+  for (let i = 0; i < 3600; i++) { const a = i / 3600 * TAU, x = d1 * Math.cos(a), z = d1 * Math.sin(a), e = Math.abs(Math.hypot(x - bx, z - bz) - d2); if (x > 0 && (!best || e < best.e)) best = { e, x, z }; }
+  POS.E = [best.x, best.z];
+  const u = [(POS.E[0] - bx) / d2, (POS.E[1] - bz) / d2]; POS.u = u;
+  POS.P = [bx + u[0] * 3.2, bz + u[1] * 3.2];
+}
+const RV = { r1: [1.45, -1.52], r2: [-1.62, -1.32], rd: [-3.9, -3.2] };
+// ---------- procedural finishes (tiny canvases) ----------
+const TX = {};
+TX.perlage = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, W, H); const s = 32; for (let y = -1; y < 9; y++) for (let x = -1; x < 9; x++) { const cx = x * s + (y % 2) * s / 2, cy = y * s * .87; const gr = g.createRadialGradient(cx, cy, 2, cx, cy, s * .62); gr.addColorStop(0, '#d6d6d6'); gr.addColorStop(.55, '#8a8a8a'); gr.addColorStop(.85, '#b8b8b8'); gr.addColorStop(1, '#7a7a7a'); g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, s * .62, 0, TAU); g.fill(); for (let k = 0; k < 18; k++) { g.strokeStyle = `rgba(255,255,255,${.05 + .05 * (k % 2)})`; g.beginPath(); g.arc(cx, cy, k * s * .034, 0, TAU); g.stroke(); } } });
+TX.perlage.wrapS = TX.perlage.wrapT = THREE.RepeatWrapping; TX.perlage.repeat.set(1 / 2.2, 1 / 2.2);
+TX.cotes = canvasTex(64, 256, (g, W, H) => { const gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#8c8c8c'); gr.addColorStop(.35, '#e8e8e8'); gr.addColorStop(.6, '#c4c4c4'); gr.addColorStop(1, '#8c8c8c'); g.fillStyle = gr; g.fillRect(0, 0, W, H); for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(0,0,0,${rr(.02, .07)})`; const x = rr(0, W); g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + rr(-6, 6), H / 2, x, H); g.stroke(); } });
+TX.cotes.wrapS = TX.cotes.wrapT = THREE.RepeatWrapping; TX.cotes.repeat.set(1 / 2.4, 1 / 9); TX.cotes.rotation = .5;
+TX.sun = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#a0a0a0'; g.fillRect(0, 0, W, H); g.translate(W / 2, H / 2); for (let i = 0; i < 900; i++) { const a = rr(0, TAU), v = 120 + rr(0, 110) | 0; g.strokeStyle = `rgba(${v},${v},${v},.35)`; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * W, Math.sin(a) * W); g.stroke(); } });
+TX.rotor = canvasTex(1024, 1024, (g, W, H) => {
+  g.fillStyle = '#b8b8b8'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) { const v = 150 + rr(0, 90) | 0; g.strokeStyle = `rgba(${v},${v},${v},.3)`; const y = rr(0, H); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rr(-1, 1)); g.stroke(); }
+  g.save(); g.translate(W / 2, H / 2); g.fillStyle = '#4a4d52'; g.font = '600 34px Inter, sans-serif'; g.textAlign = 'center';
+  const arcT = (s, r, a0) => { let a = a0; for (const ch of s) { g.save(); g.rotate(a); g.fillText(ch, 0, -r); g.restore(); a += .075; } };
+  arcT('AUTOMATIC · TWENTY-FIVE 25 JEWELS', 300, -1.05 - Math.PI / 2 + Math.PI);
+  g.font = '500 26px "JetBrains Mono", monospace'; arcT('28 800 A/h · 2824-CLASS', 250, -.75 - Math.PI / 2 + Math.PI);
+  g.restore();
+});
+TX.date = canvasTex(1024, 1024, (g, W, H) => { g.fillStyle = '#f1efe9'; g.fillRect(0, 0, W, H); g.translate(W / 2, H / 2); g.fillStyle = '#16181c'; g.font = '700 30px Inter, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 0; i < 31; i++) { g.save(); g.rotate(i / 31 * TAU); g.fillText(String(i + 1), 0, -470); g.restore(); } });
+for (const k of ['sun', 'rotor', 'date']) { TX[k].repeat.set(1 / 25.6, 1 / 25.6); TX[k].offset.set(.5, .5); }
+TX.rotor.repeat.x = -1 / 25.6;
+TX.sun.repeat.set(1 / 8, 1 / 8);
+for (const k of ['perlage', 'cotes', 'sun']) TX[k].colorSpace = THREE.NoColorSpace;
+// ---------- materials (PBR + RoomEnvironment; per-part clones so a part can be highlighted) ----------
+function PM(color, o = {}) { return new THREE.MeshPhysicalMaterial(Object.assign({ color, roughness: .32, metalness: .95, envMapIntensity: 1.15 }, o)); }
+const BASE = {
+  plate: () => PM('#8f949b', { roughness: .5, metalness: .85, envMapIntensity: .7, roughnessMap: TX.perlage, bumpMap: TX.perlage, bumpScale: .6 }),
+  bridge: () => PM('#aeb3ba', { roughness: .3, envMapIntensity: .8, map: TX.cotes, roughnessMap: TX.cotes, bumpMap: TX.cotes, bumpScale: .4 }),
+  gold: () => PM('#d8b25e', { roughness: .3, roughnessMap: TX.sun, metalness: 1 }),
+  steel: () => PM('#cfd3d8', { roughness: .14, metalness: 1 }),
+  steelS: () => PM('#a7abb1', { roughness: .26, roughnessMap: TX.sun, metalness: 1 }),
+  blue: () => PM('#33417e', { roughness: .22, metalness: .85, clearcoat: .6 }),
+  glucy: () => PM('#c99a5f', { roughness: .24, metalness: 1 }),
+  spring: () => PM('#d9dde3', { roughness: .18, metalness: 1 }),
+  mains: () => PM('#7d8794', { roughness: .3, metalness: .95 }),
+  ruby: () => new THREE.MeshPhysicalMaterial({ color: '#c2124a', roughness: .08, metalness: 0, clearcoat: 1, clearcoatRoughness: .05, sheen: .4, sheenColor: new THREE.Color('#ff6a9a'), emissive: '#3a0010', envMapIntensity: 1.6 }),
+  rotor: () => PM('#a9adb4', { roughness: .34, envMapIntensity: .8, map: TX.rotor, roughnessMap: TX.sun, metalness: .95 }),
+  heavy: () => PM('#b6b0a4', { roughness: .36, metalness: 1 }),
+  date: () => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .6, metalness: 0, map: TX.date }),
+  dark: () => new THREE.MeshStandardMaterial({ color: '#101114', roughness: .7, metalness: .2 }),
+  crown: () => PM('#d6d9de', { roughness: .18, metalness: 1 }),
+};
+const SECM = {}; const MATC = {};
+function MA(base, part) { const k = base + '|' + part; if (!MATC[k]) { const m = BASE[base](); m.userData.e0 = m.emissive.clone(); m.side = THREE.FrontSide; MATC[k] = m; (SECM[part] = SECM[part] || []).push(m); } return MATC[k]; }
+// ---------- geometry helpers ----------
+const V2 = (x, y) => new THREE.Vector2(x, y);
+function lathe(prof, seg = 64) { return new THREE.LatheGeometry(prof.map(([r, y]) => V2(r, y)), Math.max(12, Math.round(seg * SEG))); }
+function ringProf(r0, r1, y0, y1, ch = .04) { return [[r0, y0 + ch], [r0 + ch, y0], [r1 - ch, y0], [r1, y0 + ch], [r1, y1 - ch], [r1 - ch, y1], [r0 + ch, y1], [r0, y1 - ch], [r0, y0 + ch]]; }
+function extrY(shape, y0, y1, bev = .03, cs = 12) {
+  const b = Math.min(bev, (y1 - y0) * .3);
+  const g = new THREE.ExtrudeGeometry(shape, { depth: Math.max(.001, y1 - y0 - 2 * b), bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 2, curveSegments: cs });
+  g.rotateX(Math.PI / 2); g.computeBoundingBox(); g.translate(0, y1 - g.boundingBox.max.y, 0); return g;
+}
+function circPath(cx, cz, r, n = 40, P = new THREE.Path(), cw = false) { for (let i = 0; i <= n; i++) { const a = (cw ? -1 : 1) * i / n * TAU; i ? P.lineTo(cx + r * Math.cos(a), cz + r * Math.sin(a)) : P.moveTo(cx + r, cz); } return P; }
+function hull(circles, n = 28, clipR = 12.45) {
+  const pts = []; for (const [x, z, r] of circles) for (let i = 0; i < n; i++) { const a = i / n * TAU; let px = x + r * Math.cos(a), pz = z + r * Math.sin(a); const d = Math.hypot(px, pz); if (d > clipR) { px *= clipR / d; pz *= clipR / d; } pts.push([px, pz]); }
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = []; for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  const h = lo.slice(0, -1).concat(up.slice(0, -1)); const s = new THREE.Shape(); h.forEach((p, i) => i ? s.lineTo(p[0], p[1]) : s.moveTo(p[0], p[1])); s.closePath(); return s;
+}
+function withHoles(s, holes) { for (const [x, z, r] of holes) s.holes.push(circPath(x, z, r, 24, new THREE.Path(), true)); return s; }
+// spur gear / pinion outline; optional spoke windows
+function gearShape(N, rp, m, o = {}) {
+  const ra = rp + m * (o.add || .95), rf = rp - m * 1.25, s = new THREE.Shape(), p = TAU / N;
+  for (let i = 0; i < N; i++) {
+    const a = i * p; const pts = [[rf, a], [rf, a + p * .12], [rp, a + p * .2], [ra, a + p * .27], [ra, a + p * .33], [ra, a + p * .39], [rp, a + p * .46], [rf, a + p * .54]];
+    pts.forEach(([r, aa], j) => { const x = r * Math.cos(aa), z = r * Math.sin(aa); (i === 0 && j === 0) ? s.moveTo(x, z) : s.lineTo(x, z); });
+  }
+  s.closePath();
+  if (o.spokes) { const n = o.spokes, ri = o.hub || rp * .22, ro = rf - (o.rim || rp * .14), w = (o.sw || rp * .07); for (let k = 0; k < n; k++) { const a0 = k / n * TAU + w / ri * .7 + (o.rot || 0), a1 = (k + 1) / n * TAU - w / ri * .7 + (o.rot || 0), b0 = k / n * TAU + w / ro + (o.rot || 0), b1 = (k + 1) / n * TAU - w / ro + (o.rot || 0); const h = new THREE.Path(); const M = 14; for (let j = 0; j <= M; j++) { const a = lerp(b0, b1, j / M); j ? h.lineTo(ro * Math.cos(a), ro * Math.sin(a)) : h.moveTo(ro * Math.cos(a), ro * Math.sin(a)); } for (let j = M; j >= 0; j--) { const a = lerp(a0, a1, j / M); h.lineTo(ri * Math.cos(a), ri * Math.sin(a)); } h.closePath(); s.holes.push(h); } }
+  if (o.bore) s.holes.push(circPath(0, 0, o.bore, 24, new THREE.Path(), true));
+  return s;
+}
+function escShape(r = 2.1, N = ESC_T) {
+  const s = new THREE.Shape(), p = TAU / N, rf = r - .5;
+  for (let i = 0; i < N; i++) { const a = i * p; const pts = [[rf, a], [r - .12, a + p * .36], [r, a + p * .44], [r - .02, a + p * .58], [r - .2, a + p * .62], [rf + .05, a + p * .9]]; pts.forEach(([rr_, aa], j) => { const x = rr_ * Math.cos(aa), z = rr_ * Math.sin(aa); (i === 0 && j === 0) ? s.moveTo(x, z) : s.lineTo(x, z); }); }
+  s.closePath();
+  const n = 4, ri = .42, ro = rf - .22; for (let k = 0; k < n; k++) { const h = new THREE.Path(); const a0 = k / n * TAU + .32, a1 = (k + 1) / n * TAU - .32, b0 = k / n * TAU + .1, b1 = (k + 1) / n * TAU - .1; for (let j = 0; j <= 10; j++) { const a = lerp(b0, b1, j / 10); j ? h.lineTo(ro * Math.cos(a), ro * Math.sin(a)) : h.moveTo(ro * Math.cos(a), ro * Math.sin(a)); } for (let j = 10; j >= 0; j--) { const a = lerp(a0, a1, j / 10); h.lineTo(ri * Math.cos(a), ri * Math.sin(a)); } h.closePath(); s.holes.push(h); }
+  return s;
+}
+const nonIdx = g => (g.index ? g.toNonIndexed() : g);
+function merge(list) { const g = mergeGeometries(list.map(x => { const n = nonIdx(x); n.clearGroups(); for (const k of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(k)) n.deleteAttribute(k); return n; }), false); return g; }
+function part(geo, base, id, parent, o = {}) { const m = new THREE.Mesh(geo, MA(base, id)); m.castShadow = o.shadow !== false; m.receiveShadow = true; m.userData.part = id; if (o.pos) m.position.set(...o.pos); parent.add(m); if (INFO[id] && o.pick !== false) pickable(m, INFO[id]); return m; }
+function arbor(y0, y1, r = .16, pivot = .07) { return lathe([[0, y0 - .25], [pivot, y0 - .25], [pivot, y0], [r, y0 + .1], [r, y1 - .1], [pivot, y1], [pivot, y1 + .25], [0, y1 + .25]], 18); }
+function jewelGeo() { return lathe([[0, .1], [.22, .1], [.36, .04], [.42, -.02], [.42, -.1], [0, -.1]], 24); }
+// ---------- part info (click a part) ----------
+const INFO = {};
+const inf = (id, en, zh, fen, fzh, v) => (INFO[id] = { name: B(en, zh), fn: B(fen, fzh), v });
+inf('plate', 'Main plate', '主夹板', 'The movement’s chassis (pillar plate). Brass, rhodium-plated, circular-grained (perlage). Every pivot hole is jewelled.', '机芯的底座（主夹板）。黄铜镀铑，打珍珠纹。各轴孔都装有宝石轴承。');
+inf('bridges', 'Bridges', '夹板', 'Barrel bridge, train bridge and pallet bridge hold the top pivots. Côtes de Genève stripes are decoration.', '条盒夹板、轮系夹板和擒纵叉夹板固定上轴尖。日内瓦波纹只是装饰。');
+inf('barrel', 'Mainspring barrel', '发条盒', 'Drum holding the coiled mainspring; its 84 teeth drive the centre pinion. One turn ≈ 7 h of running.', '内装卷紧的发条；84 齿驱动中心轮齿轴。转一圈约等于走时 7 小时。', () => fmt(R().T, 1) + ' N·mm');
+inf('mains', 'Mainspring', '发条', 'Hardened alloy strip coiled around the barrel arbor. Winding coils it tight; it unwinds into the barrel wall over ~38 h.', '绕在条轴上的高弹性合金带。上弦时卷紧，约 38 小时内放松贴向条盒壁。', () => fmt(R().wind * 100, 0) + ' %');
+inf('ratchet', 'Ratchet wheel + click', '棘轮 + 止逆爪', 'Sits on the barrel arbor. The click lets it turn only in the winding direction, so the spring cannot unwind backwards.', '装在条轴上。止逆爪只允许它朝上弦方向转，发条无法倒退。');
+inf('crownw', 'Crown wheel', '小钢轮', 'Transfers winding from the stem’s winding pinion to the ratchet wheel.', '把柄轴立轮的上弦动作传给棘轮。');
+inf('center', 'Centre wheel', '二轮（中心轮）', '1 revolution per hour; carries the minute hand (cannon pinion) on the dial side. 80 teeth.', '每小时 1 转，带动表盘侧的分针（跨轮）。80 齿。', () => '1 rev/h');
+inf('third', 'Third wheel', '三轮', 'Intermediate wheel: 75 teeth, 10-leaf pinion. Steps the speed up between centre and fourth wheels.', '中间轮：75 齿、10 叶齿轴。在中心轮与四轮之间增速。', () => fmt(60 * 80 / 10 / 60, 0) + ' rev/h');
+inf('fourth', 'Fourth (seconds) wheel', '四轮（秒轮）', '1 revolution per minute: its arbor runs up the hollow centre arbor to carry the central seconds hand.', '每分钟 1 转：轴穿过空心中心轴，带动中心秒针。', () => '1 rpm');
+inf('esc', 'Escape wheel', '擒纵轮', 'Swiss-lever escape wheel, 20 club teeth. Advances half a tooth (9°) per beat.', '瑞士杠杆式擒纵轮，20 个棒槌齿。每摆一次前进半齿 (9°)。', () => fmt(R().escRpm, 0) + ' rpm');
+inf('pallet', 'Pallet fork (lever)', '擒纵叉', 'Two synthetic-ruby pallet stones lock and release the escape wheel; the fork end receives and gives impulse to the balance’s impulse pin.', '两颗人造红宝石叉瓦锁住和释放擒纵轮；叉头与摆轮的圆盘钉交换冲量。', () => fmt(W.lever, 1) + '°');
+inf('balance', 'Balance wheel', '摆轮', 'The time base. Glucydur rim, oscillates ±' + 'A at 4 Hz (28 800 vph) on its hairspring.', '计时基准。铍青铜摆轮，在游丝作用下以 4 Hz（每小时 28 800 次）往复摆动。', () => fmt(R().A, 0) + '° · ' + fmt(R().f, 0) + ' Hz');
+inf('hair', 'Hairspring', '游丝', 'Flat Nivarox-type spiral: its stiffness k and the balance inertia I set the frequency f = (1/2π)√(k/I).', '平游丝（Nivarox 类合金）：刚度 k 与摆轮惯量 I 决定频率 f = (1/2π)√(k/I)。', () => fmt(R().k, 2) + ' µN·m/rad');
+inf('cock', 'Balance cock + regulator', '摆夹板 + 快慢针', 'Holds the balance’s top pivot in a shock-protected jewel. The index arm moves the curb pins along the hairspring to fine-tune rate.', '在防震宝石轴承中固定摆轮上轴尖。快慢针沿游丝移动夹针，微调走时。', () => fmt(PRM.reg, 0) + ' s/d');
+inf('shock', 'Shock protection', '防震器', 'Lyre-shaped spring holds the cap jewel so a knock lets the pivot move and return instead of breaking.', '琴形弹簧压住盖石：受到撞击时轴尖可以移动并复位，而不会折断。');
+inf('jewel', 'Jewel bearings', '宝石轴承', 'Synthetic ruby bearings (25 in a 2824-2): low, stable friction at every fast pivot.', '人造红宝石轴承（2824-2 共 25 颗）：在各高速轴尖处提供低而稳定的摩擦。');
+inf('rotor', 'Winding rotor', '自动陀', 'Half-disc oscillating weight on a ball bearing. Any wrist motion swings it; reverser wheels wind the barrel in both directions.', '装在滚珠轴承上的半圆摆陀。手腕一动它就摆；换向轮让双向转动都能上弦。', () => fmt(W.rotorV * 9.55, 0) + ' rpm');
+inf('auto', 'Automatic module', '自动上弦机构', 'Bridge with reverser wheels and a reduction wheel that gear the rotor down to the ratchet wheel.', '装有换向轮和减速轮的夹板，把自动陀减速后传给棘轮。');
+inf('stem', 'Stem + crown', '柄轴 + 表冠', 'Position 1 winds through the winding pinion; pulled out, the sliding pinion engages the setting wheels to set the hands.', '位置 1 通过立轮上弦；拔出时离合轮与拨针轮啮合，用来调时。');
+inf('keyless', 'Keyless works', '上条拨针机构', 'Setting lever, yoke and sliding (clutch) pinion on the dial side: choose winding or hand-setting.', '表盘侧的拉档、离合杆与离合轮：选择上弦还是拨针。');
+inf('motion', 'Motion works + date', '跨轮 + 日历', 'Cannon pinion (minutes), minute wheel and hour wheel make the 12:1 reduction for the hour hand; date ring with 31 teeth.', '跨轮（分）、跨轮片和时轮组成 12:1 减速带动时针；日历圈 31 齿。');
+// ---------- main plate (with pockets) ----------
+{
+  const [bx, bz] = POS.Bl, [ex, ez] = POS.E, [px, pz] = POS.P;
+  const base = withHoles(circPath(0, 0, RPL, 96, new THREE.Shape()), [[0, 0, .5]]);
+  const g1 = extrY(base, -1.2, -.45, .05, 48);
+  const top = circPath(0, 0, RPL - .02, 96, new THREE.Shape());
+  top.holes.push(hull([[bx, bz, 4.75], [px, pz, 1.1]], 32).extractPoints(1).shape.reverse().reduce((p, v, i) => (i ? p.lineTo(v.x, v.y) : p.moveTo(v.x, v.y), p), new THREE.Path()));
+  for (const [x, z, r] of [[POS.B[0], POS.B[1], 5.3], [ex, ez, 2.45], [0, 0, 1.2]]) top.holes.push(circPath(x, z, r, 40, new THREE.Path(), true));
+  const g2 = extrY(top, -.45, 0, .05, 48);
+  // dial-side recesses for keyless: a shallow step ring
+  const pl = part(merge([g1, g2]), 'plate', 'plate', GRP.plate); pl.castShadow = false;
+}
+// ---------- barrel, mainspring, ratchet ----------
+ROT.barrel = new THREE.Group(); ROT.barrel.position.set(POS.B[0], 0, POS.B[1]); GRP.barrel.add(ROT.barrel);
+ROT.arbor = new THREE.Group(); ROT.arbor.position.copy(ROT.barrel.position); GRP.barrel.add(ROT.arbor);
+const BAR = {};
+{
+  const drum = lathe([[.95, -.2], [4.98, -.2], [5.0, -.1], [5.0, 2.05], [4.92, 2.12], [4.6, 2.12], [4.6, .02], [.95, .02]], 96);
+  const teeth = extrY(gearShape(84, 5.16, .1229, { bore: 4.7 }), -.2, .16, .02, 2);
+  part(merge([drum, teeth]), 'gold', 'barrel', ROT.barrel);
+  BAR.lidM = MA('gold', 'barrelLid'); SECM.barrel.push(BAR.lidM);
+  const lid = new THREE.Mesh(lathe([[.7, 2.0], [4.62, 2.0], [4.62, 2.14], [4.4, 2.2], [.7, 2.2]], 96), BAR.lidM); lid.castShadow = true; ROT.barrel.add(lid); pickable(lid, INFO.barrel); BAR.lid = lid;
+  part(lathe([[0, -.5], [.4, -.5], [.4, -.15], [.82, -.1], [.82, 2.3], [.45, 2.35], [.45, 3.3], [0, 3.3]], 24), 'steel', 'barrel', ROT.arbor);
+  // ratchet wheel (sawtooth, sunburst steel) on top of barrel bridge
+  const rs = new THREE.Shape(); const N = 60, ro = 3.0, rf = 2.82; for (let i = 0; i < N; i++) { const a = i / N * TAU, b = (i + .78) / N * TAU; const p1 = [rf * Math.cos(a), rf * Math.sin(a)], p2 = [ro * Math.cos(b), ro * Math.sin(b)]; i ? rs.lineTo(...p1) : rs.moveTo(...p1); rs.lineTo(...p2); } rs.closePath();
+  const rw = part(extrY(rs, 3.32, 3.62, .03, 2), 'steelS', 'ratchet', ROT.arbor); rw.material.roughnessMap = TX.sun;
+  const sc = part(lathe([[0, 3.95], [.55, 3.92], [.85, 3.8], [.9, 3.62], [0, 3.62]], 32), 'steel', 'ratchet', ROT.arbor);
+  part(merge([new THREE.BoxGeometry(1.6, .14, .2).translate(0, 3.92, 0), new THREE.BoxGeometry(.2, .14, 1.6).translate(0, 3.92, 0)]), 'dark', 'ratchet', ROT.arbor, { pick: false });
+  // mainspring (rebuilt when the wind state changes)
+  BAR.spring = new THREE.Mesh(new THREE.BufferGeometry(), MA('mains', 'mains')); BAR.spring.castShadow = true; BAR.spring.position.copy(ROT.barrel.position); GRP.barrel.add(BAR.spring); pickable(BAR.spring, INFO.mains); BAR.w = -1;
+}
+function mainspringGeo(w) {
+  const turns = 11 + 5 * w, n = Math.round(turns * 40 * SEG), t = .085, o = [], i_ = [];
+  for (let k = 0; k <= n; k++) { const s = k / n, phi = s * turns * TAU; const rw_ = .9 + s * 1.9 * (1 + .15 * (1 - w)), ru = 4.5 - (1 - s) * 2.1; const r = lerp(ru, rw_, smooth(w)); o.push([(r + t / 2) * Math.cos(phi), (r + t / 2) * Math.sin(phi)]); i_.push([(r - t / 2) * Math.cos(phi), (r - t / 2) * Math.sin(phi)]); }
+  const s = new THREE.Shape(); o.forEach((p, k) => k ? s.lineTo(...p) : s.moveTo(...p)); for (let k = i_.length - 1; k >= 0; k--) s.lineTo(...i_[k]); s.closePath();
+  return extrY(s, .1, 1.95, 0, 1);
+}
+function updateMainspring() { const w = Math.round(W.wind * 40) / 40; if (w === BAR.w) return; BAR.w = w; BAR.spring.geometry.dispose(); BAR.spring.geometry = mainspringGeo(w); }
+// ---------- going train ----------
+function wheel(id, [x, z], { N, rp, m, y, th = .16, spokes = 4, base = 'gold', pin, arb, hub, rim, sw }) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); GRP.train.add(g);
+  const parts = [extrY(gearShape(N, rp, m, { spokes, hub: hub || rp * .2, rim: rim || rp * .1, sw: sw || Math.max(.1, rp * .05) }), y - th / 2, y + th / 2, .015, 2)];
+  parts.push(lathe([[0, y - th / 2 - .08], [rp * .2 + .1, y - th / 2 - .08], [rp * .2 + .1, y + th / 2 + .06], [0, y + th / 2 + .06]], 24));
+  part(merge(parts), base, id, g);
+  const st = []; if (pin) st.push(extrY(gearShape(pin.N, pin.rp, pin.m, { add: .8 }), pin.y0, pin.y1, .01, 2)); if (arb) st.push(arbor(arb[0], arb[1], arb[2] || .16));
+  if (st.length) part(merge(st), 'steel', id, g);
+  return g;
+}
+ROT.center = wheel('center', POS.C, { N: 80, rp: 4.98, m: .1244, y: .9, spokes: 4, pin: { N: 12, rp: .74, m: .1229, y0: -.2, y1: .16 }, arb: [-1.6, 2.45, .3] });
+ROT.third = wheel('third', POS.T, { N: 75, rp: 4.94, m: .1318, y: 1.5, spokes: 4, pin: { N: 10, rp: .62, m: .1244, y0: .78, y1: 1.02 }, arb: [-.2, 2.6] });
+ROT.fourth = wheel('fourth', POS.C, { N: 84, rp: 3.78, m: .09, y: 2.0, spokes: 4, pin: { N: 10, rp: .66, m: .1318, y0: 1.38, y1: 1.62 }, arb: [1.3, 2.7, .14] });
+ROT.esc = new THREE.Group(); ROT.esc.position.set(POS.E[0], 0, POS.E[1]); GRP.esc.add(ROT.esc);
+part(merge([extrY(escShape(), 1.04, 1.2, .01, 2), extrY(gearShape(7, .315, .09, { add: .8 }), 1.9, 2.1, .01, 2), arbor(-.1, 2.6, .11), lathe([[0, .98], [.34, .98], [.34, 1.26], [0, 1.26]], 20)]), 'steel', 'esc', ROT.esc);
+// ---------- pallet fork (Swiss lever) ----------
+ROT.pallet = new THREE.Group(); ROT.pallet.position.set(POS.P[0], 0, POS.P[1]); GRP.esc.add(ROT.pallet);
+{
+  const [ex, ez] = POS.E, [px, pz] = POS.P, ue = [(ex - px) / 2.8, (ez - pz) / 2.8];
+  const base = Math.atan2(pz - ez, px - ex); // direction escape→pallet
+  const st = [-1, 1].map(sg => { const a = base + sg * 27 * DEG; return [ex + 2.05 * Math.cos(a) - px, ez + 2.05 * Math.sin(a) - pz, a]; });
+  const body = hull([[0, 0, .5], [st[0][0] * .82, st[0][1] * .82, .36], [st[1][0] * .82, st[1][1] * .82, .36]], 20, 99);
+  body.holes.push(circPath(ue[0] * .9, ue[1] * .9, .32, 20, new THREE.Path(), true));
+  const L = 3.2 - .62, nx = -ue[0], nz = -ue[1], ox = -nz, oz = nx, w = .2; // lever toward the balance
+  const lv = new THREE.Shape(); const P_ = (a, b) => [nx * a + ox * b, nz * a + oz * b];
+  [[0, w], [L - .2, w * .8], [L, .42], [L + .42, .38], [L + .48, .16], [L + .1, .14], [L + .1, -.14], [L + .48, -.16], [L + .42, -.38], [L, -.42], [L - .2, -w * .8], [0, -w]].forEach((q, i) => { const [a, b] = P_(...q); i ? lv.lineTo(a, b) : lv.moveTo(a, b); }); lv.closePath();
+  const gp = lathe([[0, 1.0], [.05, 1.0], [.05, 1.42], [0, 1.42]], 10).translate(...P_(L - .05, 0).flatMap((v, i) => i ? [0, v] : [v]));
+  part(merge([extrY(body, 1.04, 1.2, .01, 4), extrY(lv, 1.06, 1.18, .01, 2), arbor(-.1, 1.75, .1), gp]), 'steel', 'pallet', ROT.pallet);
+  const stones = st.map(([x, z, a]) => { const g = new RoundedBoxGeometry(.58, .3, .22, 1, .03); g.rotateY(-a); g.translate(x * .93, 1.12, z * .93); return g; });
+  part(merge(stones), 'ruby', 'pallet', ROT.pallet);
+}
+// ---------- balance, roller, hairspring, cock ----------
+ROT.bal = new THREE.Group(); ROT.bal.position.set(POS.Bl[0], 0, POS.Bl[1]); GRP.balance.add(ROT.bal);
+const HAIR = { tw: { value: 0 } };
+{
+  const u = POS.u, au = Math.atan2(u[1], u[0]);
+  const rim = lathe(ringProf(3.86, 4.42, 2.58, 2.98, .05), 96);
+  const arms = new THREE.Shape(); const aw = .28; [[-3.95, aw], [3.95, aw], [3.95, -aw], [-3.95, -aw]].forEach((p, i) => i ? arms.lineTo(...p) : arms.moveTo(...p)); arms.closePath();
+  const ag = extrY(arms, 2.66, 2.86, .02, 2); ag.rotateY(-au + Math.PI / 2);
+  const hubg = lathe(ringProf(.2, .62, 2.62, 2.9, .03), 32);
+  part(merge([rim, ag, hubg]), 'glucy', 'balance', ROT.bal);
+  const staff = lathe([[0, -.35], [.06, -.35], [.08, -.1], [.14, .1], [.14, .92], [.7, .92], [.72, .98], [.72, 1.08], [.3, 1.1], [.4, 1.3], [.4, 1.4], [.2, 1.45], [.2, 2.6], [.24, 3.25], [.08, 3.5], [.06, 4.2], [0, 4.2]], 32);
+  const pin = new RoundedBoxGeometry(.16, .34, .1, 1, .02).translate(.55 * Math.cos(au), 1.2 - .2, .55 * Math.sin(au));
+  part(staff, 'steel', 'balance', ROT.bal);
+  part(pin, 'ruby', 'balance', ROT.bal);
+  // hairspring: flat Archimedean spiral, inner end at the collet (twists with the balance), outer end at the stud
+  const n = 14, pts = [], rin = .5, rout = 2.75, Np = Math.round(n * 64 * SEG);
+  for (let k = 0; k <= Np; k++) { const s = k / Np, a = s * n * TAU, r = lerp(rin, rout, s); pts.push(new THREE.Vector3(r * Math.cos(a), 3.32, r * Math.sin(a))); }
+  const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Np, .028, 4, false);
+  const pp = tg.attributes.position, sp = new Float32Array(pp.count); for (let i = 0; i < pp.count; i++) sp[i] = clamp((Math.hypot(pp.getX(i), pp.getZ(i)) - rin) / (rout - rin)); tg.setAttribute('sp', new THREE.BufferAttribute(sp, 1));
+  const hm = MA('spring', 'hair'); hm.onBeforeCompile = sh => { sh.uniforms.uTw = HAIR.tw; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float sp; uniform float uTw;').replace('#include <begin_vertex>', 'float tw_ = uTw * (1.0 - sp); float ca_ = cos(tw_), sa_ = sin(tw_); vec3 transformed = vec3(position.x * ca_ - position.z * sa_, position.y, position.x * sa_ + position.z * ca_) * vec3(1.0 + .03 * uTw * (1.0 - sp), 1.0, 1.0 + .03 * uTw * (1.0 - sp));'); };
+  HAIR.mesh = new THREE.Mesh(tg, hm); HAIR.mesh.castShadow = false; HAIR.mesh.position.set(POS.Bl[0], 0, POS.Bl[1]); GRP.balance.add(HAIR.mesh); pickable(HAIR.mesh, INFO.hair);
+  part(lathe(ringProf(.18, .52, 3.2, 3.44, .02), 24), 'steel', 'hair', ROT.bal); // collet
+}
+// balance cock (bridge with foot at the plate edge), regulator index, shock spring
+const COCK = {};
+{
+  const [bx, bz] = POS.Bl, d = Math.hypot(bx, bz), fx = bx / d * 10.6, fz = bz / d * 10.6, au = Math.atan2(bz, bx);
+  const arm = withHoles(hull([[bx, bz, 1.55], [fx, fz, 2.1]], 28), [[bx, bz, .45]]);
+  const foot = hull([[fx, fz, 2.0], [bx / d * 11.6, bz / d * 11.6, 1.6]], 24);
+  COCK.geo = merge([extrY(arm, 3.62, 4.14, .06, 24), extrY(foot, 0, 3.66, .05, 16)]);
+  COCK.stud = new RoundedBoxGeometry(.5, .5, .5, 1, .06).translate(bx + Math.cos(au) * 2.75, 3.32, bz + Math.sin(au) * 2.75);
+  // regulator index arm (rotates with PRM.reg)
+  ROT.index = new THREE.Group(); ROT.index.position.set(bx, 0, bz); GRP.bridges.add(ROT.index);
+  const ix = new THREE.Shape(); [[0, .62], [5.6, .14], [5.9, 0], [5.6, -.14], [0, -.62], [-.9, -.3], [-.9, .3]].forEach((p, i) => i ? ix.lineTo(...p) : ix.moveTo(...p)); ix.closePath(); ix.holes.push(circPath(0, 0, .55, 20, new THREE.Path(), true));
+  const ixg = extrY(ix, 4.14, 4.26, .015, 3); ixg.rotateY(-au - .35);
+  part(ixg, 'steel', 'cock', ROT.index);
+  // Incabloc-style lyre spring
+  const ly = []; for (let k = 0; k <= 40; k++) { const s = k / 40, a = lerp(-2.6, 2.6, s); ly.push(new THREE.Vector3(.75 * Math.sin(a) * (1 - .25 * Math.cos(a * 2)), 4.32, .6 * Math.cos(a) - .1)); }
+  const lyre = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ly), 48, .055, 5, false); lyre.rotateY(-au); lyre.translate(bx, 0, bz);
+  part(lyre, 'gold', 'shock', GRP.bridges);
+}
+// ---------- bridges (merged; one material) ----------
+{
+  const [bx, bz] = POS.B, [cx, cz] = POS.crw, [tx, tz] = POS.T, [ex, ez] = POS.E, [px, pz] = POS.P;
+  const barrelB = withHoles(hull([[bx, bz, 5.35], [cx, cz, 1.7], [-7.5, 5.2, 1.4], [-7.5, -5.2, 1.4]], 30), [[bx, bz, .55], [cx, cz, .3]]);
+  // ETA-style large train bridge: covers the right half of the plate, with the balance + lever pocket cut out
+  const trainB = new THREE.Shape(); {
+    const R = 12.05, x0 = -.7, a0 = Math.acos(x0 / R), seg = [];
+    for (let i = 0; i <= 140; i++) { const a = -a0 + i / 140 * 2 * a0; seg.push([R * Math.cos(a), R * Math.sin(a)]); }
+    const zt = R * Math.sin(a0); for (let i = 1; i < 80; i++) seg.push([x0, zt - i / 80 * 2 * zt]);
+    const H = hull([[POS.Bl[0], POS.Bl[1], 4.85], [px, pz, 1.35], [ex, ez, 1.0]], 40, 11.6).extractPoints(1).shape.map(v => [v.x, v.y]);
+    const inH = q => { for (let i = 0; i < H.length; i++) { const a = H[i], b = H[(i + 1) % H.length]; if ((b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]) < 0) return false; } return true; };
+    const flags = seg.map(inH); let i0 = flags.indexOf(true); let i1 = i0; while (i1 + 1 < seg.length && flags[i1 + 1]) i1++;
+    const inside = H.filter(q => q[0] > x0 + .02 && Math.hypot(q[0], q[1]) < R - .02).reverse();
+    const d2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+    const ent = seg[i0 - 1], ext = seg[i1 + 1]; let k = 0; inside.forEach((q, i) => { if (d2(q, ent) < d2(inside[k], ent)) k = i; });
+    const path = inside.slice(k).concat(inside.slice(0, k));
+    const out = i0 < 0 ? seg : seg.slice(0, i0).concat(path, seg.slice(i1 + 1));
+    out.forEach((q, i) => i ? trainB.lineTo(q[0], q[1]) : trainB.moveTo(q[0], q[1])); trainB.closePath();
+  }
+  for (const [x, z, r] of [[0, 0, .4], [tx, tz, .3],]) trainB.holes.push(circPath(x, z, r, 24, new THREE.Path(), true));
+  const palB = hull([[px, pz, .9], [px + POS.u[1] * 2.2, pz - POS.u[0] * 2.2, .9]], 20);
+  const feet = [[-7.5, 5.2], [-7.5, -5.2], [6.6, 3.8], [px + POS.u[1] * 2.2, pz - POS.u[0] * 2.2]].map(([x, z]) => extrY(circPath(x, z, .95, 24, new THREE.Shape()), 0, 2.6, .03, 2));
+  const g = merge([extrY(barrelB, 2.5, 3.32, .06, 24), extrY(trainB, 2.62, 3.3, .06, 20), extrY(palB, 1.48, 1.82, .04, 16), ...feet, COCK.geo, COCK.stud]);
+  BRIDGE = part(g, 'bridge', 'bridges', GRP.bridges);
+  // crown wheel (on the barrel bridge, meshes the ratchet)
+  ROT.crownw = new THREE.Group(); ROT.crownw.position.set(cx, 0, cz); GRP.bridges.add(ROT.crownw);
+  part(merge([extrY(gearShape(26, 1.3, .1, { bore: .3 }), 3.32, 3.56, .02, 2)]), 'steelS', 'crownw', ROT.crownw);
+  part(lathe([[0, 3.82], [.5, 3.8], [.62, 3.68], [.62, 3.56], [0, 3.56]], 24), 'steel', 'crownw', GRP.bridges, { pos: [cx, 0, cz] });
+  // click (pawl) + spring
+  const cl = new THREE.Shape(); [[0, 0], [1.6, .25], [2.3, .05], [1.7, -.3], [0, -.4]].forEach((p, i) => i ? cl.lineTo(...p) : cl.moveTo(...p)); cl.closePath();
+  const clg = extrY(cl, 3.34, 3.5, .015, 2); clg.rotateY(.9); clg.translate(bx + 1.6, 0, bz + 3.6);
+  part(clg, 'steel', 'ratchet', GRP.bridges);
+}
+var BRIDGE;
+// ---------- jewels + screws (instanced) ----------
+{
+  const [bx, bz] = POS.Bl, [ex, ez] = POS.E, [px, pz] = POS.P, [tx, tz] = POS.T;
+  const J = [[0, 3.34, 0], [tx, 3.34, tz], [ex, 3.34, ez], [px, 1.86, pz], [bx, 4.18, bz], [POS.B[0] + 2.2, 3.36, POS.B[1] + 2.2]];
+  const jm = new THREE.InstancedMesh(jewelGeo(), MA('ruby', 'jewel'), J.length);
+  const ch = new THREE.InstancedMesh(lathe(ringProf(.42, .7, -.06, .06, .02), 24), MA('steel', 'jewel'), J.length);
+  const o = new THREE.Object3D(); J.forEach(([x, y, z], i) => { o.position.set(x, y, z); o.scale.setScalar(i === 4 ? 1.2 : 1); o.updateMatrix(); jm.setMatrixAt(i, o.matrix); ch.setMatrixAt(i, o.matrix); });
+  GRP.bridges.add(jm, ch); pickable(jm, INFO.jewel); jm.userData.part = 'jewel'; ch.userData.part = 'jewel';
+  const S = [[-7.5, 3.32, 5.2, 1], [-7.5, 3.32, -5.2, 1], [-2.4, 3.32, 3.9, 1], [6.6, 3.3, 3.8, 1], [1.6, 3.3, 1.9, .9], [px + POS.u[1] * 2.2, 1.82, pz - POS.u[0] * 2.2, .75], [bx / Math.hypot(bx, bz) * 10.6, 4.14, bz / Math.hypot(bx, bz) * 10.6, 1]];
+  const head = lathe([[0, .3], [.3, .28], [.52, .18], [.58, 0], [0, 0]], 24), slot = new THREE.BoxGeometry(1.25, .14, .16).translate(0, .26, 0);
+  const sh = new THREE.InstancedMesh(head, MA('blue', 'bridges'), S.length), ss = new THREE.InstancedMesh(slot, MA('dark', 'bridges'), S.length);
+  S.forEach(([x, y, z, s], i) => { o.position.set(x, y, z); o.scale.setScalar(s); o.rotation.y = i * 1.3; o.updateMatrix(); sh.setMatrixAt(i, o.matrix); ss.setMatrixAt(i, o.matrix); });
+  sh.castShadow = true; GRP.bridges.add(sh, ss); pickable(sh, INFO.bridges);
+}
+// ---------- automatic module + rotor ----------
+{
+  const P = RV; const ab = withHoles(hull([[0, 0, 2.6], [P.r1[0], P.r1[1], 1.6], [P.r2[0], P.r2[1], 1.6], [P.rd[0], P.rd[1], 2.0], [3.6, 1.6, 1.6]], 28), [[0, 0, .9]]);
+  const feet = [[-2.6, 2.4], [3.8, 1.2], [-4.4, -5.4]].map(([x, z]) => extrY(circPath(x, z, .7, 20, new THREE.Shape()), 3.3, 4.3, .03, 2));
+  part(merge([extrY(ab, 4.3, 4.76, .05, 20), ...feet]), 'bridge', 'auto', GRP.auto);
+  const mk = (k, [x, z], N, rp, y, pinN) => { const g = new THREE.Group(); g.position.set(x, 0, z); GRP.auto.add(g); ROT[k] = g; part(merge([extrY(gearShape(N, rp, .1, { spokes: rp > 1 ? 3 : 0, hub: .45, rim: .2, sw: .12 }), y, y + .18, .012, 2), lathe([[0, y - .3], [.42, y - .3], [.42, y + .3], [0, y + .3]], 20)]), 'gold', 'auto', g); if (pinN) part(extrY(gearShape(pinN, .45, .1, { add: .8 }), y + .18, y + .42, .01, 2), 'steel', 'auto', g); return g; };
+  mk('rv1', P.r1, 24, 1.2, 4.82); mk('rv2', P.r2, 24, 1.2, 4.82); mk('rd', P.rd, 32, 1.6, 4.82, 9);
+}
+ROT.rotor = new THREE.Group(); GRP.rotor.add(ROT.rotor);
+{
+  const s = new THREE.Shape(); const R0 = 12.35, Ri = 2.05; s.moveTo(Ri, 0); s.lineTo(R0, 0); s.absarc(0, 0, R0, 0, Math.PI, false); s.lineTo(-Ri, 0); s.absarc(0, 0, Ri, Math.PI, 0, true);
+  const disc = extrY(s, 5.35, 5.8, .06, 64); disc.rotateY(Math.PI / 2);
+  const rimS = new THREE.Shape(); rimS.moveTo(10.7, 0); rimS.lineTo(R0, 0); rimS.absarc(0, 0, R0, 0, Math.PI, false); rimS.lineTo(-10.7, 0); rimS.absarc(0, 0, 10.7, Math.PI, 0, true);
+  const rimG = extrY(rimS, 5.0, 6.15, .12, 64); rimG.rotateY(Math.PI / 2);
+  part(disc, 'rotor', 'rotor', ROT.rotor); part(rimG, 'steelS', 'rotor', ROT.rotor);
+  part(merge([lathe(ringProf(1.75, 2.15, 5.0, 6.0, .06), 48), extrY(gearShape(16, .9, .1, { add: .8, bore: .4 }), 4.86, 5.08, .01, 2)]), 'steel', 'rotor', ROT.rotor);
+  part(merge([lathe(ringProf(.5, 1.05, 5.05, 5.95, .05), 40), lathe([[0, 6.25], [.7, 6.2], [1.0, 6.05], [1.0, 5.9], [0, 5.9]], 32), new THREE.BoxGeometry(1.7, .12, .22).translate(0, 6.24, 0)]), 'steel', 'rotor', GRP.rotor);
+  const balls = new THREE.InstancedMesh(new THREE.SphereGeometry(.34, 14, 10), MA('steel', 'rotor'), 9); const o = new THREE.Object3D();
+  for (let i = 0; i < 9; i++) { o.position.set(1.4 * Math.cos(i / 9 * TAU), 5.5, 1.4 * Math.sin(i / 9 * TAU)); o.updateMatrix(); balls.setMatrixAt(i, o.matrix); } ROT.balls = balls; ROT.rotor.add(balls);
+}
+// ---------- dial side: motion works, date ring, keyless works, stem + crown ----------
+{
+  const D = GRP.dial;
+  ROT.cannon = new THREE.Group(); D.add(ROT.cannon);
+  part(merge([lathe([[.3, -1.25], [.62, -1.25], [.62, -3.2], [.45, -3.3], [.3, -3.3]], 28), extrY(gearShape(14, .78, .1, { add: .8, bore: .3 }), -1.6, -1.35, .01, 2)]), 'steel', 'motion', ROT.cannon);
+  ROT.hourw = new THREE.Group(); D.add(ROT.hourw);
+  part(merge([extrY(gearShape(48, 2.6, .1, { spokes: 0, bore: .64 }), -2.05, -1.85, .01, 2), lathe([[.64, -1.85], [.85, -1.85], [.85, -2.9], [.64, -2.9]], 28)]), 'gold', 'motion', ROT.hourw);
+  ROT.minw = new THREE.Group(); ROT.minw.position.set(-1.3, 0, 3.05); D.add(ROT.minw);
+  part(merge([extrY(gearShape(42, 2.2, .1, { spokes: 3, hub: .4, rim: .25, sw: .14 }), -1.62, -1.42, .01, 2)]), 'gold', 'motion', ROT.minw);
+  part(extrY(gearShape(10, .55, .1, { add: .8 }), -2.05, -1.62, .01, 2), 'steel', 'motion', ROT.minw);
+  // date ring with printed numerals (dial-facing side)
+  const dr = new THREE.Shape(); circPath(0, 0, 12.3, 120, dr); const N = 31; const ih = new THREE.Path(); for (let i = 0; i < N; i++) { const a = i / N * TAU, b = (i + .5) / N * TAU; const p1 = [10.9 * Math.cos(a), 10.9 * Math.sin(a)], p2 = [10.55 * Math.cos(a + .03), 10.55 * Math.sin(a + .03)], p3 = [10.55 * Math.cos(b), 10.55 * Math.sin(b)], p4 = [10.9 * Math.cos(b + .03), 10.9 * Math.sin(b + .03)]; i ? ih.lineTo(...p1) : ih.moveTo(...p1); ih.lineTo(...p2); ih.lineTo(...p3); ih.lineTo(...p4); } ih.closePath(); dr.holes.push(ih);
+  const dg = extrY(dr, -1.62, -1.48, .01, 2); ROT.date = new THREE.Group(); D.add(ROT.date); part(dg, 'date', 'motion', ROT.date);
+  // keyless works
+  const K = GRP.keyless, ys = -2.15;
+  ROT.stem = new THREE.Group(); ROT.stem.position.set(0, ys, 0); K.add(ROT.stem);
+  const stemG = lathe([[0, 4.0], [.32, 4.0], [.36, 6.0], [.36, 7.6], [.5, 7.7], [.5, 8.9], [.3, 9.0], [.3, 9.5], [.45, 9.6], [.45, 13.5], [.55, 13.6], [.55, 15.0], [0, 15.0]], 20); stemG.rotateZ(Math.PI / 2);
+  part(stemG, 'steel', 'stem', ROT.stem);
+  const crown = new THREE.LatheGeometry([[0, 0], [2.2, 0], [2.6, .25], [2.6, 2.3], [2.3, 2.6], [.7, 2.7], [0, 2.7]].map(([r, y]) => V2(r, y)), 72);
+  { const p = crown.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), y = p.getY(i), r = Math.hypot(x, z); if (r > 2.45 && y > .2 && y < 2.4) { const a = Math.atan2(z, x), k = 1 - .06 * (.5 + .5 * Math.cos(a * 36)); p.setX(i, x * k); p.setZ(i, z * k); } } crown.computeVertexNormals(); }
+  crown.rotateZ(Math.PI / 2); crown.translate(-15.0, 0, 0);
+  const tubeG = lathe([[.6, 0], [1.25, 0], [1.25, 1.6], [.6, 1.6]], 32).rotateZ(Math.PI / 2).translate(-13.2, 0, 0);
+  part(crown, 'crown', 'stem', ROT.stem); part(tubeG, 'steel', 'stem', K, { pos: [0, ys, 0] });
+  ROT.wpin = new THREE.Group(); ROT.wpin.position.set(-10.4, ys, 0); K.add(ROT.wpin);
+  part(extrY(gearShape(16, .95, .1, { add: .9, bore: .3 }), -.55, .55, .02, 2).rotateZ(Math.PI / 2), 'steelS', 'keyless', ROT.wpin);
+  ROT.spin = new THREE.Group(); ROT.spin.position.set(-8.4, ys, 0); K.add(ROT.spin);
+  part(extrY(gearShape(12, .8, .1, { add: .9, bore: .3 }), -.5, .5, .02, 2).rotateZ(Math.PI / 2), 'steelS', 'keyless', ROT.spin);
+  const flat = (pts, y0, y1) => { const s = new THREE.Shape(); pts.forEach((p, i) => i ? s.lineTo(...p) : s.moveTo(...p)); s.closePath(); return extrY(s, y0, y1, .02, 4); };
+  const lever = flat([[-7.4, 3.6], [-6.4, 3.9], [-6.1, 2.7], [-9.6, .7], [-10.0, .35], [-10.4, .8], [-9.4, 1.6]], -1.62, -1.42);
+  const yoke = flat([[-6.0, -3.9], [-5.2, -3.4], [-7.8, -.6], [-8.0, .35], [-8.8, .35], [-8.6, -.9]], -1.62, -1.42);
+  const spr = flat([[-3.6, -6.4], [-3.0, -6.0], [-6.6, -4.1], [-7.0, -4.4]], -1.62, -1.48);
+  part(merge([lever, yoke, spr, lathe([[0, -1.7], [.45, -1.7], [.45, -1.3], [0, -1.3]], 16).translate(-6.8, 0, 3.3), lathe([[0, -1.7], [.45, -1.7], [.45, -1.3], [0, -1.3]], 16).translate(-5.7, 0, -3.6)]), 'steelS', 'keyless', K);
+  ROT.setw = new THREE.Group(); ROT.setw.position.set(-5.0, 0, 1.9); K.add(ROT.setw);
+  part(extrY(gearShape(20, 1.2, .1, { spokes: 0, bore: .25 }), -1.62, -1.42, .01, 2), 'gold', 'keyless', ROT.setw);
+}
+// ---------- explode wiring (rotating groups live inside) ----------
+explodable(GRP.rotor, 'mv', [0, 15, 0], [0, 0, 0], .0); explodable(GRP.auto, 'mv', [0, 11, 0], [0, 0, 0], .1);
+explodable(GRP.bridges, 'mv', [0, 7.5, 0], [0, 0, 0], .2); explodable(GRP.balance, 'mv', [0, 4.8, 0], [0, 0, 0], .3);
+explodable(GRP.train, 'mv', [0, 2.6, 0], [0, 0, 0], .35); explodable(GRP.esc, 'mv', [0, 3.4, 0], [0, 0, 0], .35);
+explodable(GRP.barrel, 'mv', [0, 2.2, 0], [0, 0, 0], .35); explodable(GRP.dial, 'mv', [0, -4.5, 0], [0, 0, 0], .3); explodable(GRP.keyless, 'mv', [0, -7, 0], [0, 0, 0], .3);
+EXV.mv = 0; EXT.mv = 0;
+
+// ===================== d_lessons: UI dictionary, sources, 7 lesson steps (EN default + 中文) =====================
+Object.assign(I18N.en, {
+  h1: 'How a mechanical watch works', h1sub: 'Interactive automatic movement with a live balance-wheel, escapement and mainspring model',
+  badge1: 'Public data', badge2: 'Illustrative tolerances', a_gl: '3D movement: drag to orbit, scroll to zoom, click a part', a_theme: 'Light / dark', a_trail: 'Lesson steps',
+  trail: 'Lesson', trailn: '7 steps', trailfoot: 'ETA 2824-2 / Seiko NH35-class layout from public photos and specs. Ø 25.6 mm, 1 unit = 1 mm. Rate and amplitude curves are illustrative.',
+  lg_lock: 'lock', lg_imp: 'impulse', lg_drop: 'drop', lg_free: 'free swing',
+  b_rotor: 'Rotor', b_bridges: 'Bridges', b_dial: 'Dial side', b_exp: 'Explode', b_reset: 'Reset view',
+  w_why: 'Why', w_math: 'Math', w_try: 'Try it', w_quiz: 'Quiz', w_src: 'Sources',
+  ctl: 'Movement controls', ctl2: 'live oscillator model', a_pause: 'Pause / play', a_speed: 'Animation speed',
+  r_bph: 'Beat rate', r_wind: 'Mainspring', r_reg: 'Regulator', r_slow: 'Slow motion', r_wrist: 'Wrist',
+  wr_off: 'Still', wr_desk: 'Desk', wr_walk: 'Walking',
+  a_next: 'Skip to next phase', scope: 'Scope', scope2: 'from the movement model',
+  s_tg: 'Timegrapher', s_phase: 'Escapement', s_amp: 'Reserve', s_train: 'Gear train',
+  rothint: '<b>Rotate your phone for the full lesson</b><span>Drag to orbit · pinch to zoom · tap a part</span>',
+  auto: 'Autoplay', autoOn: 'Playing', run: 'Run', running: 'Running…', ready: '<b>Ready</b> · press Run, or drag the controls',
+  cur: 'Now', srcnote: 'Sources for this step (public only; calibre specifications from manufacturer data, curves for amplitude vs. reserve and isochronism are illustrative):',
+  steplab: 'Step',
+  ro_bph: 'Beat rate', ro_amp: 'Amplitude', ro_rate: 'Rate', ro_res: 'Power reserve', ro_tq: 'Barrel torque', ro_te: 'Escape torque', ro_esc: 'Escape wheel', ro_k: 'Hairspring k', ro_state: 'Escapement', ro_wind: 'Wind', ro_rotor: 'Rotor', ro_time: 'Movement time', ro_reg: 'Regulator',
+  ph_lock: 'locked', ph_unlock: 'unlocking', ph_impulse: 'impulse', ph_drop: 'drop', ph_turn: 'turning point', ph_stop: 'STOPPED',
+  c_tg: 'Timegrapher trace: one dot per tick and tock over the last ~15 s. Slope = rate (s/day); gap between the two lines = beat error. Amplitude from the lift angle.',
+  c_phase: 'Balance angle θ (line) and pallet-lever angle (thin). Shaded bands: the impulse pin is inside the fork (± half the lift angle); everywhere else the balance swings free.',
+  c_amp: 'Amplitude and rate over one full run-down. The dot is now. Amplitude falls with mainspring torque; below ~200° the rate drifts and below ~120° the watch stops.',
+  c_train: 'Each wheel’s speed (log scale) and the torque it carries. Speed multiplies by 5,040 from barrel to escape wheel, so torque divides by the same factor.',
+  sc_amp: 'amplitude (°)', sc_rate: 'rate (s/d)', sc_h: 'hours since full wind →', sc_rph: 'rev / h', sc_tq: 'torque', sc_now: 'now', sc_be: 'beat error',
+});
+Object.assign(I18N.zh, {
+  h1: '机械表是怎么走时的', h1sub: '交互式自动机芯，配实时摆轮、擒纵和发条模型',
+  badge1: '公开数据', badge2: '公差为示意', a_gl: '3D 机芯：拖动旋转，滚轮缩放，点击部件查看说明', a_theme: '浅色 / 深色', a_trail: '课程步骤',
+  trail: '课程', trailn: '7 步', trailfoot: '布局依据 ETA 2824-2 / 精工 NH35 级公开照片与参数。直径 25.6 mm，1 单位 = 1 mm。振幅与走时曲线为示意。',
+  lg_lock: '锁接', lg_imp: '冲击', lg_drop: '落下', lg_free: '自由摆',
+  b_rotor: '自动陀', b_bridges: '夹板', b_dial: '表盘侧', b_exp: '分解', b_reset: '复位视角',
+  w_why: '原理', w_math: '公式', w_try: '动手试', w_quiz: '小测', w_src: '来源',
+  ctl: '机芯控制', ctl2: '实时振荡模型', a_pause: '暂停 / 播放', a_speed: '动画速度',
+  r_bph: '振频', r_wind: '发条', r_reg: '快慢针', r_slow: '慢动作', r_wrist: '手腕',
+  wr_off: '静止', wr_desk: '办公', wr_walk: '走路',
+  a_next: '跳到下一阶段', scope: '示波器', scope2: '来自机芯模型',
+  s_tg: '校表仪', s_phase: '擒纵', s_amp: '动储', s_train: '轮系',
+  rothint: '<b>横过手机查看完整课程</b><span>拖动旋转 · 双指缩放 · 点击部件</span>',
+  auto: '自动演示', autoOn: '播放中', run: '运行', running: '运行中…', ready: '<b>就绪</b> · 点运行，或拖动控件',
+  cur: '当前', srcnote: '本步来源（仅公开资料；机芯参数来自厂商数据，振幅–动储曲线和等时性为示意）：',
+  steplab: '步骤',
+  ro_bph: '振频', ro_amp: '振幅', ro_rate: '日差', ro_res: '动力储存', ro_tq: '条盒扭矩', ro_te: '擒纵轮扭矩', ro_esc: '擒纵轮', ro_k: '游丝刚度', ro_state: '擒纵状态', ro_wind: '上弦', ro_rotor: '自动陀', ro_time: '机芯时间', ro_reg: '快慢针',
+  ph_lock: '锁接', ph_unlock: '解锁', ph_impulse: '冲击', ph_drop: '落下', ph_turn: '折返点', ph_stop: '已停',
+  c_tg: '校表仪曲线：最近约 15 秒内每一声“嘀/嗒”一个点。斜率 = 日差 (秒/天)；两条线的间距 = 偏摆。振幅由举升角算出。',
+  c_phase: '摆轮角 θ（粗线）与擒纵叉角（细线）。阴影带：圆盘钉位于叉口内（± 半个举升角）；其余时间摆轮自由摆动。',
+  c_amp: '一次完整放条过程中的振幅与日差，圆点是当前状态。振幅随发条扭矩下降；低于约 200° 走时漂移，低于约 120° 停走。',
+  c_train: '各轮转速（对数坐标）和传递的扭矩。条盒到擒纵轮转速放大 5040 倍，扭矩就缩小同样倍数。',
+  sc_amp: '振幅 (°)', sc_rate: '日差 (秒/天)', sc_h: '满弦后小时数 →', sc_rph: '转 / 小时', sc_tq: '扭矩', sc_now: '当前', sc_be: '偏摆',
+});
+const SRC = {
+  eta: 'ETA SA Manufacture Horlogère Suisse, calibre ETA 2824-2 product data (Ø 25.60 mm / 11½‴, height 4.60 mm, 28,800 A/h, 25 jewels, power reserve 38 h), eta.ch',
+  seiko: 'Seiko Instruments Inc., calibre NH35A specification sheet (21,600 vph, 24 jewels, approx. 41 h reserve, Ø 27.4 mm, hacking + hand winding), sii.co.jp / seikowatches.com',
+  wlever: 'Wikipedia, “Lever escapement” (lock, unlock, impulse, drop; draw; banking pins; club-tooth escape wheels with 15–21 teeth in watches), en.wikipedia.org/wiki/Lever_escapement',
+  wbal: 'Wikipedia, “Balance wheel” and “Balance spring” (f = (1/2π)√(κ/I), Glucydur, Nivarox, regulator index, isochronism), en.wikipedia.org/wiki/Balance_wheel',
+  wspring: 'Wikipedia, “Mainspring” (barrel, slipping bridle in automatic watches, torque curve, stop-work) and “Automatic watch” (rotor, reverser wheels, Eterna ball bearing), en.wikipedia.org',
+  wtrain: 'Wikipedia, “Wheel train” and “Movement (clockwork)” (centre wheel 1 rev/h, fourth wheel 1 rpm, motion works 12:1), en.wikipedia.org/wiki/Wheel_train',
+  daniels: 'George Daniels, “Watchmaking”, Philip Wilson, 1981 (rev. 2011) — lever escapement geometry, lift angle, train calculations',
+  toh: 'C.-A. Reymondin et al., “The Theory of Horology”, Swiss Federation of Technical Colleges / WOSTEP, 1999 — oscillators, isochronism, gear trains, automatic winding',
+  cosc: 'COSC (Contrôle Officiel Suisse des Chronomètres), ISO 3159 chronometer criteria: mean daily rate −4 / +6 s/d, cosc.swiss',
+  tg: 'Witschi Electronic, “Training course — timegrapher measurement” (rate, amplitude from lift angle, beat error), witschi.com',
+  wimg: 'Wikimedia Commons photos used as geometry references (ETA 2824-2, ETA 2801, Seiko 7S26, escapement close-ups, balance wheels, lever) — licences in refs/REFS.md',
+};
+const STEPS = [
+  { id: 'overview', view: 'back', rows: ['r-wind', 'r-bph'], scope: 'tg', run: 1, op: 'TOUR', cfg: { bph: 28800, wind: .95, reg: 0, slow: 1, wrist: 'off' }, vis: { rotor: 1, bridges: 1, dial: 0 },
+    title: B('One spring, one oscillator', '一根发条，一个振荡器'), sub: B('Energy flows from the mainspring through the gear train to the escapement; the balance decides how fast it may leak out.', '能量从发条经轮系流向擒纵机构；摆轮决定它以多快的速度释放。'),
+    why: B('<p>A mechanical watch is a <b>stored-energy clock</b>. The <b>mainspring</b> in the barrel holds about 0.3 J. The <b>gear train</b> carries that energy toward the <b>escapement</b>, and the <b>balance wheel</b> with its hairspring swings back and forth at a fixed frequency.</p><p>The escapement does two things on every swing: it lets the train advance by exactly one step, and it gives the balance a small push to replace the energy friction took away. The hands count the steps.</p><p>This class of movement (ETA 2824-2, Seiko NH35) is Ø 25.6 mm and 4.6 mm thick, runs at 28,800 beats per hour and has an automatic winding rotor on the back.</p>',
+      '<p>机械表是一台<b>储能计时器</b>。条盒里的<b>发条</b>储存约 0.3 J 能量。<b>轮系</b>把能量传到<b>擒纵机构</b>，带游丝的<b>摆轮</b>以固定频率来回摆动。</p><p>每摆一次，擒纵机构做两件事：让轮系正好前进一步，并给摆轮一个小推力，补回摩擦损失的能量。指针只是在数这些步。</p><p>这一类机芯（ETA 2824-2、精工 NH35）直径 25.6 mm、厚 4.6 mm，每小时摆 28 800 次，背面有自动上弦摆陀。</p>'),
+    math: B('<p>Energy in a spiral spring wound by angle \\(\\varphi\\):</p>$$E=\\int_0^{\\varphi} M\\,d\\varphi\\;\\approx\\;\\bar M\\,\\varphi\\approx 7\\,\\text{N·mm}\\times 2\\pi\\times 5.4\\approx 0.24\\,\\text{J}$$<p>Spread over 38 h that is only about \\(1.8\\,\\mu\\text{W}\\): a watch runs on a millionth of a watt.</p>',
+      '<p>螺旋发条卷紧角度 \\(\\varphi\\) 时储存的能量：</p>$$E=\\int_0^{\\varphi} M\\,d\\varphi\\;\\approx\\;\\bar M\\,\\varphi\\approx 7\\,\\text{N·mm}\\times 2\\pi\\times 5.4\\approx 0.24\\,\\text{J}$$<p>平摊到 38 小时只有约 \\(1.8\\,\\mu\\text{W}\\)：一块表靠百万分之一瓦运转。</p>'),
+    try: B('<p>Press <b>Run</b> for a guided tour. Then click <b>Rotor</b> and <b>Bridges</b> to peel the movement, or click any part to see what it does.</p>', '<p>点<b>运行</b>看导览。然后点<b>自动陀</b>和<b>夹板</b>逐层拆开机芯，或点击任意部件看它的作用。</p>'),
+    quiz: { q: B('What sets how fast the hands move?', '是什么决定指针走多快？'), opts: [B('The mainspring strength', '发条力量'), B('The balance wheel and hairspring', '摆轮和游丝'), B('The size of the barrel', '条盒大小')], a: 1, fb: B('Right — the oscillator is the time base; the spring only supplies energy.', '对——振荡器才是计时基准；发条只提供能量。') },
+    src: ['eta', 'seiko', 'toh', 'wimg'] },
+  { id: 'wind', view: 'keyless', rows: ['r-wind'], scope: 'amp', run: 1, op: 'WIND', cfg: { wind: .15, wrist: 'off', slow: 1 }, vis: { rotor: 0, bridges: 1, dial: 1 },
+    title: B('Winding: crown, keyless works, mainspring', '上弦：表冠、上条机构、发条'), sub: B('Turning the crown winds the mainspring through the winding pinion, crown wheel and ratchet.', '转动表冠，经立轮、小钢轮和棘轮把发条卷紧。'),
+    why: B('<p>The <b>stem</b> carries two pinions on the dial side. In the pushed-in position the <b>sliding pinion</b> meshes with the <b>winding pinion</b>, which turns the <b>crown wheel</b> on the barrel bridge; that drives the <b>ratchet wheel</b> on the barrel arbor.</p><p>The arbor coils the <b>mainspring</b> tight around itself. A spring-loaded <b>click</b> stops the ratchet turning back. Pull the crown out and the <b>setting lever</b> and <b>yoke</b> shift the sliding pinion to the setting wheels instead, so you set the hands.</p><p>About 35–40 crown turns take an empty 2824 to full.</p>',
+      '<p><b>柄轴</b>在表盘侧带两个齿轮。推入时<b>离合轮</b>与<b>立轮</b>啮合，立轮带动条盒夹板上的<b>小钢轮</b>，小钢轮再带动条轴上的<b>棘轮</b>。</p><p>条轴把<b>发条</b>卷紧在自己周围，带弹簧的<b>止逆爪</b>防止棘轮倒转。拔出表冠后，<b>拉档</b>和<b>离合杆</b>把离合轮推向拨针轮，这时转表冠就是调时。</p><p>空条的 2824 大约要转 35–40 圈表冠才能上满。</p>'),
+    math: B('<p>Barrel torque from a strip of width \\(b\\), thickness \\(h\\):</p>$$M\\approx\\frac{E\\,b\\,h^{3}}{12\\,L}\\,\\Delta\\varphi$$<p>Torque rises with \\(h^3\\): a 10 % thicker spring gives ~33 % more torque but fewer turns fit in the barrel. Designers trade torque against reserve.</p>',
+      '<p>宽 \\(b\\)、厚 \\(h\\) 的发条带给出的条盒扭矩：</p>$$M\\approx\\frac{E\\,b\\,h^{3}}{12\\,L}\\,\\Delta\\varphi$$<p>扭矩与 \\(h^3\\) 成正比：发条加厚 10% 扭矩约增 33%，但条盒里能卷的圈数变少。设计就是在扭矩和动储之间取舍。</p>'),
+    try: B('<p>Press <b>Run</b>: the crown turns, then the view moves to the barrel so you can watch the coils pack around the arbor. Drag <b>Mainspring</b> to see the coils spread out when it runs down.</p>', '<p>点<b>运行</b>：表冠转动，随后视角移到条盒，可以看到发条圈向条轴收紧。拖动<b>发条</b>滑块，看放条时发条圈如何向外散开。</p>'),
+    quiz: { q: B('What stops the mainspring unwinding back through the crown?', '是什么防止发条经表冠倒退放松？'), opts: [B('The click on the ratchet wheel', '棘轮上的止逆爪'), B('The balance wheel', '摆轮'), B('The rotor bearing', '自动陀轴承')], a: 0, fb: B('Right — the click lets the ratchet turn one way only.', '对——止逆爪只允许棘轮单向转动。') },
+    src: ['wspring', 'eta', 'daniels', 'wimg'] },
+  { id: 'train', view: 'train', rows: ['r-wind'], scope: 'train', run: 1, op: 'TRAIN', cfg: { wind: .9, slow: 1 }, vis: { rotor: 0, bridges: .18, dial: 0 },
+    title: B('Gear train: hours to beats', '轮系：从小时到每一拍'), sub: B('Barrel → centre → third → fourth → escape: each stage speeds up, so the hands get the right speeds.', '条盒 → 中心轮 → 三轮 → 四轮 → 擒纵轮：每级增速，指针得到正确转速。'),
+    why: B('<p>The barrel turns once in about 7 h. Its 84 teeth drive the 12-leaf <b>centre pinion</b>, so the <b>centre wheel</b> turns once an hour and carries the minute hand. The <b>third wheel</b> is an intermediate step. The <b>fourth wheel</b> turns once a minute; on a 2824 its long arbor runs up through the hollow centre arbor to the central seconds hand.</p><p>The fourth wheel drives the 7-leaf pinion of the <b>escape wheel</b> at 12 rpm. Overall the speed goes up 5,040 times, so the torque that reaches the escapement is about 5,000 times smaller (minus friction).</p><p>On the dial side the <b>motion works</b> (cannon pinion, minute wheel, hour wheel) make the 12:1 step down for the hour hand.</p>',
+      '<p>条盒约 7 小时转一圈。它的 84 齿带动 12 叶的<b>中心齿轴</b>，于是<b>中心轮</b>每小时一圈，带分针。<b>三轮</b>是中间级。<b>四轮</b>每分钟一圈；在 2824 上，它的长轴从空心中心轴里穿上去，带中心秒针。</p><p>四轮带动<b>擒纵轮</b>的 7 叶齿轴，使擒纵轮每分钟 12 转。总共增速 5040 倍，所以到达擒纵机构的扭矩约小 5000 倍（再扣掉摩擦）。</p><p>表盘侧的<b>跨轮组</b>（跨轮、跨轮片、时轮）做 12:1 的减速，带时针。</p>'),
+    math: B('<p>Each mesh multiplies speed by teeth / leaves:</p>$$\\frac{n_{esc}}{n_{barrel}}=\\frac{84}{12}\\cdot\\frac{80}{10}\\cdot\\frac{75}{10}\\cdot\\frac{84}{7}=7\\cdot8\\cdot7.5\\cdot12=5040$$<p>Escape wheel: 20 teeth × 2 beats per tooth × 12 rpm = 480 beats/min = <b>28,800 per hour</b>.</p>',
+      '<p>每一对啮合把转速乘以齿数 / 叶数：</p>$$\\frac{n_{esc}}{n_{barrel}}=\\frac{84}{12}\\cdot\\frac{80}{10}\\cdot\\frac{75}{10}\\cdot\\frac{84}{7}=7\\cdot8\\cdot7.5\\cdot12=5040$$<p>擒纵轮：20 齿 × 每齿 2 拍 × 12 转/分 = 每分钟 480 拍 = <b>每小时 28 800 拍</b>。</p>'),
+    try: B('<p>Press <b>Run</b>: one hour passes in a few seconds and each wheel is highlighted in turn. Open the <b>Gear train</b> scope to compare speeds and torques.</p>', '<p>点<b>运行</b>：几秒内走过一小时，各轮依次高亮。打开<b>轮系</b>示波器对比转速和扭矩。</p>'),
+    quiz: { q: B('Which wheel carries the seconds hand on a 2824?', '2824 上哪个轮带秒针？'), opts: [B('Third wheel', '三轮'), B('Fourth wheel, through the hollow centre arbor', '四轮，穿过空心中心轴'), B('Escape wheel', '擒纵轮')], a: 1, fb: B('Right — 1 rpm, coaxial with the centre wheel: direct central seconds.', '对——每分钟 1 转、与中心轮同轴：直接中心秒针。') },
+    src: ['wtrain', 'toh', 'daniels', 'eta'] },
+  { id: 'escape', view: 'escape', rows: ['r-slow', 'r-bph'], scope: 'phase', run: 1, op: 'ESCAPE', cfg: { slow: .025, wind: .9 }, vis: { rotor: 0, bridges: .12, dial: 0 },
+    title: B('Swiss lever escapement', '瑞士杠杆式擒纵机构'), sub: B('Lock, unlock, impulse, drop: the pallet fork lets one half-tooth pass per swing and pushes the balance.', '锁接、解锁、冲击、落下：擒纵叉每摆一次放过半个齿，同时推一下摆轮。'),
+    why: B('<p>Most of the time a <b>pallet stone</b> <b>locks</b> an escape tooth and the balance swings free. As the balance returns, its <b>impulse pin</b> enters the fork and flicks the lever over — the stone slides off the tooth: <b>unlock</b>.</p><p>Now the wheel pushes along the sloped faces of the tooth and stone: <b>impulse</b>. The lever passes that push to the impulse pin, giving the balance its energy for this swing. Then the tooth leaves the stone and the wheel jumps until the other stone catches it: <b>drop</b>, then lock again.</p><p>All of this happens inside the <b>lift angle</b> (~50° of balance travel on a 2824). The angled locking faces (<b>draw</b>) hold the lever against its banking pin in between.</p>',
+      '<p>大部分时间里，一颗<b>叉瓦</b>挡住擒纵轮的一个齿（<b>锁接</b>），摆轮自由摆动。摆轮回摆时，<b>圆盘钉</b>进入叉口，把擒纵叉拨过去，叉瓦从齿上滑开：<b>解锁</b>。</p><p>接着擒纵轮沿齿和叉瓦的斜面推动擒纵叉：<b>冲击</b>。擒纵叉把这股推力传给圆盘钉，为摆轮补充这一摆的能量。随后齿离开叉瓦，擒纵轮跳一下直到被另一颗叉瓦挡住：<b>落下</b>，再次锁接。</p><p>这一切都发生在<b>举升角</b>内（2824 约 50° 的摆轮转角）。锁接面的倾角（<b>牵引</b>）在其余时间把擒纵叉压在限位钉上。</p>'),
+    math: B('<p>The impulse happens only while \\(|\\theta|<\\lambda/2\\). For amplitude \\(A\\) that window is a phase of</p>$$\\alpha=\\arcsin\\frac{\\lambda/2}{A},\\qquad \\lambda\\approx50^\\circ$$<p>At \\(A=300^\\circ\\): \\(\\alpha\\approx 4.8^\\circ\\) of each \\(180^\\circ\\) half-period — the balance is free about 95 % of the time, which is why it keeps good time.</p>',
+      '<p>只有当 \\(|\\theta|<\\lambda/2\\) 时才发生冲击。振幅为 \\(A\\) 时，这个窗口对应的相位为</p>$$\\alpha=\\arcsin\\frac{\\lambda/2}{A},\\qquad \\lambda\\approx50^\\circ$$<p>当 \\(A=300^\\circ\\) 时，每个 \\(180^\\circ\\) 半周期里只有 \\(\\alpha\\approx 4.8^\\circ\\)：摆轮约 95% 的时间是自由的，这正是走时准的原因。</p>'),
+    try: B('<p>Press <b>Run</b> to step through the four phases at 1/40 speed. Switch <b>Slow motion</b> to 1× to see why your ear hears only a fast tick-tick.</p>', '<p>点<b>运行</b>，以 1/40 速度逐个看四个阶段。把<b>慢动作</b>切回 1×，就明白耳朵为什么只听到快速的嘀嗒声。</p>'),
+    quiz: { q: B('When does the escape wheel give energy to the balance?', '擒纵轮什么时候给摆轮补能量？'), opts: [B('During lock', '锁接时'), B('During impulse, while the pin is in the fork', '冲击时，圆盘钉在叉口内'), B('At the end of each swing', '每次摆到尽头时')], a: 1, fb: B('Right — only a few degrees around the centre of each swing.', '对——只在每次摆动中点附近的几度内。') },
+    src: ['wlever', 'daniels', 'toh', 'wimg'] },
+  { id: 'balance', view: 'balance', rows: ['r-bph', 'r-reg', 'r-slow'], scope: 'tg', run: 1, op: 'BEAT', cfg: { slow: 1, wind: .9, reg: 0, bph: 28800 }, vis: { rotor: 0, bridges: 1, dial: 0 },
+    title: B('Balance wheel + hairspring', '摆轮 + 游丝'), sub: B('A torsion pendulum: inertia and spring stiffness set 3, 4 or 5 Hz; the regulator fine-tunes it.', '一个扭摆：惯量和游丝刚度决定 3、4 或 5 Hz；快慢针做微调。'),
+    why: B('<p>The <b>balance</b> is a ring on a staff; the flat <b>hairspring</b> pulls it back toward centre. Together they form a harmonic oscillator whose period barely depends on how far it swings — that is <b>isochronism</b>.</p><p>A 2824 makes 8 beats per second (4 Hz, 28,800 vph). An NH35 makes 6 (3 Hz, 21,600 vph). High-beat calibres run at 5 Hz (36,000 vph): finer seconds hand steps and less sensitivity to knocks, but more energy use.</p><p>The <b>regulator index</b> on the balance cock moves two curb pins along the outer coil, changing the active length of the spring by a tiny amount: a few seconds per day.</p>',
+      '<p><b>摆轮</b>是装在摆轴上的圆环，平<b>游丝</b>把它拉回中心。二者构成谐振子，周期几乎与摆幅无关——这叫<b>等时性</b>。</p><p>2824 每秒摆 8 次（4 Hz，每小时 28 800 次），NH35 每秒 6 次（3 Hz，21 600 次）。高振频机芯是 5 Hz（36 000 次）：秒针步进更细、抗震更好，但更耗能。</p><p>摆夹板上的<b>快慢针</b>沿游丝外圈移动两根夹针，极少量地改变游丝有效长度：每天几秒的调整。</p>'),
+    math: B('$$f=\\frac{1}{2\\pi}\\sqrt{\\frac{\\kappa}{I}},\\qquad \\kappa=\\frac{E\\,b\\,h^3}{12\\,L}$$<p>With \\(I\\approx10\\,\\text{mg·cm}^2\\), 4 Hz needs \\(\\kappa\\approx0.63\\,\\mu\\text{N·m/rad}\\). A change \\(\\Delta L/L\\) shifts the rate by \\(\\Delta f/f=-\\tfrac12\\,\\Delta L/L\\): 0.01 % of length ≈ 4.3 s/day.</p>',
+      '$$f=\\frac{1}{2\\pi}\\sqrt{\\frac{\\kappa}{I}},\\qquad \\kappa=\\frac{E\\,b\\,h^3}{12\\,L}$$<p>当 \\(I\\approx10\\,\\text{mg·cm}^2\\) 时，4 Hz 需要 \\(\\kappa\\approx0.63\\,\\mu\\text{N·m/rad}\\)。有效长度变化 \\(\\Delta L/L\\) 使频率变化 \\(\\Delta f/f=-\\tfrac12\\,\\Delta L/L\\)：长度改变 0.01% ≈ 每天 4.3 秒。</p>'),
+    try: B('<p>Press <b>Run</b>: the beat rate switches 3 → 4 → 5 Hz, then the regulator is moved. Watch the <b>Timegrapher</b> trace tilt as the rate changes; flat means 0 s/day.</p>', '<p>点<b>运行</b>：振频依次切换 3 → 4 → 5 Hz，然后拨动快慢针。看<b>校表仪</b>曲线随日差倾斜；水平就是 0 秒/天。</p>'),
+    quiz: { q: B('Moving the regulator toward “+” makes the watch…', '把快慢针拨向“+”会让表……'), opts: [B('run faster (shorter active spring)', '走快（游丝有效长度变短）'), B('run slower', '走慢'), B('swing wider', '摆幅变大')], a: 0, fb: B('Right — a shorter spring is stiffer, so the frequency rises.', '对——游丝变短更硬，频率升高。') },
+    src: ['wbal', 'tg', 'toh', 'cosc'] },
+  { id: 'auto', view: 'rotor', rows: ['r-wrist', 'r-wind'], scope: 'amp', run: 1, op: 'AUTO', cfg: { wind: .35, wrist: 'off', slow: 1 }, vis: { rotor: 1, bridges: 1, dial: 0 },
+    title: B('Automatic winding: rotor + reversers', '自动上弦：摆陀 + 换向轮'), sub: B('A half-disc weight on a ball bearing swings with your wrist; reverser wheels wind in both directions.', '装在滚珠轴承上的半圆摆陀随手腕摆动；换向轮让双向转动都能上弦。'),
+    why: B('<p>The <b>rotor</b> is an off-centre mass: gravity tries to keep it hanging down, so any tilt of your wrist turns the movement under it. The rotor pinion drives two <b>reverser wheels</b> with one-way clutches — whichever way the rotor turns, one of them drives the <b>reduction wheel</b>, which turns the ratchet wheel.</p><p>The ratio is large (about 1 barrel turn per ~100 rotor turns) so small motions add up. When the spring is full, a <b>slipping bridle</b> on the outer end lets the spring slide in the barrel instead of breaking.</p>',
+      '<p><b>自动陀</b>是偏心质量：重力总想让它下垂，所以手腕一倾斜，机芯就在它下面转动。摆陀齿轴带动两个装有单向离合的<b>换向轮</b>——不论摆陀朝哪边转，总有一个带动<b>减速轮</b>，再带动棘轮。</p><p>减速比很大（约 100 圈摆陀对应条盒 1 圈），小动作也能积少成多。上满之后，发条外端的<b>打滑附件</b>让发条在条盒内打滑，而不会被拉断。</p>'),
+    math: B('<p>Rotor as a damped pendulum driven by wrist tilt \\(\\psi(t)\\):</p>$$I_r\\ddot\\phi=-m g r\\,\\sin(\\phi-\\psi)-c\\,\\dot\\phi$$<p>Winding power ≈ \\(c\\,\\dot\\phi^2\\) captured by the reverser train; walking for an hour typically restores several hours of reserve.</p>',
+      '<p>把摆陀看作由手腕倾角 \\(\\psi(t)\\) 驱动的阻尼摆：</p>$$I_r\\ddot\\phi=-m g r\\,\\sin(\\phi-\\psi)-c\\,\\dot\\phi$$<p>上弦功率约为换向轮系吸收的 \\(c\\,\\dot\\phi^2\\)；步行一小时通常可补回几个小时的动储。</p>'),
+    try: B('<p>Press <b>Run</b>: the wrist goes from still to desk work to walking. Watch the rotor swing and the reserve climb in the <b>Reserve</b> scope (time-lapse).</p>', '<p>点<b>运行</b>：手腕从静止到办公再到走路。看摆陀摆动，以及<b>动储</b>示波器里储能上升（延时）。</p>'),
+    quiz: { q: B('Why does the rotor wind in both directions?', '为什么摆陀两个方向都能上弦？'), opts: [B('The reverser wheels act as one-way clutches', '换向轮起单向离合作用'), B('The mainspring is double', '发条是双层的'), B('The balance reverses it', '摆轮把它反过来')], a: 0, fb: B('Right — one reverser drives while the other freewheels, then they swap.', '对——一个换向轮驱动时另一个空转，方向变了就互换。') },
+    src: ['wspring', 'toh', 'eta', 'wimg'] },
+  { id: 'reserve', view: 'back2', rows: ['r-wind', 'r-bph'], scope: 'amp', run: 1, op: 'RESERVE', cfg: { wind: 1, wrist: 'off', slow: 1, reg: 0 }, vis: { rotor: 0, bridges: 1, dial: 0 },
+    title: B('Power reserve and isochronism', '动力储存与等时性'), sub: B('As the spring runs down, amplitude falls; below ~200° the rate drifts, and around 120° the watch stops.', '发条放松时振幅下降；低于约 200° 走时漂移，约 120° 时停走。'),
+    why: B('<p>Amplitude depends on how much energy each impulse delivers, which follows mainspring torque. A full 2824 swings about <b>300°</b>; after 24 h about 270°; near the end of its <b>38 h</b> reserve it falls below 200°.</p><p>A perfect oscillator would not care, but real ones have small <b>isochronism errors</b> (escapement disturbance, hairspring shape, position), so the rate drifts as amplitude drops. When the impulse can no longer push the pin through the lift angle, the watch <b>stops</b>.</p><p>That is why chronometer testing (COSC, −4/+6 s/d) checks several positions and states of wind.</p>',
+      '<p>振幅取决于每次冲击给多少能量，而这跟着发条扭矩走。上满弦的 2824 摆幅约 <b>300°</b>；24 小时后约 270°；接近 <b>38 小时</b>动储末尾时降到 200° 以下。</p><p>理想振子不受影响，但真实振子有微小的<b>等时性误差</b>（擒纵干扰、游丝形状、方位），所以振幅下降时日差会漂移。等冲击再也推不过举升角时，表就<b>停了</b>。</p><p>所以天文台认证（COSC，−4/+6 秒/天）要在多个方位和不同上弦状态下测试。</p>'),
+    math: B('<p>Amplitude scales with the square root of torque (impulse energy ∝ M, losses ∝ A²):</p>$$A\\approx A_0\\sqrt{M/M_0}$$<p>Reserve \\(=\\) barrel turns × hours per turn \\(\\approx 5.4\\times 7\\,\\text{h}\\approx 38\\,\\text{h}\\).</p>',
+      '<p>振幅约与扭矩的平方根成正比（冲击能量 ∝ M，损耗 ∝ A²）：</p>$$A\\approx A_0\\sqrt{M/M_0}$$<p>动储 \\(=\\) 条盒圈数 × 每圈小时数 \\(\\approx 5.4\\times 7\\,\\text{h}\\approx 38\\,\\text{h}\\)。</p>'),
+    try: B('<p>Press <b>Run</b>: 38 hours pass in about 14 s. Watch amplitude fall, the rate drift and the balance stop; then the crown rewinds it.</p>', '<p>点<b>运行</b>：约 14 秒走完 38 小时。看振幅下降、日差漂移、摆轮停下；随后表冠重新上弦。</p>'),
+    quiz: { q: B('Why does a watch keep worse time when nearly run down?', '为什么快没电（发条快放完）时表走得不准？'), opts: [B('The gear ratio changes', '齿轮比变了'), B('Lower amplitude exposes isochronism errors', '振幅降低暴露了等时性误差'), B('The hairspring gets longer', '游丝变长了')], a: 1, fb: B('Right — the oscillator is not perfectly isochronous at low amplitude.', '对——振子在低振幅下并非完全等时。') },
+    src: ['toh', 'cosc', 'eta', 'seiko'] },
+];
+const Bl3 = (dy = 0) => ({ tx: POS.Bl[0], ty: 2.6 + dy, tz: POS.Bl[1] });
+const SHOTS = {
+  back: { tx: 0, ty: 2.5, tz: .8, az: -.32, el: 1.02, size: 33 },
+  back2: { tx: 0, ty: 2.2, tz: .6, az: .25, el: .95, size: 31 },
+  keyless: { tx: -9.2, ty: -1.8, tz: .6, az: -1.15, el: -.62, size: 17 },
+  barrel: { tx: -6.4, ty: 2.0, tz: 0, az: -.5, el: 1.0, size: 15 },
+  train: { tx: 1.2, ty: 1.6, tz: .8, az: .35, el: .72, size: 24 },
+  escape: { tx: POS.E[0] * .5 + POS.P[0] * .5, ty: 1.4, tz: POS.E[1] * .5 + POS.P[1] * .5, az: Math.atan2(POS.P[0] - POS.E[0], POS.P[1] - POS.E[1]) + 1.35, el: .78, size: 8, exp: .62 },
+  balance: Object.assign(Bl3(), { az: .7, el: .62, size: 13.5, exp: .82 }),
+  rotor: { tx: 0, ty: 3.6, tz: 0, az: -.55, el: .62, size: 33 },
+  dial: { tx: -2, ty: -1.8, tz: 0, az: -.4, el: -1.0, size: 31 },
+  expl: { tx: 0, ty: 3.5, tz: 0, az: -.6, el: .32, size: 34 },
+};
+for (const k in SHOTS) if (SHOTS[k].exp == null) SHOTS[k].exp = .95;
+
+// ===================== d_ops: Run-button sequences (chips + phases) for each lesson step =====================
+const mkAct = () => ({ hi: '', ghost: -1, lid: -1, lapse: 0 });
+const ACT = mkAct(), ACTT = mkAct();
+const OPR = { q: [], cur: null, t: 0, kind: '', chips: [], chip: -1, phase: '', dev: '', running: false, result: null };
+let OPSCALE = 1;
+function seg(o) { const r = Object.assign({ dur: 1, enter() { }, tick() { }, exit() { } }, o); if (!r.done) r.dur *= OPSCALE; return r; }
+function act(o) { Object.assign(ACTT, mkAct(), o); }
+function setChips(list) { OPR.chips = list.map(tr); OPR.chipsSrc = list; OPR.chip = -1; renderChips(); }
+const L2 = (en, zh) => B(en, zh);
+const OPS = {};
+const camTo = (k, d = 1.4) => shot(SHOTS[k], d);
+OPS.TOUR = () => {
+  setChips([L2('Mainspring', '发条'), L2('Gear train', '轮系'), L2('Escapement', '擒纵'), L2('Balance', '摆轮'), L2('Rotor', '自动陀')]);
+  OPR.q.push(
+    seg({ dur: 3.2, chip: 0, label: L2('Energy is stored in the coiled mainspring inside the barrel', '能量储存在条盒里卷紧的发条中'), dev: L2('BARREL', '条盒'), enter() { DISPT.rotor = 0; camTo('barrel'); act({ hi: 'barrel,mains,ratchet', lid: .2, ghost: .15 }); } }),
+    seg({ dur: 3.4, chip: 1, label: L2('The gear train speeds it up 5,040× toward the escapement', '轮系把转速放大 5040 倍传到擒纵机构'), dev: '×5040', enter() { DISPT.bridges = .18; camTo('train'); act({ hi: 'center,third,fourth' }); } }),
+    seg({ dur: 3.4, chip: 2, label: L2('The pallet fork releases the escape wheel one half-tooth per beat', '擒纵叉每拍放过擒纵轮半个齿'), dev: L2('LEVER', '擒纵叉'), enter() { camTo('escape'); act({ hi: 'esc,pallet' }); } }),
+    seg({ dur: 3.4, chip: 3, label: L2('The balance and hairspring swing 4 times a second: the time base', '摆轮和游丝每秒摆 4 个来回：计时基准'), dev: '4 Hz', enter() { DISPT.bridges = 1; camTo('balance'); act({ hi: 'balance,hair' }); } }),
+    seg({ dur: 3.4, chip: 4, label: L2('The rotor winds the spring from your wrist movements', '自动陀靠手腕动作给发条上弦'), dev: L2('AUTO', '自动'), enter() { DISPT.rotor = 1; camTo('back'); PRM.wrist = 'desk'; act({ hi: 'rotor' }); }, exit() { PRM.wrist = 'off'; } }),
+  );
+};
+OPS.WIND = () => {
+  setChips([L2('Crown', '表冠'), L2('Keyless works', '上条机构'), L2('Ratchet + click', '棘轮 + 止逆爪'), L2('Mainspring', '发条')]);
+  OPR.q.push(
+    seg({ dur: 2.4, chip: 0, label: L2('Crown pushed in: the sliding pinion meshes with the winding pinion', '表冠推入：离合轮与立轮啮合'), dev: L2('STEM', '柄轴'), enter() { W.wind = Math.min(W.wind, .15); W.crownV = TAU * 1.2; DISPT.dial = 1; camTo('keyless'); act({ hi: 'stem,keyless' }); } }),
+    seg({ dur: 2.6, chip: 1, label: L2('Winding pinion → crown wheel on the barrel bridge', '立轮 → 条盒夹板上的小钢轮'), dev: L2('CROWN WHEEL', '小钢轮'), enter() { W.crownV = TAU * 1.8; DISPT.dial = 0; camTo('barrel', 1.6); act({ hi: 'crownw' }); } }),
+    seg({ dur: 2.6, chip: 2, label: L2('Crown wheel turns the ratchet; the click stops it running back', '小钢轮带动棘轮；止逆爪防止倒转'), dev: L2('CLICK', '止逆爪'), enter() { W.crownV = TAU * 2.2; act({ hi: 'ratchet' }); } }),
+    seg({ dur: 5, chip: 3, label: () => tr(L2('Mainspring coils tighten around the arbor', '发条圈在条轴周围收紧')) + ` · ${fmt(W.wind * 100, 0)} %`, dev: L2('BARREL', '条盒'), enter() { W.crownV = TAU * 3.2; act({ hi: 'mains', lid: .12, ghost: .12 }); }, done: () => W.wind > .985, exit() { W.crownV = 0; } }),
+    seg({ dur: 1.2, chip: 3, label: L2('Fully wound', '已上满'), dev: '100 %', enter() { W.crownV = 0; act({ hi: 'mains', lid: .12, ghost: .12 }); } }),
+  );
+};
+OPS.TRAIN = () => {
+  setChips([L2('Barrel', '条盒'), L2('Centre 1/h', '中心轮 1/h'), L2('Third', '三轮'), L2('Fourth 1/min', '四轮 1/min'), L2('Escape 12/min', '擒纵轮 12/min')]);
+  const L = 600;
+  OPR.q.push(
+    seg({ dur: 2.4, chip: 0, label: L2('Time-lapse ×600: the barrel turns once in about 7 h', '延时 ×600：条盒约 7 小时转一圈'), dev: '0.14 rev/h', enter() { act({ hi: 'barrel', lapse: L }); } }),
+    seg({ dur: 2.4, chip: 1, label: L2('84 → 12 leaves: centre wheel, 1 rev per hour (minute hand)', '84 → 12 叶：中心轮每小时 1 圈（分针）'), dev: '×7', enter() { act({ hi: 'center', lapse: L }); } }),
+    seg({ dur: 2.4, chip: 2, label: L2('80 → 10: third wheel, 8 rev per hour', '80 → 10：三轮每小时 8 圈'), dev: '×8', enter() { act({ hi: 'third', lapse: L }); } }),
+    seg({ dur: 2.4, chip: 3, label: L2('75 → 10: fourth wheel, 1 rev per minute (seconds hand)', '75 → 10：四轮每分钟 1 圈（秒针）'), dev: '×7.5', enter() { act({ hi: 'fourth', lapse: L }); } }),
+    seg({ dur: 3.0, chip: 4, label: L2('84 → 7: escape wheel, 12 rpm — back to real time', '84 → 7：擒纵轮每分钟 12 转——回到实时'), dev: '×12', enter() { act({ hi: 'esc', lapse: 0 }); } }),
+  );
+};
+const PHCH = { lock: 0, turn: 0, unlock: 1, impulse: 2, drop: 3, stop: 0 };
+OPS.ESCAPE = () => {
+  setChips([L2('Lock', '锁接'), L2('Unlock', '解锁'), L2('Impulse', '冲击'), L2('Drop', '落下')]);
+  OPR.q.push(
+    seg({ dur: 18, chip: 0, label: () => tr({ lock: L2('Lock: a pallet stone holds an escape tooth; the balance swings free', '锁接：叉瓦挡住擒纵轮齿，摆轮自由摆动'), turn: L2('Turning point: the hairspring reverses the balance', '折返点：游丝让摆轮反向'), unlock: L2('Unlock: the impulse pin flicks the fork; the stone slides off the tooth', '解锁：圆盘钉拨动叉口，叉瓦滑离齿面'), impulse: L2('Impulse: the tooth pushes the stone, the fork pushes the pin', '冲击：齿推叉瓦，叉口推圆盘钉'), drop: L2('Drop: the wheel jumps until the other stone catches it', '落下：擒纵轮跳动，直到被另一颗叉瓦挡住'), stop: L2('Stopped', '已停') }[W.phaseState]), dev: '1/40×',
+      enter() { PRM.slow = .025; camTo('escape'); act({ hi: 'esc,pallet', ghost: .12 }); }, tick() { const c = PHCH[W.phaseState] ?? 0; if (c !== OPR.chip) { OPR.chip = c; renderChips(); } OPR.dev = `${fmt(W.theta, 0)}°`; } }),
+    seg({ dur: 3.5, chip: 3, label: L2('Real speed: 8 beats per second — the tick-tock you hear', '实时速度：每秒 8 拍——就是你听到的嘀嗒声'), dev: '1×', enter() { PRM.slow = 1; act({ hi: 'esc,pallet', ghost: .12 }); } }),
+  );
+};
+OPS.BEAT = () => {
+  setChips([L2('3 Hz', '3 Hz'), L2('4 Hz', '4 Hz'), L2('5 Hz', '5 Hz'), L2('Regulator +', '快慢针 +'), L2('Regulator −', '快慢针 −')]);
+  const bph = v => () => { PRM.bph = v; TG.reset(); syncControls.dirty = true; };
+  OPR.q.push(
+    seg({ dur: 3.4, chip: 0, label: L2('21,600 vph (3 Hz): Seiko NH35-class, 6 beats per second', '21 600 次/时 (3 Hz)：精工 NH35 级，每秒 6 拍'), dev: '21 600', enter: bph(21600) }),
+    seg({ dur: 3.4, chip: 1, label: L2('28,800 vph (4 Hz): ETA 2824-2, 8 beats per second', '28 800 次/时 (4 Hz)：ETA 2824-2，每秒 8 拍'), dev: '28 800', enter: bph(28800) }),
+    seg({ dur: 3.4, chip: 2, label: L2('36,000 vph (5 Hz): high-beat — smoother seconds, more energy', '36 000 次/时 (5 Hz)：高振频——秒针更顺，更耗能'), dev: '36 000', enter: bph(36000) }),
+    seg({ dur: 3.6, chip: 3, label: () => tr(L2('Index toward +: shorter active hairspring → faster', '快慢针拨向 +：游丝有效长度变短 → 走快')) + ` · ${fmt(PRM.reg, 0)} s/d`, dev: L2('INDEX', '快慢针'), enter() { bph(28800)(); rampP('reg', 0, 30, 1.6); act({ hi: 'cock,hair' }); } }),
+    seg({ dur: 3.6, chip: 4, label: () => tr(L2('Index toward −: longer active spring → slower; back to zero', '快慢针拨向 −：游丝变长 → 走慢；再回零')) + ` · ${fmt(PRM.reg, 0)} s/d`, dev: L2('INDEX', '快慢针'), enter() { TG.reset(); rampP('reg', 30, -20, 1.4); setTimeout(() => { }, 0); act({ hi: 'cock,hair' }); }, exit() { rampP('reg', PRM.reg, 0, 1.0); } }),
+  );
+};
+OPS.AUTO = () => {
+  setChips([L2('Still', '静止'), L2('Desk', '办公'), L2('Walking', '走路'), L2('Bridle slips', '打滑')]);
+  OPR.q.push(
+    seg({ dur: 2.2, chip: 0, label: L2('Wrist still: the rotor hangs at the bottom, no winding', '手腕静止：摆陀垂在下方，不上弦'), dev: 'g', enter() { PRM.wrist = 'off'; W.autoGain = 6; camTo('rotor'); act({ hi: 'rotor' }); } }),
+    seg({ dur: 4, chip: 1, label: L2('Desk work: small tilts, small rotor swings', '办公：手腕轻微倾斜，摆陀小幅摆动'), dev: L2('DESK', '静置'), enter() { PRM.wrist = 'desk'; act({ hi: 'rotor,auto' }); } }),
+    seg({ dur: 8, chip: 2, label: () => tr(L2('Walking: big swings; reverser wheels wind both ways', '走路：大幅摆动；换向轮让双向都能上弦')) + ` · ${fmt(W.wind * 100, 0)} %`, dev: L2('WALK', '步行'), enter() { PRM.wrist = 'walk'; act({ hi: 'auto,rotor' }); } }),
+    seg({ dur: 2.6, chip: 3, label: L2('At full wind the slipping bridle lets the spring slide — nothing breaks', '上满后打滑附件让发条打滑——不会断'), dev: L2('FULL', '上满'), enter() { W.wind = Math.max(W.wind, .995); act({ hi: 'mains' }); }, exit() { PRM.wrist = 'off'; W.autoGain = 1; } }),
+  );
+};
+OPS.RESERVE = () => {
+  setChips([L2('Full', '满弦'), L2('24 h', '24 小时'), L2('Run-down', '放完'), L2('Stopped', '停走'), L2('Rewind', '重新上弦')]);
+  const L = 38 * 3600 / 14;
+  OPR.q.push(
+    seg({ dur: 1.6, chip: 0, label: () => tr(L2('Fully wound: amplitude ~300°', '满弦：振幅约 300°')), dev: '0 h', enter() { W.wind = 1; W.A = ampTarget(1); TG.reset(); act({ lapse: 0 }); } }),
+    seg({ dur: 20, chip: 1, label: () => tr(L2('Time-lapse: amplitude falls with mainspring torque', '延时：振幅随发条扭矩下降')) + ` · ${fmt((1 - W.wind) * cfgB().res, 0)} h · ${fmt(W.A, 0)}°`, dev: '×9800', enter() { act({ lapse: L }); }, tick() { const c = W.wind < .25 ? 2 : W.wind < .38 ? 1 : 1; if (c !== OPR.chip) { OPR.chip = c; renderChips(); } }, done: () => !W.run }),
+    seg({ dur: 2.4, chip: 3, label: L2('Below ~120° the impulse cannot cross the lift angle: stopped', '低于约 120° 冲击过不了举升角：停走'), dev: L2('STOP', '停摆'), enter() { act({ lapse: 0 }); } }),
+    seg({ dur: 3, chip: 4, label: () => tr(L2('Rewind at the crown — the balance restarts by itself', '转表冠重新上弦——摆轮自动起摆')) + ` · ${fmt(W.wind * 100, 0)} %`, dev: L2('CROWN', '表冠'), enter() { W.crownV = TAU * 18; act({ hi: 'mains' }); }, done: () => W.wind > .97, exit() { W.crownV = 0; } }),
+  );
+};
+let RAMPS = [];
+const rampP = (key, from, to, dur) => { RAMPS = RAMPS.filter(r => r.key !== key); RAMPS.push({ key, from, to, t0: SIM.t, dur }); };
+function startOp(kind) {
+  if (OPR.running || !OPS[kind]) return false;
+  OPR.q = []; OPR.cur = null; OPR.kind = kind; OPR.result = null; OPR.running = true; OPS[kind](); nextSeg(); return true;
+}
+function nextSeg() {
+  if (OPR.cur) OPR.cur.exit();
+  OPR.cur = OPR.q.shift() || null; OPR.t = 0;
+  if (!OPR.cur) { OPR.running = false; OPR.phase = ''; OPR.dev = ''; act({}); onOpDone(); return; }
+  if (OPR.cur.chip !== undefined) { OPR.chip = OPR.cur.chip; renderChips(); }
+  OPR.phaseSrc = OPR.cur.label || ''; OPR.dev = OPR.cur.dev || '';
+  OPR.cur.enter();
+}
+function tickOp(dt) {
+  if (!OPR.cur) return;
+  OPR.t += dt; const u = clamp(OPR.t / OPR.cur.dur);
+  OPR.cur.tick(u, dt);
+  OPR.phase = typeof OPR.phaseSrc === 'function' ? OPR.phaseSrc() : tr(OPR.phaseSrc);
+  if (u >= 1 || (OPR.cur.done && OPR.cur.done())) nextSeg();
+}
+function abortOp() {
+  if (OPR.cur) try { OPR.cur.exit(); } catch (e) { }
+  OPR.q = []; OPR.cur = null; OPR.running = false; RAMPS = [];
+  W.crownV = 0; W.autoGain = 1; W.lapse = 0; PRM.wrist = 'off'; if (PRM.slow < 1 && STEPS[CUR].id !== 'escape') PRM.slow = 1; act({});
+}
+function tickRamps() { RAMPS = RAMPS.filter(r => { const k = smooth((SIM.t - r.t0) / r.dur); PRM[r.key] = lerp(r.from, r.to, k); return k < 1; }); }
+function dampAct(dt) { for (const k in ACT) { if (k === 'ghost' || k === 'lid') ACT[k] = ACTT[k]; else if (typeof ACT[k] === 'number') ACT[k] = ACTT[k]; else ACT[k] = ACTT[k]; } }
+
+// ===================== f_ui: trail, controls, why box, readouts, scope, tooltip (bilingual) =====================
+let CUR = 0, SCOPE = 'tg', WHYTAB = 'why';
+const ICON = {
+  play: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3v10l8-5z"/></svg>',
+  pause: '<svg class="i" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="2.6" height="10" rx=".6"/><rect x="9.4" y="3" width="2.6" height="10" rx=".6"/></svg>',
+  check: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>',
+};
+function setBtn(el, html) { if (el._h !== html) { el.innerHTML = html; el._h = html; } }
+function scopePal() {
+  return document.body.classList.contains('light')
+    ? { fg: '#111113', tx2: '#3e3f44', mu: '#66686e', dim: '#b4b4ba', grid: 'rgba(17,17,19,.07)', acc: '#2f6fbd', ok: '#22704f', bad: '#b02a43', warn: '#9a6a10', cold: '#3d7fc4', hot: '#c4561c' }
+    : { fg: '#f2f2f3', tx2: '#bdbdc0', mu: '#8a8c92', dim: '#55555b', grid: 'rgba(255,255,255,.055)', acc: '#4a8ad6', ok: '#5fc39c', bad: '#e5566f', warn: '#d9a441', cold: '#8fc4ff', hot: '#ff8a3d' };
+}
+let SC = scopePal();
+function toast(msg, ms = 3800) {
+  const el = $('toast'); el.textContent = msg; el.style.opacity = 1; toast.until = SIM.t + ms / 1000 * Math.max(1, SIM.speed);
+  const r = el.getBoundingClientRect(), s = $('stage').getBoundingClientRect();
+  TOASTRECT = { x0: (r.left - s.left) / stageScale - 6, y0: (r.top - s.top) / stageScale - 6, x1: (r.right - s.left) / stageScale + 6, y1: (r.bottom - s.top) / stageScale + 6 };
+}
+function tickToast() { if (toast.until && SIM.t > toast.until) { $('toast').style.opacity = 0; toast.until = 0; TOASTRECT = null; } }
+function renderTrail() {
+  $('steps').innerHTML = STEPS.map((s, i) => `<div class="st ${i === CUR ? 'cur' : i < CUR ? 'done' : ''}" data-i="${i}" role="button" tabindex="0" aria-label="${t('steplab')} ${i + 1}: ${tr(s.title)}"><div class="nd">${i < CUR ? ICON.check : String(i + 1).padStart(2, '0')}</div><div class="tx"><div class="tt">${tr(s.title)}</div><div class="sb">${tr(s.sub)}</div></div></div>`).join('');
+}
+$('steps').addEventListener('click', e => { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } });
+$('steps').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('.st'); if (el) { userTook(); goStep(+el.dataset.i); } } });
+function renderChips() { OPR.chips = (OPR.chipsSrc || []).map(tr); const h = OPR.chips.map((c, i) => `<span class="${i === OPR.chip ? 'on' : i < OPR.chip ? 'done' : ''}">${c}</span>`).join(''); if (h !== renderChips.last) { $('cmdseq').innerHTML = h; renderChips.last = h; } }
+function renderWhy() {
+  const s = STEPS[CUR], b = $('whybody');
+  document.querySelectorAll('#whytabs button').forEach(x => x.classList.toggle('on', x.dataset.t === WHYTAB));
+  if (WHYTAB === 'why') b.innerHTML = tr(s.why);
+  else if (WHYTAB === 'math') b.innerHTML = tr(s.math);
+  else if (WHYTAB === 'ex') b.innerHTML = tr(s.try);
+  else if (WHYTAB === 'quiz') { const q = s.quiz; b.innerHTML = `<div class="quiz"><div class="q">${tr(q.q)}</div><div class="opts">${q.opts.map((o, i) => `<button data-i="${i}">${String.fromCharCode(65 + i)}. ${tr(o)}</button>`).join('')}</div><div class="fb" id="qfb"></div></div>`; }
+  else if (WHYTAB === 'src') b.innerHTML = `<p class="note">${t('srcnote')}</p><ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.55">${s.src.map(k => `<li>${SRC[k]}</li>`).join('')}</ol>`;
+  if (window.renderMathInElement) try { renderMathInElement(b, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { }
+}
+$('whytabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); WHYTAB = b.dataset.t; renderWhy(); });
+$('whybody').addEventListener('click', e => { const b = e.target.closest('.quiz button'); if (!b) return; userTook(); const q = STEPS[CUR].quiz, i = +b.dataset.i; document.querySelectorAll('.quiz button').forEach((x, j) => { x.classList.remove('right', 'wrong'); if (j === i) x.classList.add(i === q.a ? 'right' : 'wrong'); }); $('qfb').innerHTML = i === q.a ? tr(q.fb) : (LANG === 'zh' ? '再想想。' : 'Not quite — try again.'); });
+// ---------- controls ----------
+// ---------- controls ----------
+function cfgChanged() { syncControls(); updateReadouts(); }
+function segBind(id, key, num) { $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; userTook(); PRM[key] = num ? +b.dataset.v : b.dataset.v; if (key === 'bph') TG.reset(); cfgChanged(); }); }
+segBind('bph', 'bph', 1); segBind('slow', 'slow', 1); segBind('wrist', 'wrist');
+$('wind').addEventListener('input', e => { userTook(); W.wind = +e.target.value; PRM.wind = W.wind; cfgChanged(); });
+$('reg').addEventListener('input', e => { userTook(); PRM.reg = +e.target.value; TG.reset(); cfgChanged(); });
+$('lang').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== LANG) setLang(b.dataset.v); });
+$('btnRun').addEventListener('click', () => { userTook(); runCurrent(); });
+$('btnStepOp').addEventListener('click', () => { userTook(); if (OPR.running) nextSeg(); });
+$('btnPause').addEventListener('click', () => { userTook(); SIM.paused = !SIM.paused; setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause); });
+$('speed').addEventListener('change', e => { userTook(); SIM.speed = +e.target.value; });
+$('btnTheme').addEventListener('click', () => { document.body.classList.toggle('light'); });
+$('btnAuto').addEventListener('click', () => { restartAutoplay(); });
+document.querySelectorAll('#scopetabs button').forEach(b => b.addEventListener('click', () => { userTook(); SCOPE = b.dataset.s; syncControls(); }));
+function runCurrent() { if (OPR.running) abortOp(); startOp(STEPS[CUR].op); syncControls(); }
+function rangeFill(r) { r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100).toFixed(1) + '%'); }
+const ROWS = ['r-bph', 'r-wind', 'r-reg', 'r-slow', 'r-wrist'];
+const RUNLAB = { TOUR: B('guided tour', '导览'), WIND: B('wind the crown', '转表冠上弦'), TRAIN: B('one hour ×600', '一小时 ×600'), ESCAPE: B('1/40 slow motion', '1/40 慢动作'), BEAT: B('beat-rate sweep', '振频扫描'), AUTO: B('wrist motion', '手腕运动'), RESERVE: B('38 h run-down', '38 小时放条') };
+function syncControls() {
+  const s = STEPS[CUR];
+  ROWS.forEach(id => $(id).style.display = s.rows.includes(id) ? '' : 'none');
+  const on = (id, v) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v)));
+  on('bph', PRM.bph); on('slow', PRM.slow); on('wrist', PRM.wrist); on('lang', LANG);
+  $('wind').value = W.wind; $('windv').textContent = Math.round(W.wind * 100) + ' %';
+  $('reg').value = PRM.reg; $('regv').textContent = (PRM.reg > 0 ? '+' : '') + fmt(PRM.reg, 0) + ' s/d';
+  setBtn($('btnRun'), OPR.running ? '<span class="spin"></span>' + t('running') : ICON.play + t('run') + ' ' + tr(RUNLAB[s.op]));
+  setBtn($('btnPause'), SIM.paused ? ICON.play : ICON.pause);
+  document.querySelectorAll('#ctl input[type=range]').forEach(rangeFill);
+  $('btnRun').disabled = OPR.running; $('btnRun').parentElement.style.display = s.run ? '' : 'none';
+  document.querySelectorAll('#scopetabs button').forEach(b => b.classList.toggle('on', b.dataset.s === SCOPE));
+  setBtn($('btnAuto'), AUTOPLAY ? '<span class="live"></span>' + t('autoOn') : ICON.play + t('auto'));
+}
+// ---------- readouts ----------
+const roW = (s, a) => [...String(s).replace(/<[^>]+>/g, '')].reduce((w, c) => w + (c.charCodeAt(0) > 0x2e80 ? 12 : a), 0);
+function ro(pairs) { const h = pairs.map(([k, v]) => `<div${roW(t(k), 6.4) + roW(v, 7.3) > 150 ? ' class="w"' : ''}><span>${t(k)}</span><b>${v}</b></div>`).join(''); if (h !== ro.last) { $('readouts').innerHTML = h; ro.last = h; } }
+const sd = v => `<span class="${Math.abs(v) > 15 ? 'neg' : 'pos'}">${v > 0 ? '+' : ''}${fmt(v, 1)} s/d</span>`;
+function phState() { return W.phaseState === 'stop' ? `<span class="neg">${t('ph_stop')}</span>` : t('ph_' + W.phaseState); }
+function hhmm(s) { s = ((s % 43200) + 43200) % 43200; const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, ss = Math.floor(s) % 60; return `${h || 12}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`; }
+function updateReadouts() {
+  const r = W.R; if (!r) return; const id = STEPS[CUR].id;
+  const bph = [`ro_bph`, `${fmt(r.bph / 1000, 1)}k · ${r.f} Hz`], amp = ['ro_amp', fmt(r.A, 0) + '°'], rate = ['ro_rate', sd(r.rate)], res = ['ro_res', fmt(r.res, 0) + ' / ' + r.resMax + ' h'];
+  if (id === 'overview') ro([bph, amp, rate, res, ['ro_time', hhmm(W.tw + 10 * 3600 + 8 * 60)], ['ro_state', phState()]]);
+  else if (id === 'wind') ro([['ro_wind', fmt(r.wind * 100, 0) + ' %'], ['ro_tq', fmt(r.T, 2) + ' N·mm'], res, amp, ['ro_state', phState()]]);
+  else if (id === 'train') ro([['ro_tq', fmt(r.T, 2) + ' N·mm'], ['ro_te', fmt(r.Te, 2) + ' µN·m'], ['ro_esc', fmt(r.escRpm, 0) + ' rpm'], bph, ['ro_time', hhmm(W.tw + 10 * 3600 + 8 * 60)]]);
+  else if (id === 'escape') ro([['ro_state', phState()], ['θ', fmt(W.theta, 0) + '°'], amp, ['ro_te', fmt(r.Te, 2) + ' µN·m'], bph]);
+  else if (id === 'balance') ro([bph, rate, amp, ['ro_k', fmt(r.k, 2) + ' µN·m/rad'], ['ro_reg', (PRM.reg > 0 ? '+' : '') + fmt(PRM.reg, 0) + ' s/d']]);
+  else if (id === 'auto') ro([['ro_rotor', fmt(Math.abs(W.rotorV) * 9.55, 0) + ' rpm'], ['ro_wind', fmt(r.wind * 100, 0) + ' %'], res, amp]);
+  else ro([res, amp, rate, ['ro_tq', fmt(r.T, 2) + ' N·mm'], ['ro_state', phState()]]);
+}
+// ---------- timegrapher trace ----------
+const TG = { pts: [], dev: 0, lastK: null, lastT: 0, reset() { this.pts = []; this.dev = 0; this.lastK = null; } };
+function tickTG(dt) {
+  if (!W.run) return; if (TG.lastK === null) { TG.lastK = W.beats; TG.lastT = SIM.t; return; }
+  if (W.beats !== TG.lastK) {
+    const n = W.beats - TG.lastK; TG.lastK = W.beats; const el = SIM.t - TG.lastT; TG.lastT = SIM.t;
+    TG.dev += W.rate / 86.4 * el * (PRM.slow < 1 ? 1 : 1); // ms of drift per real second
+    if (n > 0 && n < 50) { const be = (W.beats & 1 ? .15 : -.15), nz = (rnd() - .5) * .05; TG.pts.push({ t: SIM.t, y: TG.dev + be + nz, odd: W.beats & 1 }); }
+    while (TG.pts.length && SIM.t - TG.pts[0].t > 15) TG.pts.shift();
+  }
+}
+// ---------- scope ----------
+const sc = $('scope'); let sg = sc.getContext('2d'), SW = 0, SH = 0;
+function sizeScope() { const r = sc.getBoundingClientRect(); const dpr = Math.min(2, devicePixelRatio || 1); SW = sc.clientWidth; SH = sc.clientHeight; sc.width = Math.round(Math.max(1, r.width) * dpr); sc.height = Math.round(Math.max(1, r.height) * dpr); sg.setTransform(sc.width / Math.max(1, SW), 0, 0, sc.height / Math.max(1, SH), 0, 0); }
+function ytk(g, s, y, x0, x1) { g.strokeStyle = SC.grid; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, Math.round(y) + .5); g.lineTo(x1, Math.round(y) + .5); g.stroke(); txt(g, s, x0 - 5, y + 4, SC.mu, 'right'); }
+function txt(g, s, x, y, col = SC.mu, al = 'left', f = '11px "JetBrains Mono"') { g.fillStyle = col; g.font = f; g.textAlign = al; g.fillText(s, x, y); }
+const SANS = '11px "Inter","Noto Sans SC",sans-serif';
+const SCOPEINFO = { scope: '' };
+function drawScope() {
+  const g = sg, Wd = SW, H = SH, r = W.R; if (!Wd || !H || !r) return; g.clearRect(0, 0, Wd, H); SC = scopePal();
+  const cap = t('c_' + SCOPE); if ($('scopecap').textContent !== cap) $('scopecap').textContent = cap;
+  SCOPEINFO.scope = SCOPE;
+  const L = 44, Rr = Wd - 14, T = 14, Bt = H - 24;
+  if (SCOPE === 'tg') {
+    // y range auto: ±4 ms window around the trace, x = last 15 s
+    const span = 15, x = tt => Rr - (SIM.t - tt) / span * (Rr - L);
+    let mid = TG.pts.length ? TG.pts[TG.pts.length - 1].y : 0; const yr = 3, y = v => (T + Bt) / 2 - (v - mid) / yr * (Bt - T) / 2;
+    for (let k = -2; k <= 2; k++) ytk(g, (k > 0 ? '+' : '') + fmt(k * 1.5, 1), y(mid + k * 1.5), L, Rr);
+    txt(g, 'ms', L - 34, T - 2);
+    for (const p of TG.pts) { const xx = x(p.t); if (xx < L) continue; g.fillStyle = p.odd ? SC.acc : SC.ok; g.fillRect(xx - 1.2, y(p.y) - 1.2, 2.4, 2.4); }
+    const rate = r.rate; txt(g, `${t('ro_rate')} ${rate > 0 ? '+' : ''}${fmt(rate, 1)} s/d   ${t('ro_amp')} ${fmt(r.A, 0)}°   ${t('sc_be')} 0.3 ms   ${r.bph}`, L, Bt + 16, SC.tx2, 'left', SANS);
+    if (!r.run) txt(g, t('ph_stop'), (L + Rr) / 2, (T + Bt) / 2, SC.bad, 'center', '600 13px "Inter","Noto Sans SC",sans-serif');
+  } else if (SCOPE === 'phase') {
+    const A = Math.max(r.A, 1), half = LIFT / 2, cyc = 2.2, p1 = W.p, p0 = p1 - cyc * TAU, X = p => L + (p - p0) / (p1 - p0) * (Rr - L - 30), Y = v => (T + Bt) / 2 - v / 330 * (Bt - T) / 2;
+    g.fillStyle = document.body.classList.contains('light') ? 'rgba(196,86,28,.12)' : 'rgba(255,138,61,.14)';
+    for (let k = Math.floor(p0 / Math.PI) - 1; k <= Math.ceil(p1 / Math.PI); k++) { const a = Math.asin(Math.min(1, half / A)); const s0 = Math.max(p0, k * Math.PI - a), s1 = Math.min(p1, k * Math.PI + a); if (s1 > s0) g.fillRect(X(s0), T, X(s1) - X(s0), Bt - T); }
+    for (const v of [-300, -150, 0, 150, 300]) ytk(g, String(v), Y(v), L, Rr - 30);
+    txt(g, 'θ °', L - 34, T - 2);
+    g.strokeStyle = SC.acc; g.lineWidth = 1.8; g.beginPath(); for (let i = 0; i <= 300; i++) { const p = p0 + (p1 - p0) * i / 300; const v = r.run || A > 2 ? A * Math.sin(p) : 0; i ? g.lineTo(X(p), Y(v)) : g.moveTo(X(p), Y(v)); } g.stroke();
+    g.strokeStyle = SC.hot; g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 300; i++) { const p = p0 + (p1 - p0) * i / 300; const v = LEVER * clamp(A * Math.sin(p) / half, -1, 1) * 10; i ? g.lineTo(X(p), Y(v)) : g.moveTo(X(p), Y(v)); } g.stroke();
+    g.fillStyle = SC.fg; g.beginPath(); g.arc(X(p1), Y(W.theta), 3.5, 0, TAU); g.fill();
+    txt(g, t('ph_' + W.phaseState), Rr, Y(W.theta) + 4, SC.fg, 'right', SANS);
+    txt(g, `— θ   — ${tr(B('lever ×10', '擒纵叉 ×10'))}   ▮ ${t('lg_imp')} (±${half}°)`, L, Bt + 16, SC.tx2, 'left', SANS);
+  } else if (SCOPE === 'amp') {
+    const c = cfgB(), hx = h => L + h / (c.res + 2) * (Rr - L - 34), ya = a => Bt - clamp(a / 320) * (Bt - T), yr = v => (T + Bt) / 2 - clamp(v / 40, -1, 1) * (Bt - T) / 2;
+    for (const a of [0, 100, 200, 300]) ytk(g, String(a), ya(a), L, Rr - 34);
+    for (const v of [-40, 0, 40]) txt(g, (v > 0 ? '+' : '') + v, Rr - 30, yr(v) + 4, SC.hot);
+    txt(g, '°', L - 34, T - 2); txt(g, 's/d', Rr - 30, T - 2, SC.hot);
+    g.strokeStyle = SC.acc; g.lineWidth = 2; g.beginPath(); let stopH = c.res;
+    for (let i = 0; i <= 160; i++) { const h = c.res * i / 160, w = 1 - h / c.res, a = w > .004 ? ampTarget(w) : 0; if (a < 110 && stopH === c.res) stopH = h; const aa = h > stopH ? 0 : a; i ? g.lineTo(hx(h), ya(aa)) : g.moveTo(hx(h), ya(aa)); } g.stroke();
+    g.strokeStyle = SC.hot; g.lineWidth = 1.4; g.setLineDash([4, 3]); g.beginPath();
+    for (let i = 0; i <= 160; i++) { const h = c.res * i / 160; if (h > stopH) break; const w = 1 - h / c.res, a = ampTarget(w); const v = rateOf(a); i ? g.lineTo(hx(h), yr(v)) : g.moveTo(hx(h), yr(v)); } g.stroke(); g.setLineDash([]);
+    g.strokeStyle = SC.bad; g.beginPath(); g.moveTo(L, ya(110) + .5); g.lineTo(Rr - 34, ya(110) + .5); g.globalAlpha = .5; g.stroke(); g.globalAlpha = 1;
+    const hn = (1 - r.wind) * c.res; g.fillStyle = SC.fg; g.beginPath(); g.arc(hx(hn), ya(r.A), 4, 0, TAU); g.fill();
+    txt(g, t('sc_now'), hx(hn) + 7, ya(r.A) - 6, SC.fg, 'left', SANS);
+    txt(g, t('sc_h'), Rr - 34, Bt + 16, SC.tx2, 'right', SANS); txt(g, `— ${t('sc_amp')}   ‒ ‒ ${t('sc_rate')}`, L, Bt + 16, SC.tx2, 'left', SANS);
+  } else if (SCOPE === 'train') {
+    const f = r.f, esc = 60 * r.escRpm, rows = [['barrel', esc / 5040, r.T], ['center', esc / 720, r.T / 7 * .95], ['third', esc / 90, r.T / 56 * .9], ['fourth', esc / 12, r.T / 420 * .86], ['esc', esc, r.T / 5040 * .72]];
+    const nm = { barrel: B('Barrel', '条盒'), center: B('Centre', '中心轮'), third: B('Third', '三轮'), fourth: B('Fourth', '四轮'), esc: B('Escape', '擒纵轮') };
+    const lx = v => clamp((Math.log10(v) + 1) / 5), x0 = L + 30, x1 = Rr - 40, bh = (Bt - T) / rows.length;
+    for (const d of [-1, 0, 1, 2, 3, 4]) { const xx = x0 + lx(Math.pow(10, d)) * (x1 - x0); g.strokeStyle = SC.grid; g.beginPath(); g.moveTo(xx + .5, T); g.lineTo(xx + .5, Bt); g.stroke(); txt(g, d < 0 ? '0.1' : String(Math.pow(10, d)), xx, Bt + 13, SC.mu, 'center'); }
+    rows.forEach(([k, v, tq], i) => { const yy = T + i * bh + 3, hi = (ACT.hi || '').split(',').includes(k); txt(g, tr(nm[k]), x0 - 6, yy + bh * .45, hi ? SC.fg : SC.tx2, 'right', SANS); g.fillStyle = hi ? SC.acc : SC.dim; g.fillRect(x0, yy, lx(v) * (x1 - x0), bh * .42); txt(g, fmt(v, v < 1 ? 2 : 0), x0 + lx(v) * (x1 - x0) + 4, yy + bh * .38, SC.fg); g.fillStyle = SC.hot; const tw = lx(tq * 1000) * (x1 - x0); g.fillRect(x0, yy + bh * .5, tw, bh * .2); txt(g, (tq >= .1 ? fmt(tq, 2) + ' N·mm' : fmt(tq * 1000, 1) + ' µN·m'), x0 + tw + 4, yy + bh * .72, SC.hot, 'left', '10px "JetBrains Mono"'); });
+    txt(g, `■ ${t('sc_rph')}   ■ ${t('sc_tq')} (µN·m, log)`, L, Bt + 26 > H ? Bt + 13 : Bt + 13, SC.tx2, 'left', SANS);
+  }
+}
+let TIPS = null;
+function showTip(info, x, y) { TIPS = { info, x, y }; const el = $('tip'); el.style.left = clamp(x + 14, 0, 1440 - 300) + 'px'; el.style.top = clamp(y + 10, 60, 810 - 160) + 'px'; el.style.opacity = 1; updateTip.last = ''; updateTip(); }
+function updateTip() { if (!TIPS) return; const i = TIPS.info; const v = i.v ? i.v() : ''; const h = `<h5>${tr(i.name)}</h5><div class="tf">${tr(i.fn)}</div>${v ? `<div class="tv"><span>${t('cur')}</span>${v}</div>` : ''}`; if (h !== updateTip.last) { $('tip').innerHTML = h; updateTip.last = h; } }
+function hideTip() { TIPS = null; $('tip').style.opacity = 0; }
+
+// ================= g_main: step logic, autoplay, scene update, loop, hooks =================
+let AUTOPLAY = !INTERACTIVE_START, LT = 0, EVI = 0, EVLAST = 0, VIEW = '';
+const DISP = { rotor: 1, bridges: 1 }, DISPT = { rotor: 1, bridges: 1, dial: 0 };
+function userTook() { if (AUTOPLAY) { AUTOPLAY = false; OPSCALE = 1; $('btnAuto').classList.remove('on'); syncControls(); } }
+const PRM0 = Object.assign({}, PRM);
+function applyCfg(c) { if (!c) return; Object.assign(PRM, c); if (c.wind != null) { W.wind = c.wind; W.A = ampTarget(W.wind); W.run = true; } TG.reset(); }
+function syncViewBtns() { $('btnRotor').classList.toggle('on', DISPT.rotor > .5); $('btnBridges').classList.toggle('on', DISPT.bridges > .5); $('btnDial').classList.toggle('on', VIEW === 'dial'); }
+function goStep(i, dur = 1.7) {
+  i = clamp(i, 0, STEPS.length - 1); if (OPR.running) abortOp();
+  CUR = i; const s = STEPS[i]; RAMPS = [];
+  SCOPE = s.scope; WHYTAB = 'why'; hideTip(); applyCfg(s.cfg); if (toast.until) { $('toast').style.opacity = 0; toast.until = 0; TOASTRECT = null; }
+  if (EXT.mv) setExplode('mv', 0, .9); $('btnExplode').classList.remove('on');
+  DISPT.rotor = s.vis.rotor; DISPT.bridges = s.vis.bridges;
+  VIEW = s.view; shot(SHOTS[s.view], dur); syncViewBtns();
+  OPR.chipsSrc = []; renderChips(); OPR.phase = ''; OPR.dev = ''; OPR.kind = '';
+  renderStepTitle(); renderTrail(); renderWhy(); syncControls(); updateReadouts(); sizeScope();
+}
+function renderStepTitle() { const s = STEPS[CUR]; $('steptitle').innerHTML = `<span class="ix">${String(CUR + 1).padStart(2, '0')} / ${String(STEPS.length).padStart(2, '0')}</span>${tr(s.title)}<small>${tr(s.sub)}</small>`; }
+LANGHOOKS.push(() => { renderStepTitle(); renderTrail(); renderWhy(); renderChips(); ro.last = ''; updateReadouts(); syncControls(); layout(); updateTip.last = ''; updateTip(); });
+function toggleExplode() { const on = !EXT.mv; setExplode('mv', on ? 1 : 0, on ? 2 : 1.3); shot(on ? SHOTS.expl : SHOTS[VIEW], on ? 2 : 1.4); $('btnExplode').classList.toggle('on', on); }
+$('btnExplode').addEventListener('click', () => { userTook(); toggleExplode(); });
+$('btnRotor').addEventListener('click', () => { userTook(); DISPT.rotor = DISPT.rotor > .5 ? 0 : 1; syncViewBtns(); });
+$('btnBridges').addEventListener('click', () => { userTook(); DISPT.bridges = DISPT.bridges > .5 ? .15 : 1; syncViewBtns(); });
+$('btnDial').addEventListener('click', () => { userTook(); VIEW = VIEW === 'dial' ? STEPS[CUR].view : 'dial'; shot(SHOTS[VIEW], 1.6); syncViewBtns(); });
+$('btnReset').addEventListener('click', () => { userTook(); user.daz = user.del = 0; user.zoom = 1; shot(SHOTS[VIEW], 1.2); });
+function onOpDone() {
+  syncControls(); updateReadouts(); const r = W.R;
+  const msg = {
+    TOUR: () => B('Spring → train → escapement → balance: every mechanical watch has these four', '发条 → 轮系 → 擒纵 → 摆轮：每块机械表都有这四部分'),
+    WIND: () => B(`Fully wound: ${fmt(r.T, 1)} N·mm at the barrel, about ${r.resMax} h of reserve`, `已上满：条盒扭矩 ${fmt(r.T, 1)} N·mm，约 ${r.resMax} 小时动储`),
+    TRAIN: () => B('Barrel to escape wheel ×5,040 in speed, ÷5,040 in torque', '条盒到擒纵轮：转速 ×5040，扭矩 ÷5040'),
+    ESCAPE: () => B(`Impulse only within ±${LIFT / 2}° of centre — the balance is free ~95 % of each swing`, `只在中心 ±${LIFT / 2}° 内冲击——每次摆动约 95% 的时间摆轮是自由的`),
+    BEAT: () => B('Beat rate is set by inertia and hairspring; the regulator trims a few s/day', '振频由惯量和游丝决定；快慢针微调每天几秒'),
+    AUTO: () => B('An hour of walking adds several hours of reserve', '走一小时路能补几个小时的动储'),
+    RESERVE: () => B('Run-down: amplitude fell, rate drifted, then it stopped — and restarted on winding', '放条过程：振幅下降、日差漂移、最后停走——上弦后重新起摆'),
+  }[OPR.kind];
+  if (msg && r) toast(tr(msg()));
+}
+// ---------- autoplay timeline ----------
+const idle = () => !OPR.running;
+const run = k => () => { startOp(k); syncControls(); };
+const TL = [[0.0, () => goStep(0, 0)], [0.8, run('TOUR')], [0.2, idle]];
+for (let i = 1; i < 7; i++) TL.push([1.0, () => goStep(i)], [0.8, run(['TOUR', 'WIND', 'TRAIN', 'ESCAPE', 'BEAT', 'AUTO', 'RESERVE'][i])], [0.2, idle]);
+TL.push([1.4, () => { WHYTAB = 'src'; renderWhy(); }], [1.6, () => { userTook(); toast(LANG === 'zh' ? '自动演示结束——现在可以自由操作：点步骤、拖动滑块、点任意部件。' : 'Tour finished — explore freely: click steps, drag sliders, click any part.', 6000); }]);
+function tickAuto(dt) { LT += dt; while (EVI < TL.length && LT - EVLAST >= TL[EVI][0]) { const r = TL[EVI][1](); if (r === false) break; EVLAST = LT; EVI++; } }
+function restartAutoplay() { abortOp(); Object.assign(PRM, PRM0); W.wind = .95; AUTOPLAY = true; OPSCALE = .75; LT = 0; EVI = 0; EVLAST = 0; user.daz = user.del = 0; user.zoom = 1; $('btnAuto').classList.add('on'); syncControls(); }
+// ---------- labels ----------
+const LBL = [
+  ['barrel', [POS.B[0] - 3.4, 3.4, POS.B[1] + 3.4], 'barrel', ['back', 'back2', 'train']], ['mains', [POS.B[0] + 2.6, 2.2, POS.B[1] + 2.6], 'mains', ['barrel']], ['ratchet', [POS.B[0], 4.0, POS.B[1] - 2.2], 'ratchet', ['barrel']],
+  ['crownw', [POS.crw[0], 3.6, POS.crw[1]], 'crownw', ['barrel']], ['center', [0, 2.8, 0], 'center', ['train']], ['third', [POS.T[0] + 2.4, 1.7, POS.T[1] + 2.4], 'third', ['train']],
+  ['fourth', [-2.6, 2.2, -2.6], 'fourth', ['train']], ['esc', [POS.E[0], 1.3, POS.E[1]], 'esc', ['escape', 'train']], ['pallet', [POS.P[0], 1.9, POS.P[1]], 'pallet', ['escape']],
+  ['balance', [POS.Bl[0] + 4.1, 3.0, POS.Bl[1]], 'balance', ['balance', 'escape', 'back', 'back2']], ['hair', [POS.Bl[0] - 1.9, 3.4, POS.Bl[1] + 1.2], 'hair', ['balance']], ['cock', [POS.Bl[0] - 3.4, 4.2, POS.Bl[1] + 3.6], 'cock', ['balance']],
+  ['rotor', [6, 6.2, 6], 'rotor', ['rotor', 'back']], ['auto', [RV.rd[0], 5.0, RV.rd[1]], 'auto', ['rotor']], ['bridges', [-6.5, 3.4, 5.4], 'bridges', ['back2']],
+  ['stem', [-13, -2.15, 0], 'stem', ['keyless', 'dial']], ['keyless', [-7, -2.0, 2.2], 'keyless', ['keyless', 'dial']], ['motion', [0, -1.7, 3.2], 'motion', ['dial']],
+].map(([id, p, sec, views]) => ({ id, sec, views, L: label(INFO[id] ? INFO[id].name : id, V3(...p), { pri: 2 }) }));
+// ---------- display state: ghosting bridges, rotor, barrel lid ----------
+const GHM = new Set(), GHO = []; for (const g of [GRP.bridges, GRP.auto]) g.traverse(o => { if (o.isMesh) { GHO.push(o); GHM.add(o.material); } });
+function setOp(m, op) { const tr = op < .99; if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; m.needsUpdate = true; } m.opacity = op; }
+let GHOST = 1, LID = 1, ROTV = 1, TRA = 0;
+const HICOL = new THREE.Color('#4a8ad6');
+const SR = { bal: 0 };
+function sceneUpdate(dt) {
+  const r = W.R;
+  // display
+  GHOST = damp(GHOST, ACT.ghost >= 0 ? ACT.ghost : DISPT.bridges, 6, dt); LID = damp(LID, ACT.lid >= 0 ? ACT.lid : 1, 6, dt); ROTV = damp(ROTV, EXV.mv > .05 ? 1 : DISPT.rotor, 6, dt);
+  for (const m of GHM) setOp(m, GHOST); for (const o of GHO) o.castShadow = GHOST > .6;
+  setOp(BAR.lidM, LID); BAR.lid.castShadow = LID > .6;
+  GRP.rotor.visible = ROTV > .04; GRP.rotor.position.y = (1 - ROTV) * 9 + (GRP.rotor.userData.exOff || 0);
+  // kinematics (deg)
+  TRA += dt * W.lapse * r.escRpm * 6;
+  const E = -(W.escA + TRA), D = DEG;
+  ROT.esc.rotation.y = E * D; ROT.fourth.rotation.y = -E / 12 * D; ROT.third.rotation.y = E / 90 * D; ROT.center.rotation.y = -E / 720 * D; ROT.barrel.rotation.y = E / 5040 * D;
+  ROT.bal.rotation.y = W.theta * D; HAIR.tw.value = W.theta * D; ROT.pallet.rotation.y = -W.lever * D;
+  const arb = -W.wind * 5.4 * TAU; ROT.arbor.rotation.y = arb; ROT.crownw.rotation.y = -arb * 60 / 26;
+  ROT.stem.rotation.x = W.crown; ROT.spin.rotation.x = W.crown; ROT.wpin.rotation.y = W.crown * 16 / 18; ROT.setw.rotation.y = 0;
+  ROT.rotor.rotation.y = W.rotor; ROT.rv1.rotation.y = -W.rotor * 16 / 24; ROT.rv2.rotation.y = -W.rotor * 16 / 24; ROT.rd.rotation.y = Math.abs(W.rotor) * .3;
+  ROT.cannon.rotation.y = ROT.center.rotation.y; ROT.minw.rotation.y = -ROT.center.rotation.y * 3; ROT.hourw.rotation.y = ROT.center.rotation.y / 12;
+  ROT.index.rotation.y = PRM.reg / 60 * 9 * D;
+  updateMainspring();
+  // highlight
+  const hs = (ACT.hi || '').split(',').filter(Boolean);
+  for (const sec in SECM) { const on = hs.includes(sec); for (const m of SECM[sec]) { m.emissive.copy(m.userData.e0); if (on) m.emissive.lerp(HICOL, .3 + .1 * Math.sin(SIM.t * 5)); } }
+  // labels
+  for (const l of LBL) l.L.show = l.views.includes(VIEW) && EXV.mv < .1 && !(l.sec === 'rotor' && ROTV < .5) ? (hs.includes(l.sec) ? 1 : .85) : 0;
+  const tk = OPR.phase ? `${OPR.dev ? `<b>${tr(OPR.dev)}</b> · ` : ''}${OPR.phase}` : `<b>${t('ready')}</b>`;
+  if (tk !== sceneUpdate.tk) { $('tkphase').innerHTML = tk; sceneUpdate.tk = tk; }
+}
+function simStep(dt) {
+  SIM.t += dt;
+  if (AUTOPLAY) tickAuto(dt);
+  tickOp(dt); tickRamps(); dampAct(dt);
+  W.lapse = ACT.lapse; watchStep(dt); W.R = R(); tickTG(dt);
+  tickExplode(); updateExplode(dt); updateRig(); sceneUpdate(dt); tickToast();
+  if (RAMPS.length || W.crownV || PRM.wrist !== 'off' || W.lapse) syncControls.dirty = true;
+}
+let FR = 0;
+function render() {
+  placeCamera(); camera.updateMatrixWorld(); updateLabels();
+  renderer.setScissorTest(false); renderer.clear(); const sx = stageOX + STAGE.x * stageScale, sy = VH - (stageOY + (STAGE.y + STAGE.h) * stageScale); renderer.setScissor(sx + 1, sy + 1, STAGE.w * stageScale - 2, STAGE.h * stageScale - 2); renderer.setScissorTest(true);
+  renderer.render(scene, camera);
+  if (CAPTURE || FR % 2 === 0) drawScope(); if (CAPTURE || FR % 6 === 0) { updateReadouts(); if (syncControls.dirty) { syncControls(); syncControls.dirty = false; } } updateTip(); FR++;
+}
+// ---------- input ----------
+const ray = new THREE.Raycaster(); let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: 0 }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY; if (drag.moved > 4) { userTook(); user.daz -= dx * .006; user.del = clamp(user.del + dy * .004, -1.2, 1.2); } });
+canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (!d || d.moved > 4) return; pickAt(e.clientX, e.clientY); });
+canvas.addEventListener('wheel', e => { e.preventDefault(); userTook(); user.zoom = clamp(user.zoom * Math.exp(e.deltaY * .0012), .3, 2.5); }, { passive: false });
+function pickAt(cx, cy) {
+  ray.setFromCamera(new THREE.Vector2(cx / VW * 2 - 1, -(cy / VH) * 2 + 1), camera);
+  const hits = ray.intersectObjects(PICK.filter(visibleUp), false).filter(h => !(GHM.has(h.object.material) && GHOST < .5) && !(h.object === BAR.lid && LID < .5));
+  if (!hits.length) { hideTip(); return; }
+  userTook(); showTip(hits[0].object.userData.info, (cx - stageOX) / stageScale, (cy - stageOY) / stageScale);
+}
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return; if (e.key === 'ArrowRight') { userTook(); goStep(CUR + 1); } else if (e.key === 'ArrowLeft') { userTook(); goStep(CUR - 1); } else if (e.key === 'Escape') hideTip(); });
+addEventListener('resize', () => { layout(); sizeScope(); });
+new ResizeObserver(() => { sizeScope(); drawScope(); }).observe(sc);
+// ---------- boot ----------
+if (CAPTURE) document.body.classList.add('capture');
+PART.mesh.visible = false;
+applyLang(); layout(); sizeScope();
+for (let i = 0; i < 60; i++) watchStep(.02); W.R = R();
+if (AUTOPLAY) restartAutoplay();
+goStep(0, 0);
+let last = performance.now(), acc = 0;
+function frame(now) {
+  requestAnimationFrame(frame); if (CAPTURE) return;
+  const el = Math.min(.1, (now - last) / 1000); last = now;
+  if (!SIM.paused) { acc += el * SIM.speed; let n = 0; while (acc >= SIM.dt && n < 8) { simStep(SIM.dt); acc -= SIM.dt; n++; } if (n === 8) acc = 0; }
+  render();
+}
+requestAnimationFrame(frame);
+// ---------- test hooks ----------
+window.__setTime = t => { let n = 0; while (SIM.t + SIM.dt / 2 < t && n < 200000) { simStep(SIM.dt); n++; } render(); return SIM.t; };
+window.__state = () => ({ t: SIM.t, step: CUR, view: VIEW, op: OPR.kind, running: OPR.running, phase: OPR.phase, auto: AUTOPLAY, ev: EVI, nEv: TL.length, LT, lang: LANG, prm: Object.assign({}, PRM), w: { wind: W.wind, A: W.A, rate: W.rate, run: W.run, ph: W.phaseState } });
+window.__goStep = i => goStep(i);
+window.__setLang = l => { setLang(l); render(); return LANG; };
+window.__scopeInfo = () => ({ scope: SCOPE, running: OPR.running });
+window.__perf = () => { render(); const i = renderer.info; return { calls: i.render.calls, tris: i.render.triangles, textures: i.memory.textures, geometries: i.memory.geometries, texMB: +(Object.values(TX || {}).reduce((a, tx) => a + (tx && tx.image ? (tx.image.width * tx.image.height * 4 * 1.33) : 0), 0) / 1048576).toFixed(1) }; };
+window.__audit = () => {
+  // per-mesh: raw primitive w/o bevel/map, metal w/o env, and screen-coverage estimate via bbox projection
+  const out = { primitives: [], metalNoEnv: [], hue: null }; const env = !!scene.environment;
+  scene.traverse(o => { if (!o.isMesh || !visibleUp(o)) return; const g = o.geometry, m = o.material; const raw = /^(Box|Sphere|Cylinder|Plane)Geometry$/.test(g.type) && !(m.map || m.normalMap || m.bumpMap); if (raw && !o.isInstancedMesh && o !== PART.mesh && !(m.isShadowMaterial)) { const b = new THREE.Box3().setFromObject(o), c = []; for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) c.push(new THREE.Vector3(x, y, z).project(camera)); const xs = c.map(v => v.x), ys = c.map(v => v.y); const a = (clamp(Math.max(...xs), -1, 1) - clamp(Math.min(...xs), -1, 1)) * (clamp(Math.max(...ys), -1, 1) - clamp(Math.min(...ys), -1, 1)) / 4; if (a > .02) out.primitives.push({ type: g.type, area: +a.toFixed(3), name: o.userData.part || o.name }); } if (m.metalness > .5 && !m.envMap && !env) out.metalNoEnv.push(o.userData.part || g.type); });
+  // dominant hue over the 3D canvas
+  const gl = renderer.getContext(), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight; render(); const px = new Uint8Array(w * h * 4); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const bins = new Array(12).fill(0); let n = 0; for (let i = 0; i < px.length; i += 4 * 37) { if (px[i + 3] < 10) continue; const r = px[i] / 255, gg = px[i + 1] / 255, b = px[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b); n++; if (mx - mn < .08) continue; let hh = mx === r ? (gg - b) / (mx - mn) : mx === gg ? 2 + (b - r) / (mx - mn) : 4 + (r - gg) / (mx - mn); hh = ((hh * 60) + 360) % 360; bins[Math.floor(hh / 30)]++; }
+  out.hue = { maxShare: n ? +(Math.max(...bins) / n).toFixed(3) : 0, n };
+  out.pass = !out.primitives.length && !out.metalNoEnv.length && out.hue.maxShare <= .6; return out;
+};
+window.__layout = () => { const r = []; for (const L of LABELS) if (L.el.style.visibility === 'visible' && +L.el.style.opacity > .05) { const b = L.el.getBoundingClientRect(); r.push({ t: L.el.textContent.slice(0, 30), x0: b.left, y0: b.top, x1: b.right, y1: b.bottom }); } const tt = $('toast'), tb = tt.getBoundingClientRect(); return { labels: r, toast: +getComputedStyle(tt).opacity > .05 ? { x0: tb.left, y0: tb.top, x1: tb.right, y1: tb.bottom, text: tt.textContent } : null, stage: (() => { const s = $('stage').getBoundingClientRect(); return { x0: s.left + STAGE.x * stageScale, y0: s.top + STAGE.y * stageScale, x1: s.left + (STAGE.x + STAGE.w) * stageScale, y1: s.top + (STAGE.y + STAGE.h) * stageScale }; })() }; };
+window.I18N = I18N;
+window.__fid = (o = {}) => { if (OPR.running) abortOp(); AUTOPLAY = false; DISPT.rotor = o.rotor ?? 1; DISPT.bridges = o.bridges ?? 1; setExplode('mv', o.expl ? 1 : 0, 0.01); VIEW = o.shot || 'back'; const sh = Object.assign({}, SHOTS[o.shot || 'back'], o.cam || {}); shot(sh, 0); labelsEl.style.display = o.labels ? '' : 'none'; document.body.classList.toggle('fid', !o.labels); $('toast').style.opacity = 0; ACT.hi = ''; if (typeof ACTT !== 'undefined') { ACTT.hi = ''; ACTT.ghost = -1; ACTT.lid = -1; ACT.ghost = -1; ACT.lid = -1; } window.__setTime(SIM.t + 2.5); return __layout().stage; };
+window.__dbg = { W, PRM, OPR, ACT, GRP, ROT, LABELS, STAGE, DISPT, TG };
+{ const m = QS.match(/[?&]step=(\d+)/); if (m) goStep(Math.min(STEPS.length - 1, +m[1]), 0); }
+window.__ready = true;
+
+</script>
+</body></html>

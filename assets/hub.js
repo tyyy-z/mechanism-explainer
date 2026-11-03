@@ -7,7 +7,7 @@
     { id: 'llm-compute', path: 'explainers/llm-compute/', poster: 'assets/posters/compute.webp', thumb: 'assets/steps/compute-0-sq.webp', steps: 9, min: 20, ready: true,
       en: { t: 'An LLM token on CPU + GPU', s: 'HBM · SM · Tensor Core · KV cache', h: 'Why decode is memory-bound: weights stream from HBM to the multipliers for every single token.' },
       zh: { t: 'LLM token 在 CPU + GPU 上', s: 'HBM · SM · Tensor Core · KV cache', h: '为什么 decode 受访存限制：每生成一个 token，权重都要从 HBM 流到乘法器。' } },
-    { id: 'watch', path: 'explainers/watch-movement/', poster: 'assets/posters/watch.webp', thumb: 'assets/steps/watch-1-sq.webp', steps: 7, min: 15, ready: false,
+    { id: 'watch', path: 'explainers/watch-movement/', poster: 'assets/posters/watch.webp', thumb: 'assets/steps/watch-1-sq.webp', steps: 7, min: 15, ready: true, alias: ['watch-movement'],
       en: { t: 'Mechanical watch movement', s: 'ETA 2824 / NH35 class · 28,800 vph', h: 'Barrel, gear train, escapement and balance: how a spring becomes 8 ticks a second for 40 hours.' },
       zh: { t: '机械表机芯', s: 'ETA 2824 / NH35 级 · 每小时 28,800 次', h: '发条盒、轮系、擒纵和摆轮：一根发条怎样变成每秒 8 下、走 40 小时。' } },
     { id: 'ev-motor', path: 'explainers/ev-motor/', poster: 'assets/posters/ev.webp', thumb: 'assets/steps/ev-1-sq.webp', steps: 7, min: 18, ready: false,
@@ -37,7 +37,7 @@
   let LANG = Q.get('lang') === 'zh' || Q.get('lang') === 'en' ? Q.get('lang') : (() => { try { const s = localStorage.getItem('lang'); return s === 'zh' ? 'zh' : 'en'; } catch (e) { return 'en'; } })();
   let CUR = 'home';
   const FRAMES = new Map(); // id -> iframe (LRU, max 2 alive)
-  const byId = id => CASES.find(c => c.id === id);
+  const byId = id => CASES.find(c => c.id === id || (c.alias || []).includes(id));
   const T = k => STR[LANG][k] ?? STR.en[k];
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const caseUrl = c => `${c.path}?lang=${LANG}`;
@@ -46,7 +46,7 @@
     const item = (c, i) => {
       const L = c[LANG];
       return `<a class="ci${c.id === CUR ? ' on' : ''}${c.ready ? '' : ' off'}" href="?case=${c.id}" data-case="${c.id}" ${c.ready ? '' : 'aria-disabled="true"'} ${c.id === CUR ? 'aria-current="page"' : ''}>
-        <span class="th"><img src="${c.thumb}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"></span>
+        <span class="th">${c.ready ? `<img src="${c.thumb}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : ''}</span>
         <span class="tx"><b>${esc(L.t)}</b><em>${c.ready ? `${c.steps} ${T('steps')} · ${c.min} ${T('min')}` : T('soon')}</em></span>
         <span class="ix">${String(i + 1).padStart(2, '0')}</span></a>`;
     };
@@ -55,7 +55,7 @@
     $('#tiles').innerHTML = CASES.map((c, i) => {
       const L = c[LANG];
       return `<a class="tile glass${c.ready ? '' : ' off'}" href="?case=${c.id}" data-case="${c.id}" ${c.ready ? '' : 'aria-disabled="true"'}>
-        <span class="pic"><img src="${c.poster}" alt="${esc(L.t)}" loading="${i < 2 ? 'eager' : 'lazy'}" width="960" height="540" onerror="this.style.visibility='hidden'"></span>
+        <span class="pic">${c.ready ? `<img src="${c.poster}" alt="${esc(L.t)}" loading="${i < 2 ? 'eager' : 'lazy'}" width="960" height="540" onerror="this.style.visibility='hidden'">` : ''}</span>
         <span class="body"><span class="row"><span class="n">${String(i + 1).padStart(2, '0')}</span><span class="m">${c.ready ? `${c.steps} ${T('steps')} · ${c.min} ${T('min')}` : T('soon')}</span></span>
         <b>${esc(L.t)}</b><em>${esc(L.s)}</em><span class="h">${esc(L.h)}</span>
         ${c.ready ? `<span class="go">${T('start')}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M7 3l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>` : ''}</span></a>`;
@@ -93,7 +93,7 @@
     return f;
   }
   function go(id, push = true) {
-    const c = byId(id); if (id !== 'home' && (!c || !c.ready)) id = 'home';
+    const c = byId(id); if (id !== 'home' && (!c || !c.ready)) id = 'home'; else if (c) id = c.id;
     CUR = id;
     const u = new URL(location.href); if (id === 'home') u.searchParams.delete('case'); else u.searchParams.set('case', id); u.hash = '';
     if (push) history.pushState({ id }, '', u); else history.replaceState({ id }, '', u);
