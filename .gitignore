@@ -8,3 +8,4 @@ __pycache__/
 *-results.json
 node_modules/
 .DS_Store
+build.md5

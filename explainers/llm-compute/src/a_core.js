@@ -119,7 +119,7 @@ function layout() {
   $('stage').style.transform = `translate(${stageOX}px,${stageOY}px) scale(${stageScale})`;
   renderer.setSize(VW, VH, false);
   let h = document.getElementById('rothint'); if (!h) { h = document.createElement('div'); h.id = 'rothint'; h.dataset.i18n = 'portrait'; h.innerHTML = tr(B('In portrait mode the lesson scales to fit. Rotate to <b>landscape</b> or use a computer for the full experience. Pinch to zoom.<br><span>Explore each structure in 3D.</span>', '竖屏时整页按比例缩小；<b>横屏</b>或用电脑打开可获得完整体验。双指可放大。<br><span>Rotate to landscape for the full lesson.</span>')); document.body.appendChild(h); }
-  h.style.display = VH - 810 * stageScale > 120 ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
+  h.style.display = (VH > VW && VH - 810 * stageScale > 120) ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
 }
 
 // ---------- palette (data-terminal; 3D accents kept desaturated) ----------

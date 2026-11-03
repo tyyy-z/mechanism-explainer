@@ -2,162 +2,75 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mechanism explainers: machines, taken apart in 3D</title>
-<meta name="description" content="Three interactive 3D lessons: a turbofan engine, a 3D NAND flash die and an LLM token on CPU + GPU. Linked simulators, public sources, English and Chinese.">
-<meta property="og:title" content="Mechanism explainers: machines, taken apart">
-<meta property="og:description" content="Interactive 3D lessons with linked simulators: turbofan, 3D NAND, LLM on CPU + GPU.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mechanism Explainers · machines you can run</title>
+<meta name="description" content="Interactive 3D lessons with linked simulators: a turbofan engine, an LLM token on CPU + GPU, a mechanical watch movement and an EV traction motor with its inverter. Public sources, English and 中文.">
+<meta property="og:title" content="Mechanism Explainers · machines you can run">
+<meta property="og:description" content="Turbofan · LLM on CPU+GPU · mechanical watch · EV motor + inverter. Interactive 3D, linked simulators, EN / 中文.">
 <meta property="og:image" content="https://tyyy-z.github.io/mechanism-explainer/docs/banner.png">
 <meta property="og:image:width" content="1280"><meta property="og:image:height" content="640">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#07090d">
 <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://api.fontshare.com">
-<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
-<link href="https://api.fontshare.com/v2/css?f[]=pilcrow-rounded@400,500,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/hub.css">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <clipPath id="cut" clipPathUnits="objectBoundingBox"><path d="M.5,0 A.5,.5 0 1,0 1,.5 L.5,.5 Z"/></clipPath>
-    <symbol id="cutmark" viewBox="0 0 20 20"><path d="M10,0 A10,10 0 1,0 20,10 L10,10 Z"/></symbol>
-  </defs>
-</svg>
-<a class="skip" href="#main" data-en="Skip to content" data-zh="跳到正文">Skip to content</a>
-<header class="bar">
-  <a class="mark" href="./" aria-label="mechanism, home"><svg aria-hidden="true"><use href="#cutmark"/></svg><span>mechanism</span></a>
-  <nav aria-label="Sections">
-    <a href="#machines" data-en="machines" data-zh="三台机器">machines</a>
-    <a href="#made" data-en="how they're made" data-zh="怎么做的">how they're made</a>
-    <a href="#steps" data-en="every step" data-zh="全部步骤">every step</a>
-    <a href="#skill" data-en="the skill" data-zh="技能">the skill</a>
-  </nav>
-  <div class="lang" role="group" aria-label="Language">
-    <button type="button" data-lang="en" aria-pressed="true">EN</button>
-    <button type="button" data-lang="zh" aria-pressed="false">中文</button>
-  </div>
-</header>
+<div class="ground" aria-hidden="true"><div class="g g0"></div><div class="g g1"></div><div class="veil"></div></div>
+<a class="skip" href="#main" data-i="skip">Skip to content</a>
 
-<main id="main">
-<section class="hero" aria-labelledby="h1">
-  <div class="hero-copy">
-    <h1 id="h1"><span data-en="machines," data-zh="把机器">machines,</span><br><span data-en="taken apart" data-zh="拆开来看">taken apart</span></h1>
-    <p class="lead" data-en="Three interactive 3D lessons: a turbofan engine, a 3D NAND flash die and one LLM token on CPU + GPU. Each runs a linked simulator and cites public sources." data-zh="三堂交互式 3D 课：涡扇发动机、3D NAND 闪存裸片、在 CPU + GPU 上生成一个 LLM token。每一堂都联动一个模拟器，并注明公开来源。">Three interactive 3D lessons: a turbofan engine, a 3D NAND flash die and one LLM token on CPU + GPU. Each runs a linked simulator and cites public sources.</p>
-    <a class="btn" href="explainers/turbofan/" data-lang-link data-en="open the turbofan" data-zh="打开涡扇发动机">open the turbofan</a>
-  </div>
-  <div class="stage">
-    <div class="notch" aria-hidden="true"></div>
-    <div class="scrub" data-ui>
-      <div class="scrub-tabs" role="tablist" aria-label="Lesson">
-        <button role="tab" type="button" data-m="engine" aria-selected="true" data-en="turbofan" data-zh="涡扇">turbofan</button>
-        <button role="tab" type="button" data-m="nand" aria-selected="false">3D NAND</button>
-        <button role="tab" type="button" data-m="compute" aria-selected="false" data-en="LLM token" data-zh="LLM token">LLM token</button>
+<div class="app">
+  <aside class="rail glass" id="rail">
+    <a class="brand" href="./" data-case="home">
+      <svg class="mk" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.3"/><path d="M12 2.5A9.5 9.5 0 0 1 21.5 12H12z" fill="currentColor"/></svg>
+      <span><b>Mechanism</b><em data-i="brandsub">explainers</em></span>
+    </a>
+    <nav class="cases" id="nav" aria-label="Lessons"></nav>
+    <div class="railfoot">
+      <div class="seg" id="lang" role="group" aria-label="Language"><button type="button" data-v="en">EN</button><button type="button" data-v="zh">中文</button></div>
+      <a class="gh" href="https://github.com/tyyy-z/mechanism-explainer" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg><span data-i="gh">Source & skill</span></a>
+    </div>
+  </aside>
+
+  <main id="main" class="main">
+    <!-- overview -->
+    <section class="view home" id="home" aria-labelledby="h1">
+      <div class="homein">
+        <header class="intro">
+          <p class="eyebrow" data-i="eyebrow">Interactive 3D lessons · public sources · EN / 中文</p>
+          <h1 id="h1" data-i="h1">Take the machine apart. Then run it.</h1>
+          <p class="lead" data-i="lead">Each lesson is a real-device 3D model wired to a simulator. Move a control and the parts, the scope and the numbers change together.</p>
+        </header>
+        <div class="tiles" id="tiles"></div>
+        <div class="made glass">
+          <div><h3 data-i="m1h">Public sources only</h3><p data-i="m1p">Datasheets, papers, textbooks and teardown photos, cited inside every step.</p></div>
+          <div><h3 data-i="m2h">Built like the real part</h3><p data-i="m2p">Profiles traced from references, PBR metals, real counts where they are countable.</p></div>
+          <div><h3 data-i="m3h">One clock, one state</h3><p data-i="m3p">The 3D scene, the scope and the readouts all read the same simulator.</p></div>
+        </div>
+        <div class="skill glass">
+          <div><h3 data-i="skh">Make your own</h3><p data-i="skp">Every lesson here was built with one reusable agent skill. Drop it into Codex or Claude Code and ask “explain how X works”.</p></div>
+          <pre><code>git clone https://github.com/tyyy-z/mechanism-explainer
+cp -r mechanism-explainer/skill ~/.codex/skills/mechanism-explainer</code></pre>
+        </div>
+        <footer class="foot"><span data-i="foot">MIT licence · photos credited in the README · no proprietary data</span><a href="https://github.com/tyyy-z/mechanism-explainer#sources--credits" target="_blank" rel="noopener" data-i="credits">Sources & credits</a></footer>
       </div>
-      <div class="scrub-view">
-        <div class="shutter shut" id="shut"><img id="scrubImg" src="assets/steps/engine-0.webp" width="640" height="360" alt="Turbofan lesson, step view rendered in 3D"></div>
+    </section>
+
+    <!-- case viewer -->
+    <section class="view viewer" id="viewer" hidden>
+      <div class="bar glass">
+        <div class="ttl"><h2 id="vt"></h2><p id="vs"></p></div>
+        <div class="acts">
+          <span class="meta" id="vm"></span>
+          <a class="pill" id="vopen" target="_blank" rel="noopener"><span data-i="open">Full page</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2h6v6M10 2 3 9" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></a>
+        </div>
       </div>
-      <label class="scrub-row"><span id="scrubPos">1 / 8</span>
-        <input id="scrubRange" type="range" min="0" max="7" value="0" aria-label="Step">
-      </label>
-      <p class="scrub-title" id="scrubTitle">Starting: spin the core, then light it</p>
-      <p class="scrub-sub" id="scrubSub">An air starter on the gearbox spins the HP spool until the compressor can feed the combustor.</p>
-      <a class="scrub-open" id="scrubOpen" href="explainers/turbofan/?step=0" data-en="open the lesson at this step" data-zh="从这一步打开课程">open the lesson at this step</a>
-    </div>
-  </div>
-</section>
-
-<section class="show" id="machines" aria-labelledby="h-machines">
-  <div class="show-list">
-    <h2 id="h-machines" data-en="three machines" data-zh="三台机器">three machines</h2>
-    <ul role="tablist" aria-label="Machines">
-      <li><button role="tab" type="button" data-s="0" aria-selected="true" data-en="turbofan engine" data-zh="涡扇发动机">turbofan engine</button></li>
-      <li><button role="tab" type="button" data-s="1" aria-selected="false" data-en="3D NAND flash" data-zh="3D NAND 闪存">3D NAND flash</button></li>
-      <li><button role="tab" type="button" data-s="2" aria-selected="false" data-en="LLM on CPU + GPU" data-zh="CPU + GPU 上的 LLM">LLM on CPU + GPU</button></li>
-    </ul>
-    <div class="show-links"><a id="showOpen" href="explainers/turbofan/" data-en="open lesson" data-zh="打开课程">open lesson</a><a id="showWatch" href="assets/previews/turbofan.mp4" data-en="watch 60 s" data-zh="看 60 秒">watch 60 s</a></div>
-  </div>
-  <div class="disc-wrap">
-    <div class="disc" id="disc"></div>
-    <div class="obj">
-      <video id="showVid" muted loop playsinline autoplay preload="none" poster="assets/posters/turbofan.webp" aria-label="Turbofan lesson playing: flow through fan, compressor, combustor and turbines"><source src="assets/previews/turbofan-loop.mp4" type="video/mp4"></video>
-    </div>
-    <p class="fact" id="showFact">CFM56-7 class · bypass ratio 5.1 · 24 fan blades · 8 steps</p>
-  </div>
-</section>
-
-<section class="made" id="made" aria-labelledby="h-made">
-  <div class="field f1">
-    <h2 id="h-made" data-en="how each is made" data-zh="每一堂怎么做">how each is made</h2>
-    <div class="card" data-ui>
-      <img class="c-img" src="assets/photos/jet-engine-at-the-museum-of-aviation.webp" width="1200" height="900" alt="A sectioned jet engine in a museum, the kind of reference the models are built from" loading="lazy">
-      <p class="c-t" data-en="HPT blade" data-zh="高压涡轮叶片">HPT blade</p>
-      <p class="c-m" data-en="1 stage · 80 blades" data-zh="1 级 · 80 片">1 stage · 80 blades</p>
-    </div>
-    <p class="clause" data-en="First, real parts from public drawings and photos." data-zh="先照公开图纸和照片做出真实零件。">First, real parts from public drawings and photos.</p>
-  </div>
-  <div class="field f2">
-    <div class="card" data-ui>
-      <p class="c-t" data-en="HPT blade" data-zh="高压涡轮叶片">HPT blade</p>
-      <p class="c-m" data-en="1 stage · 80 blades" data-zh="1 级 · 80 片">1 stage · 80 blades</p>
-      <p class="c-r"><span data-en="gas in" data-zh="进口燃气">gas in</span><b>1,600 K</b></p>
-    </div>
-    <p class="clause" data-en="Then it moves, at the real speed ratios." data-zh="再让它按真实转速比动起来。">Then it moves, at the real speed ratios.</p>
-  </div>
-  <div class="field f3">
-    <div class="card" data-ui>
-      <p class="c-t" data-en="HPT blade" data-zh="高压涡轮叶片">HPT blade</p>
-      <p class="c-m" data-en="1 stage · 80 blades" data-zh="1 级 · 80 片">1 stage · 80 blades</p>
-      <p class="c-r"><span data-en="gas in" data-zh="进口燃气">gas in</span><b>1,600 K</b></p>
-      <p class="c-r"><span data-en="throttle" data-zh="油门">throttle</span><b>N1 97%</b></p>
-      <span class="c-bar" aria-hidden="true"><i></i></span>
-    </div>
-    <p class="clause" data-en="Then you drive it from a linked simulator." data-zh="然后你用联动的模拟器来驾驶它。">Then you drive it from a linked simulator.</p>
-  </div>
-  <div class="field f4">
-    <div class="card" data-ui>
-      <p class="c-t" data-en="HPT blade" data-zh="高压涡轮叶片">HPT blade</p>
-      <p class="c-m" data-en="1 stage · 80 blades" data-zh="1 级 · 80 片">1 stage · 80 blades</p>
-      <p class="c-r"><span data-en="gas in" data-zh="进口燃气">gas in</span><b>1,600 K</b></p>
-      <p class="c-r"><span data-en="throttle" data-zh="油门">throttle</span><b>N1 97%</b></p>
-      <p class="c-done" data-en="checked against reference photos" data-zh="已对照参考照片检查">checked against reference photos</p>
-    </div>
-    <p class="clause" data-en="Last, it is checked side by side with photos." data-zh="最后与照片并排比对检查。">Last, it is checked side by side with photos.</p>
-  </div>
-</section>
-
-<section class="menu" id="steps" aria-labelledby="h-steps">
-  <h2 id="h-steps" data-en="every step, all three lessons" data-zh="三堂课的全部步骤">every step, all three lessons</h2>
-  <nav class="menu-jump" aria-label="Lessons">
-    <a href="#cat-engine" data-en="turbofan" data-zh="涡扇">turbofan</a><a href="#cat-nand">3D NAND</a><a href="#cat-compute" data-en="LLM token" data-zh="LLM token">LLM token</a>
-  </nav>
-  <div id="menuCats"></div>
-</section>
-
-<section class="cta" id="skill" aria-labelledby="h-skill">
-  <div class="cta-obj"><div class="cta-disc" aria-hidden="true"></div><img class="cta-img" src="assets/photos/honeywell-htf7000-turbofan-engine-ebace-2023.webp" width="1200" height="919" alt="A sectioned Honeywell HTF7000 turbofan on display, its quarter cut away" loading="lazy"></div>
-  <div class="cta-text">
-    <h2 id="h-skill" data-en="explain your own machine" data-zh="讲解你自己的机器">explain your own machine</h2>
-    <p data-en="The skill that built these lessons is in the repo: reference packs, real-part modelling, fidelity sheets, a linked simulator and two languages." data-zh="做出这三堂课的技能就在仓库里：参考资料包、按真实零件建模、逐视角对照检查、联动模拟器、中英双语。">The skill that built these lessons is in the repo: reference packs, real-part modelling, fidelity sheets, a linked simulator and two languages.</p>
-    <p class="cta-fact" data-en="MIT licence · plain HTML · runs offline" data-zh="MIT 许可 · 纯 HTML · 可离线运行">MIT licence · plain HTML · runs offline</p>
-    <a class="btn" href="https://github.com/tyyy-z/mechanism-explainer/tree/main/skill" data-en="get the skill on GitHub" data-zh="在 GitHub 获取技能">get the skill on GitHub</a>
-  </div>
-</section>
-</main>
-
-<footer class="foot" aria-labelledby="h-foot">
-  <h2 id="h-foot" class="vh">mechanism</h2>
-  <div class="blocks" aria-hidden="true" id="blocks"></div>
-  <div class="foot-cols">
-    <div><p class="fh" data-en="lessons" data-zh="课程">lessons</p><a href="explainers/turbofan/" data-lang-link data-en="turbofan engine" data-zh="涡扇发动机">turbofan engine</a><a href="explainers/3d-nand/" data-lang-link data-en="3D NAND flash" data-zh="3D NAND 闪存">3D NAND flash</a><a href="explainers/llm-compute/" data-lang-link data-en="LLM on CPU + GPU" data-zh="CPU + GPU 上的 LLM">LLM on CPU + GPU</a></div>
-    <div><p class="fh" data-en="repository" data-zh="仓库">repository</p><a href="https://github.com/tyyy-z/mechanism-explainer">README</a><a href="https://github.com/tyyy-z/mechanism-explainer/tree/main/skill" data-en="the skill" data-zh="技能">the skill</a><a href="LICENSE" data-en="MIT licence" data-zh="MIT 许可">MIT licence</a></div>
-    <div><p class="fh" data-en="sources" data-zh="来源">sources</p><a href="explainers/turbofan/refs/REFS.md" data-en="turbofan references" data-zh="涡扇参考资料">turbofan references</a><a href="explainers/3d-nand/refs/REFS.md" data-en="3D NAND references" data-zh="3D NAND 参考资料">3D NAND references</a><a href="explainers/llm-compute/refs/REFS.md" data-en="CPU + GPU references" data-zh="CPU + GPU 参考资料">CPU + GPU references</a></div>
-    <div><p class="fh" data-en="fidelity" data-zh="逼真度检查">fidelity</p><a href="explainers/turbofan/fidelity/REVIEW.md" data-en="turbofan review" data-zh="涡扇检查记录">turbofan review</a><a href="explainers/3d-nand/fidelity/REVIEW.md" data-en="3D NAND review" data-zh="3D NAND 检查记录">3D NAND review</a><a href="explainers/llm-compute/fidelity/REVIEW.md" data-en="CPU + GPU review" data-zh="CPU + GPU 检查记录">CPU + GPU review</a></div>
-    <div class="foot-contact"><a href="https://github.com/tyyy-z/mechanism-explainer">github.com/tyyy-z/mechanism-explainer</a><p data-en="Public sources only. Values are typical or illustrative, never measurements of a specific product." data-zh="仅使用公开资料。数值为典型值或示意值，不是某个具体产品的实测数据。">Public sources only. Values are typical or illustrative, never measurements of a specific product.</p></div>
-  </div>
-  <p class="credits" id="credits"></p>
-  <div class="foot-last"><p>© 2026 tyyy-z · MIT</p><a class="btn sm" href="#main" data-en="back to top" data-zh="回到顶部">back to top</a></div>
-</footer>
-<script src="assets/hub-data.js"></script>
+      <div class="frame glass" id="frame"><div class="load" id="load"><i></i><span data-i="loading">Loading the 3D scene…</span></div></div>
+    </section>
+  </main>
+</div>
+<nav class="tabbar glass" id="tabbar" aria-label="Lessons"></nav>
 <script src="assets/hub.js"></script>
 </body>
 </html>

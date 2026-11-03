@@ -23,7 +23,6 @@
 | | Lesson | What you can do |
 |---|---|---|
 | <img src="docs/turbofan.gif" width="300" alt="turbofan lesson"> | **[How a turbofan works](https://tyyy-z.github.io/mechanism-explainer/explainers/turbofan/)**<br>CFM56-7B-class two-spool high-bypass engine, 8 steps | Start the engine, then throttle it, light the combustor and push the compressor into surge. A live Brayton-cycle model drives the spools, temperatures and thrust. |
-| <img src="docs/nand.gif" width="300" alt="3D NAND lesson"> | **[Inside 3D NAND flash](https://tyyy-z.github.io/mechanism-explainer/explainers/3d-nand/)**<br>From the die down to one charge-trap cell, 8 steps | Read, program (ISPP) and erase a gate-all-around cell. Watch the electrons tunnel, and see the V<sub>t</sub> distributions move. |
 | <img src="docs/compute.gif" width="300" alt="LLM compute lesson"> | **[One LLM token on CPU + GPU](https://tyyy-z.github.io/mechanism-explainer/explainers/llm-compute/)**<br>From the CPU core to HBM stacks and the KV cache, 9 steps | Run prefill and decode, and see where the roofline caps you. Watch KV-cache pages fill the HBM stacks. |
 
 Every lesson:

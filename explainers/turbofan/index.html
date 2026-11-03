@@ -391,7 +391,7 @@ function layout() {
   renderer.setSize(VW, VH, false);
   let h = document.getElementById('rothint'); if (!h) { h = document.createElement('div'); h.id = 'rothint'; document.body.appendChild(h); }
   h.innerHTML = t('rothint');
-  h.style.display = VH - 810 * stageScale > 120 ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
+  h.style.display = (VH > VW && VH - 810 * stageScale > 120) ? 'block' : 'none'; h.style.top = (stageOY + 810 * stageScale + 18) + 'px';
 }
 
 // ---------- palette (data-terminal UI; physical PBR colours for hardware) ----------
