@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>How a Mechanical Watch Works · ETA 2824-2 / NH35-class interactive movement</title>
+<link rel="icon" href="../../assets/mark.svg" type="image/svg+xml">
 <meta name="description" content="Interactive 3D automatic watch movement (ETA 2824-2 / Seiko NH35 class) with a live balance-wheel and escapement model. English / 中文.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -640,7 +641,7 @@ const RV = { r1: [1.45, -1.52], r2: [-1.62, -1.32], rd: [-3.9, -3.2] };
 const TX = {};
 TX.perlage = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, W, H); const s = 32; for (let y = -1; y < 9; y++) for (let x = -1; x < 9; x++) { const cx = x * s + (y % 2) * s / 2, cy = y * s * .87; const gr = g.createRadialGradient(cx, cy, 2, cx, cy, s * .62); gr.addColorStop(0, '#d6d6d6'); gr.addColorStop(.55, '#8a8a8a'); gr.addColorStop(.85, '#b8b8b8'); gr.addColorStop(1, '#7a7a7a'); g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, s * .62, 0, TAU); g.fill(); for (let k = 0; k < 18; k++) { g.strokeStyle = `rgba(255,255,255,${.05 + .05 * (k % 2)})`; g.beginPath(); g.arc(cx, cy, k * s * .034, 0, TAU); g.stroke(); } } });
 TX.perlage.wrapS = TX.perlage.wrapT = THREE.RepeatWrapping; TX.perlage.repeat.set(1 / 2.2, 1 / 2.2);
-TX.cotes = canvasTex(64, 256, (g, W, H) => { const gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#8c8c8c'); gr.addColorStop(.35, '#e8e8e8'); gr.addColorStop(.6, '#c4c4c4'); gr.addColorStop(1, '#8c8c8c'); g.fillStyle = gr; g.fillRect(0, 0, W, H); for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(0,0,0,${rr(.02, .07)})`; const x = rr(0, W); g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + rr(-6, 6), H / 2, x, H); g.stroke(); } });
+TX.cotes = canvasTex(64, 256, (g, W, H) => { const gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#8c8c8c'); gr.addColorStop(.35, '#e8e8e8'); gr.addColorStop(.6, '#c4c4c4'); gr.addColorStop(1, '#8c8c8c'); g.fillStyle = gr; g.fillRect(0, 0, W, H); for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(0,0,0,${rr(.01, .035)})`; const x = rr(0, W); g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + rr(-6, 6), H / 2, x, H); g.stroke(); } });
 TX.cotes.wrapS = TX.cotes.wrapT = THREE.RepeatWrapping; TX.cotes.repeat.set(1 / 2.4, 1 / 9); TX.cotes.rotation = .5;
 TX.sun = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#a0a0a0'; g.fillRect(0, 0, W, H); g.translate(W / 2, H / 2); for (let i = 0; i < 900; i++) { const a = rr(0, TAU), v = 120 + rr(0, 110) | 0; g.strokeStyle = `rgba(${v},${v},${v},.35)`; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * W, Math.sin(a) * W); g.stroke(); } });
 TX.rotor = canvasTex(1024, 1024, (g, W, H) => {
@@ -660,8 +661,8 @@ for (const k of ['perlage', 'cotes', 'sun']) TX[k].colorSpace = THREE.NoColorSpa
 // ---------- materials (PBR + RoomEnvironment; per-part clones so a part can be highlighted) ----------
 function PM(color, o = {}) { return new THREE.MeshPhysicalMaterial(Object.assign({ color, roughness: .32, metalness: .95, envMapIntensity: 1.15 }, o)); }
 const BASE = {
-  plate: () => PM('#8f949b', { roughness: .5, metalness: .85, envMapIntensity: .7, roughnessMap: TX.perlage, bumpMap: TX.perlage, bumpScale: .6 }),
-  bridge: () => PM('#aeb3ba', { roughness: .3, envMapIntensity: .8, map: TX.cotes, roughnessMap: TX.cotes, bumpMap: TX.cotes, bumpScale: .4 }),
+  plate: () => PM('#8a8f96', { roughness: .42, metalness: 1, envMapIntensity: .82, roughnessMap: TX.perlage, bumpMap: TX.perlage, bumpScale: .2 }),
+  bridge: () => PM('#9da2a9', { roughness: .27, metalness: 1, envMapIntensity: .9, roughnessMap: TX.cotes, bumpMap: TX.cotes, bumpScale: .12 }),
   gold: () => PM('#d8b25e', { roughness: .3, roughnessMap: TX.sun, metalness: 1 }),
   steel: () => PM('#cfd3d8', { roughness: .14, metalness: 1 }),
   steelS: () => PM('#a7abb1', { roughness: .26, roughnessMap: TX.sun, metalness: 1 }),
@@ -670,7 +671,7 @@ const BASE = {
   spring: () => PM('#d9dde3', { roughness: .18, metalness: 1 }),
   mains: () => PM('#7d8794', { roughness: .3, metalness: .95 }),
   ruby: () => new THREE.MeshPhysicalMaterial({ color: '#c2124a', roughness: .08, metalness: 0, clearcoat: 1, clearcoatRoughness: .05, sheen: .4, sheenColor: new THREE.Color('#ff6a9a'), emissive: '#3a0010', envMapIntensity: 1.6 }),
-  rotor: () => PM('#a9adb4', { roughness: .34, envMapIntensity: .8, map: TX.rotor, roughnessMap: TX.sun, metalness: .95 }),
+  rotor: () => PM('#a9adb4', { roughness: .3, envMapIntensity: 1.0, map: TX.rotor, roughnessMap: TX.sun, metalness: .95 }),
   heavy: () => PM('#b6b0a4', { roughness: .36, metalness: 1 }),
   date: () => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .6, metalness: 0, map: TX.date }),
   dark: () => new THREE.MeshStandardMaterial({ color: '#101114', roughness: .7, metalness: .2 }),

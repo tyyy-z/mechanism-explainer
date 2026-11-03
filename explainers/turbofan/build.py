@@ -6,6 +6,7 @@ js='\n'.join((d/f).read_text() for f in order if (d/f).exists())
 html=f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>How a Turbofan Works · CFM56-7B-class interactive cutaway</title>
+<link rel="icon" href="../../assets/mark.svg" type="image/svg+xml">
 <meta name="description" content="Interactive 3D cutaway of a two-spool high-bypass turbofan with a live Brayton-cycle model. English / 中文.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">

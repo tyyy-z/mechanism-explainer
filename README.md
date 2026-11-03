@@ -25,6 +25,7 @@
 | <img src="docs/turbofan.gif" width="300" alt="turbofan lesson"> | **[How a turbofan works](https://tyyy-z.github.io/mechanism-explainer/explainers/turbofan/)**<br>CFM56-7B-class two-spool high-bypass engine, 8 steps | Start the engine, then throttle it, light the combustor and push the compressor into surge. A live Brayton-cycle model drives the spools, temperatures and thrust. |
 | <img src="docs/compute.gif" width="300" alt="LLM compute lesson"> | **[One LLM token on CPU + GPU](https://tyyy-z.github.io/mechanism-explainer/explainers/llm-compute/)**<br>From the CPU core to HBM stacks and the KV cache, 9 steps | Run prefill and decode, and see where the roofline caps you. Watch KV-cache pages fill the HBM stacks. |
 | <img src="docs/watch.gif" width="300" alt="watch movement lesson"> | **[How a mechanical watch works](https://tyyy-z.github.io/mechanism-explainer/explainers/watch-movement/)**<br>ETA 2824 / NH35-class automatic movement, 7 steps | Wind the mainspring, follow the gear train to the Swiss lever escapement, change the beat rate and watch the timegrapher trace drift as the power reserve runs down. |
+| <img src="docs/ev.gif" width="300" alt="EV motor and inverter lesson"> | **[How an EV motor + inverter works](https://tyyy-z.github.io/mechanism-explainer/explainers/ev-motor/)**<br>Model 3-class rear drive unit: hairpin IPM motor, SiC inverter, 7 steps | Push the pedal and sweep the speed: a live field-oriented-control (dq) model moves the current vector, shows the voltage-limit ellipse closing in (field weakening), draws the torque–speed envelope and flips power flow into regen. |
 
 Every lesson:
 - is **one self-contained `index.html`**, with three.js and fonts from a CDN and no build tools;
@@ -82,5 +83,8 @@ Install notes are in [`skill/README.md`](skill/README.md).
   - jet engine at the Košice aviation museum by ZemplinTemplar
 
   All are CC BY-SA 4.0.
+- Lesson reference photos (Wikimedia Commons, used for the side-by-side fidelity sheets; full table in each `refs/REFS.md`):
+  - **Watch movement:** ETA-2824-A2 (de.wikipedia user, CC BY-SA 3.0); Stowa Antea ETA 2824 macro by Guy Sie (CC BY-SA 2.0); ETA 2801 movement and lever escapement by Micky Aldridge (CC BY 2.0); ETA-2824 in a Longines and ETA close-up by KRaikkonen01 (CC BY-SA 4.0); Chinese movement escapement/jewels and balance wheel by Hustvedt (CC BY-SA 3.0); Benrus balance wheel by Chris Burks and Seiko 7S26 movement by "Poor Man watch" (public domain).
+  - **EV motor + inverter:** Hairpin-Stator and Hairpin-Stator Aufbau by PEM RWTH Aachen; IGBT module by Sthdhk; uncased film capacitor by Phiarc; VT-5 resolver by Padonak39 (all CC BY-SA 4.0).
 - Reference images in `explainers/*/refs/` and the side-by-side sheets keep their original licences (CC BY-SA / CC BY / CC0 / public domain), as listed in each `REFS.md`.
 - Code is MIT licensed © 2026 tyyy-z.
