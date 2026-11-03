@@ -30,7 +30,10 @@ Late units and the exact winding layout vary; anything not in the table is gener
 |---|---|---|
 | hairpin_stator.webp | File:Hairpin-Stator.png | CC BY-SA 4.0, PEM RWTH Aachen |
 | hairpin_aufbau.webp | File:Hairpin-Stator Aufbau.png | CC BY-SA 4.0, PEM RWTH Aachen |
-TODO: find CC images of an IPM rotor lamination, a SiC/IGBT power module + DC-link film capacitor, and a resolver (Commons search for "Tesla drive unit" returned nothing usable).
+| igbt_module.webp | File:MITSUBISHI IGBT module.jpg | CC BY-SA 4.0, Sthdhk (stand-in for module form factor: baseplate, screw terminals, gel/case) |
+| film_cap_uncased.webp | File:Uncased film capacitor schoopage.jpg | CC BY-SA 4.0, Phiarc (wound film element + sprayed schoopage end — what sits inside the DC-link block) |
+| resolver_vt5.webp | File:Вращающийся трансформатор вт-5 кф3.031.052.JPG | CC BY-SA 4.0, Padonak39 (wound resolver stator/rotor) |
+Still missing: a CC photo of an IPM rotor lamination with V pockets (geometry follows MotorXP's published cross-section description instead).
 
 ## Parts table (§10.1) — to fill as geometry is built
 | part | what it must show | reference | key dims (mm) | materials | sub-parts |
