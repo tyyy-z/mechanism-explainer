@@ -38,4 +38,4 @@ const EV = (() => {
   }
   return { p, Rs, lam, Ld, Lq, Imax, Pcap, torque, best, envelope, svpwm };
 })();
-if (typeof module !== 'undefined') module.exports = EV;
+

@@ -10,7 +10,7 @@
     { id: 'watch', path: 'explainers/watch-movement/', poster: 'assets/posters/watch.webp', thumb: 'assets/steps/watch-1-sq.webp', steps: 7, min: 15, ready: true, alias: ['watch-movement'],
       en: { t: 'Mechanical watch movement', s: 'ETA 2824 / NH35 class · 28,800 vph', h: 'Barrel, gear train, escapement and balance: how a spring becomes 8 ticks a second for 40 hours.' },
       zh: { t: '机械表机芯', s: 'ETA 2824 / NH35 级 · 每小时 28,800 次', h: '发条盒、轮系、擒纵和摆轮：一根发条怎样变成每秒 8 下、走 40 小时。' } },
-    { id: 'ev-motor', path: 'explainers/ev-motor/', poster: 'assets/posters/ev.webp', thumb: 'assets/steps/ev-1-sq.webp', steps: 7, min: 18, ready: false,
+    { id: 'ev-motor', path: 'explainers/ev-motor/', poster: 'assets/posters/ev.webp', thumb: 'assets/steps/ev-1-sq.webp', steps: 7, min: 18, ready: true,
       en: { t: 'EV motor + inverter', s: 'IPMSM · hairpin stator · SiC bridge · FOC', h: 'From battery DC to a rotating field: PWM, field-oriented control, torque–speed limits and regen.' },
       zh: { t: '电动车电机 + 逆变器', s: 'IPMSM · 发卡绕组 · SiC 桥 · FOC', h: '从电池直流到旋转磁场：PWM、磁场定向控制、转矩-转速极限和能量回收。' } },
   ];

@@ -1,0 +1,31 @@
+<canvas id="gl" data-i18n-title="a_gl"></canvas>
+<div id="stage">
+  <header id="hdr">
+    <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 18 18" fill="none" stroke-width="1.2"><circle cx="9" cy="9" r="7.2" stroke="currentColor" stroke-opacity=".6"/><circle cx="9" cy="9" r="1.6" stroke="#4a8ad6" stroke-width="1.4"/><path d="M9 7.4C8 4.6 9.6 2.6 11.4 2.4M10.6 9.6c2.8-.4 4.6 1.4 4.6 3.2M7.6 10c-1.4 2.6-3.8 2.8-5.2 1.8" stroke="#4a8ad6" stroke-width="1.3"/></svg></div><div><h1><span data-i18n="h1"></span> <span class="op">MODEL 3-CLASS RDU · IPMSM + SiC</span></h1><p data-i18n="h1sub"></p></div></div>
+    <div class="hdr-r"><span class="badge" data-i18n="badge1"></span><span class="badge ghost" data-i18n="badge2"></span><div class="seg lang" id="lang" role="group" aria-label="Language"><button data-v="en">EN</button><button data-v="zh">中文</button></div><button class="hbtn" id="btnAuto"></button><button class="hbtn icon" id="btnTheme" data-i18n-title="a_theme"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"/></svg></button></div>
+  </header>
+  <nav id="trail" data-i18n-title="a_trail"><h3><span data-i18n="trail"></span> <span data-i18n="trailn"></span></h3><div id="steps"></div>
+    <div id="trailfoot" data-i18n="trailfoot"></div></nav>
+  <div id="stageui">
+    <div id="steptitle"></div>
+    <div id="ticker"><div class="cmdseq" id="cmdseq"></div></div><div class="tk" id="tkphase"></div>
+    <div id="legend"><!-- taste-skill-ignore: swatch colours must match the scope colours --><span class="q"><i style="background:#e5566f"></i>U</span><span class="q"><i style="background:#5fc39c"></i>V</span><span class="q"><i style="background:#4a8ad6"></i>W</span><span class="q"><i style="background:#d9a441"></i><span data-i18n="lg_mag"></span></span></div>
+    <div id="toast"></div>
+  </div>
+  <div id="labels"></div>
+  <div id="viewbtns"><button class="hbtn" id="btnHousing"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="4" width="12" height="8" rx="2"/></svg><span data-i18n="b_housing"></span></button><button class="hbtn" id="btnInv"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 5h12M4 5v6M8 5v6M12 5v6M2 11h12"/></svg><span data-i18n="b_inv"></span></button><button class="hbtn" id="btnRotorOut"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5.8"/><circle cx="8" cy="8" r="2.2"/></svg><span data-i18n="b_rotor"></span></button><button class="hbtn" id="btnReset"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8a5 5 0 1 0 1.5-3.6"/><path d="M3 2.5V5h2.5"/></svg><span data-i18n="b_reset"></span></button></div>
+  <section id="why"><div id="whytabs"><button data-t="why" data-i18n="w_why"></button><button data-t="math" data-i18n="w_math"></button><button data-t="ex" data-i18n="w_try"></button><button data-t="quiz" data-i18n="w_quiz"></button><button data-t="src" data-i18n="w_src"></button></div><div id="whybody"></div></section>
+  <aside id="panel">
+    <div class="card" id="ctl"><h4><span><span data-i18n="ctl"></span><span class="sub" data-i18n="ctl2"></span></span><span id="speedw"><button class="sbtn icon" id="btnPause" data-i18n-title="a_pause"></button><select id="speed" data-i18n-title="a_speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></span></h4>
+      <div class="row" id="r-vdc"><label data-i18n="r_vdc"></label><div class="seg sm" id="vdc"><button data-v="300">300 V</button><button data-v="350">350 V</button><button data-v="400">400 V</button></div></div>
+      <div class="row" id="r-ped"><label data-i18n="r_ped"></label><input type="range" id="ped" min="-1" max="1" step="0.01" value="0.6" aria-label="torque pedal"><span class="rv" id="pedv"></span></div>
+      <div class="row" id="r-rpm"><label data-i18n="r_rpm"></label><input type="range" id="rpm" min="0" max="18000" step="100" value="3000" aria-label="motor speed"><span class="rv" id="rpmv"></span></div>
+      <div class="row" id="r-mode"><label data-i18n="r_mode"></label><div class="seg sm" id="mode"><button data-v="mtpa">MTPA</button><button data-v="id0">id = 0</button></div></div>
+      <div class="runrow"><button class="run" id="btnRun"></button><button class="sbtn icon" id="btnStepOp" data-i18n-title="a_next"><svg class="i" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 3v10l7-5z"/><rect x="11.5" y="3" width="1.4" height="10"/></svg></button></div>
+      <div id="readouts"></div>
+    </div>
+    <div class="card" id="scopecard"><h4><span><span data-i18n="scope"></span><span class="sub" data-i18n="scope2"></span></span></h4><div id="scopetabs" class="tabs"><button data-s="iabc" data-i18n="s_iabc"></button><button data-s="dq" data-i18n="s_dq"></button><button data-s="ts" data-i18n="s_ts"></button><button data-s="pwr" data-i18n="s_pwr"></button></div>
+      <canvas id="scope"></canvas><div id="scopecap"></div></div>
+  </aside>
+  <div id="tip"></div>
+</div>
